@@ -1,0 +1,8 @@
+*.acorn
+bin/
+obj/
+*.user
+*.suo
+*.log
+.vscode/
+.env
