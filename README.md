@@ -1,3 +1,6 @@
+<p align="center">
+  <img src="acorn-logo.png" alt="AcornDB logo" width="300"/>
+</p>
 # 🌰 AcornDB
 
 **AcornDB** is a lightweight, reactive, embedded database for .NET applications — built for devs who are tired of paying cloud bills to store 5MB of JSON.
