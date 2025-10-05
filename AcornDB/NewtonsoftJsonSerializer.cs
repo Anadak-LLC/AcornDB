@@ -1,6 +1,6 @@
 using Newtonsoft.Json;
 
-namespace AcornDB.Serialization
+namespace AcornDB
 {
     public class NewtonsoftJsonSerializer : ISerializer
     {

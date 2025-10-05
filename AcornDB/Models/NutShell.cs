@@ -1,13 +1,26 @@
 using System;
 
-namespace AcornDB.Models
+namespace AcornDB
 {
-    public class NutShell<T>
+    public partial class NutShell<T>
     {
-        public T Nut { get; set; } = default!;
-        public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-        public DateTimeOffset? UpdatedAt { get; set; }
-        public DateTimeOffset? ExpiresAt { get; set; }
+        public string Id { get; set; } = string.Empty;
+        public T Payload { get; set; } = default!;
+        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
+        public DateTime? ExpiresAt { get; set; }
         public int Version { get; set; } = 1;
+
+        // Alias properties for compatibility
+        public T Value
+        {
+            get => Payload;
+            set => Payload = value;
+        }
+
+        public T Nut
+        {
+            get => Payload;
+            set => Payload = value;
+        }
     }
 }

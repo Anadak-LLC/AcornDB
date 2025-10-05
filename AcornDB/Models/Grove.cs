@@ -1,0 +1,120 @@
+﻿using AcornDB.Sync;
+
+namespace AcornDB.Models
+{
+    public partial class Grove
+    {
+        internal readonly Dictionary<string, object> _trees = new();
+        private readonly List<object> _tangles = new();
+
+        public int TreeCount => _trees.Count;
+
+        public void Plant<T>(Tree<T> tree)
+        {
+            var key = typeof(T).FullName!;
+            _trees[key] = tree;
+            Console.WriteLine($"> 🌳 Grove planted Tree<{typeof(T).Name}>");
+        }
+
+        public Tree<T>? GetTree<T>()
+        {
+            var key = typeof(T).FullName!;
+            return _trees.TryGetValue(key, out var obj) ? obj as Tree<T> : null;
+        }
+
+        public IEnumerable<object> GetAllTrees()
+        {
+            return _trees.Values;
+        }
+
+        public Tangle<T> Entangle<T>(Branch branch, string id)
+        {
+            var tree = GetTree<T>();
+            if (tree == null)
+                throw new InvalidOperationException($"🌰 Tree<{typeof(T).Name}> not found in Grove.");
+
+            var tangle = new Tangle<T>(tree, branch, id);
+            _tangles.Add(tangle);
+            Console.WriteLine($"> 🪢 Grove entangled Tree<{typeof(T).Name}> with branch '{branch.RemoteUrl}'");
+            return tangle;
+        }
+
+        public void Oversee<T>(Branch branch, string id)
+        {
+            Entangle<T>(branch, id);
+            Console.WriteLine($">Grove is overseeing Tangle '{id}' for Tree<{typeof(T).Name}>");
+        }
+
+        public void ShakeAll()
+        {
+            Console.WriteLine("> 🍃 Grove is shaking all tangles...");
+            foreach (var tangle in _tangles)
+            {
+                if (tangle is IDisposable disposable)
+                    disposable.Dispose();
+            }
+        }
+
+        public void EntangleAll(string remoteUrl)
+        {
+            Console.WriteLine($"> 🌐 Grove entangling all trees with {remoteUrl}");
+            // TODO: Implement auto-entangle for all trees
+        }
+
+        public bool TryStash(string typeName, string key, string json)
+        {
+            if (_trees.TryGetValue(typeName, out var obj))
+            {
+                var stashMethod = obj.GetType().GetMethod("Stash");
+                var type = obj.GetType().GenericTypeArguments[0];
+                var deserialized = System.Text.Json.JsonSerializer.Deserialize(json, type);
+                stashMethod?.Invoke(obj, new[] { key, deserialized });
+                return true;
+            }
+            return false;
+        }
+
+        public bool TryToss(string typeName, string key)
+        {
+            if (_trees.TryGetValue(typeName, out var obj))
+            {
+                var tossMethod = obj.GetType().GetMethod("Toss");
+                tossMethod?.Invoke(obj, new[] { key });
+                return true;
+            }
+            return false;
+        }
+
+        public string? TryCrack(string typeName, string key)
+        {
+            if (_trees.TryGetValue(typeName, out var obj))
+            {
+                var crackMethod = obj.GetType().GetMethod("Crack");
+                var result = crackMethod?.Invoke(obj, new[] { key });
+                return System.Text.Json.JsonSerializer.Serialize(result);
+            }
+            return null;
+        }
+
+        public GroveStats GetNutStats()
+        {
+            var stats = new GroveStats();
+            var trees = _trees.Values;
+
+            stats.TotalTrees = trees.Count;
+            stats.TreeTypes = trees.Select(t => t.GetType().GenericTypeArguments.First().Name).ToList();
+
+            foreach (dynamic tree in trees)
+            {
+                var nutStats = ((dynamic)tree).GetNutStats();
+                stats.TotalStashed += nutStats.TotalStashed;
+                stats.TotalTossed += nutStats.TotalTossed;
+                stats.TotalSquabbles += nutStats.SquabblesResolved;
+                stats.TotalSmushes += nutStats.SmushesPerformed;
+                stats.ActiveTangles += nutStats.ActiveTangles;
+            }
+
+            return stats;
+        }
+    }
+}

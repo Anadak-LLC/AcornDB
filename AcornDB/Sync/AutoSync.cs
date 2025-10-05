@@ -1,8 +1,7 @@
 using System;
 using System.Threading;
-using AcornDB.Sync;
 
-namespace AcornDB
+namespace AcornDB.Sync
 {
     public class AutoSync<T>
     {

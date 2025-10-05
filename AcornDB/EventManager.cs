@@ -1,7 +1,6 @@
-using System;
 using System.Reactive.Subjects;
 
-namespace AcornDB.Events
+namespace AcornDB
 {
     public class EventManager<T>
     {

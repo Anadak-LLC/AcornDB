@@ -12,7 +12,7 @@ namespace AcornDB.Sync
     {
         public int Id { get; set; }
         public string Operation { get; set; } = "insert"; // insert, update, delete
-        public Models.NutShell<T>? Payload { get; set; }
+        public NutShell<T>? Payload { get; set; }
         public DateTimeOffset Timestamp { get; set; } = DateTimeOffset.UtcNow;
     }
 }

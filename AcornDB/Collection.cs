@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
-using AcornDB.Events;
 using AcornDB.Models;
 using AcornDB.Storage;
 using AcornDB.Sync;
@@ -52,8 +51,6 @@ namespace AcornDB
         public void Stash(T nut, TimeSpan? ttl = null) => Insert(nut, ttl);
 
         public T Crack(int id) => Get(id);
-
-        public void ReShell(int id, Action<T> update) => ReShell(id, update);
 
         public IEnumerable<T> Harvest() => All();
 

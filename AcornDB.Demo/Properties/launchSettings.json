@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "AcornDB.Demo": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:50919;http://localhost:50920"
+    }
+  }
+}

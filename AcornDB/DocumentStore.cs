@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using Newtonsoft.Json;
-using AcornDB.Serialization;
 
 namespace AcornDB.Storage
 {
@@ -21,7 +20,7 @@ namespace AcornDB.Storage
             _data = Load() ?? new Dictionary<int, T>();
         }
 
-        public void Insert(T doc)
+        public void Insert(T doc, TimeSpan? ttl = null)
         {
             var id = _data.Count + 1;
             _data[id] = doc;
@@ -43,6 +42,31 @@ namespace AcornDB.Storage
         }
 
         public IEnumerable<T> All() => _data.Values;
+
+        public NutShell<T> GetShell(int id)
+        {
+            return new NutShell<T> { Payload = Get(id) };
+        }
+
+        public IEnumerable<NutShell<T>> AllShells()
+        {
+            foreach (var item in _data.Values)
+            {
+                yield return new NutShell<T> { Payload = item };
+            }
+        }
+
+        public void Clear()
+        {
+            _data.Clear();
+            Save();
+        }
+
+        public void CompactNow()
+        {
+            // Stub for compaction - just resave
+            Save();
+        }
 
         private void Save()
         {

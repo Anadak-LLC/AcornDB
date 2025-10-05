@@ -1,4 +1,4 @@
-namespace AcornDB.Serialization
+namespace AcornDB
 {
     public interface ISerializer
     {

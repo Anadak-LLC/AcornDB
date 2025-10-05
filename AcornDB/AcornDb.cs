@@ -2,8 +2,6 @@ using System;
 using System.Collections.Concurrent;
 using System.IO;
 using AcornDB.Storage;
-using AcornDB.Events;
-using AcornDB.Serialization;
 
 namespace AcornDB
 {
