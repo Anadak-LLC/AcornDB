@@ -6,3 +6,8 @@ obj/
 *.log
 .vscode/
 .env
+/.vs
+/.claude/settings.local.json
+/SolutionFiles
+/AGENTS.md
+/AcornDB_Architecture_and_Usage.json
