@@ -10,10 +10,14 @@ namespace AcornDB
 {
     public partial class Tree<T>
     {
-        private readonly Dictionary<string, NutShell<T>> _cache = new();
+        private readonly Dictionary<string, Nut<T>> _cache = new();
         private readonly List<Branch> _branches = new();
         internal readonly List<Tangle<T>> _tangles = new();
         private readonly ITrunk<T> _trunk;
+
+        // Auto-ID detection caching
+        private Func<T, string>? _idExtractor = null;
+        private bool _idExtractorInitialized = false;
 
         // Stats tracking
         private int _totalStashed = 0;
@@ -26,26 +30,39 @@ namespace AcornDB
 
         public Tree(ITrunk<T>? trunk = null)
         {
-            _trunk = trunk ?? new FileTrunk<T>(); // default
+            _trunk = trunk ?? new FileTrunk<T>(); // defaults to FileTrunk
+            InitializeIdExtractor();
             LoadFromTrunk();
         }
 
+        /// <summary>
+        /// Stash a nut with auto-ID detection
+        /// </summary>
+        public void Stash(T item)
+        {
+            var id = ExtractId(item);
+            Stash(id, item);
+        }
+
+        /// <summary>
+        /// Stash a nut with explicit ID
+        /// </summary>
         public void Stash(string id, T item)
         {
-            var shell = new NutShell<T>
+            var nut = new Nut<T>
             {
                 Id = id,
                 Payload = item,
                 Timestamp = DateTime.UtcNow
             };
 
-            _cache[id] = shell;
-            _trunk.Save(id, shell);
+            _cache[id] = nut;
+            _trunk.Save(id, nut);
             _totalStashed++;
 
             foreach (var branch in _branches)
             {
-                branch.TryPush(id, shell);
+                branch.TryPush(id, nut);
             }
         }
 
@@ -87,7 +104,7 @@ namespace AcornDB
             }
         }
 
-        public void Squabble(string id, NutShell<T> incoming)
+        public void Squabble(string id, Nut<T> incoming)
         {
             if (_cache.TryGetValue(id, out var existing))
             {
@@ -110,17 +127,20 @@ namespace AcornDB
             _trunk.Save(id, incoming); // Trunk handles versioning
         }
 
-        public IReadOnlyList<NutShell<T>> GetHistory(string id)
+        public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             // Delegate to trunk - may throw NotSupportedException if trunk doesn't support history
             return _trunk.GetHistory(id);
         }
 
-        public IEnumerable<NutShell<T>> ExportChanges()
+        public IEnumerable<Nut<T>> ExportChanges()
         {
             return _trunk.ExportChanges();
         }
 
+        /// <summary>
+        /// Entangle with a remote branch via HTTP
+        /// </summary>
         public void Entangle(Branch branch)
         {
             if (!_branches.Contains(branch))
@@ -128,6 +148,16 @@ namespace AcornDB
                 _branches.Add(branch);
                 Console.WriteLine($"> 🌉 Tree<{typeof(T).Name}> entangled with {branch.RemoteUrl}");
             }
+        }
+
+        /// <summary>
+        /// Entangle with another tree in-process (no HTTP required)
+        /// </summary>
+        public void Entangle(Tree<T> otherTree)
+        {
+            var inProcessBranch = new InProcessBranch<T>(otherTree);
+            Entangle(inProcessBranch);
+            Console.WriteLine($"> 🪢 Tree<{typeof(T).Name}> entangled in-process");
         }
 
         public bool UndoSquabble(string id)
@@ -192,6 +222,70 @@ namespace AcornDB
                 SmushesPerformed = _smushesPerformed,
                 ActiveTangles = _tangles.Count
             };
+        }
+
+        /// <summary>
+        /// Initialize ID extractor using reflection (cached for performance)
+        /// </summary>
+        private void InitializeIdExtractor()
+        {
+            if (_idExtractorInitialized) return;
+
+            var type = typeof(T);
+
+            // Check if implements INutment<T>
+            var nutmentInterface = type.GetInterfaces()
+                .FirstOrDefault(i => i.IsGenericType && i.GetGenericTypeDefinition() == typeof(Models.INutment<>));
+
+            if (nutmentInterface != null)
+            {
+                var idProperty = type.GetProperty("Id");
+                if (idProperty != null)
+                {
+                    _idExtractor = (item) => idProperty.GetValue(item)?.ToString() ?? string.Empty;
+                    _idExtractorInitialized = true;
+                    return;
+                }
+            }
+
+            // Try common ID property names: Id, ID, Key, KEY
+            var candidateNames = new[] { "Id", "ID", "Key", "KEY", "id", "key" };
+            foreach (var name in candidateNames)
+            {
+                var property = type.GetProperty(name);
+                if (property != null && property.CanRead)
+                {
+                    _idExtractor = (item) => property.GetValue(item)?.ToString() ?? string.Empty;
+                    _idExtractorInitialized = true;
+                    return;
+                }
+            }
+
+            _idExtractorInitialized = true;
+        }
+
+        /// <summary>
+        /// Extract ID from an object using cached reflection
+        /// </summary>
+        private string ExtractId(T item)
+        {
+            if (_idExtractor == null)
+            {
+                throw new InvalidOperationException(
+                    $"Cannot auto-detect ID for type {typeof(T).Name}. " +
+                    "Either implement INutment<TKey>, add an 'Id' or 'Key' property, " +
+                    "or use Stash(id, item) with an explicit ID.");
+            }
+
+            var id = _idExtractor(item);
+            if (string.IsNullOrWhiteSpace(id))
+            {
+                throw new InvalidOperationException(
+                    $"Extracted ID for {typeof(T).Name} is null or empty. " +
+                    "Ensure the ID property has a value before stashing.");
+            }
+
+            return id;
         }
     }
 }

@@ -2,7 +2,10 @@ using System;
 
 namespace AcornDB
 {
-    public partial class NutShell<T>
+    /// <summary>
+    /// Nut: A document wrapped with metadata (ID, timestamp, version, TTL)
+    /// </summary>
+    public partial class Nut<T>
     {
         public string Id { get; set; } = string.Empty;
         public T Payload { get; set; } = default!;
@@ -16,11 +19,9 @@ namespace AcornDB
             get => Payload;
             set => Payload = value;
         }
-
-        public T Nut
-        {
-            get => Payload;
-            set => Payload = value;
-        }
     }
+
+    // Backwards compatibility alias
+    [Obsolete("Use Nut<T> instead")]
+    public partial class NutShell<T> : Nut<T> { }
 }

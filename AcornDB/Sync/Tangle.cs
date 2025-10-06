@@ -18,7 +18,7 @@ namespace AcornDB
 
         public void PushUpdate(string key, T item)
         {
-            var shell = new NutShell<T>
+            var shell = new Nut<T>
             {
                 Id = key,
                 Payload = item,

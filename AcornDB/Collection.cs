@@ -112,7 +112,7 @@ namespace AcornDB
                             var shell = _store.GetShell(entry.Id);
                             if (shell.Version < entry.Payload?.Version)
                             {
-                                _store.Update(entry.Id, entry.Payload.Nut);
+                                _store.Update(entry.Id, entry.Payload.Payload);
                             }
                             break;
                         case "delete":
@@ -125,7 +125,7 @@ namespace AcornDB
                     // Entry doesn't exist — safe to insert
                     if (entry.Payload != null)
                     {
-                        _store.Insert(entry.Payload.Nut);
+                        _store.Insert(entry.Payload.Payload);
                     }
                 }
             }

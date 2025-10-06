@@ -18,12 +18,12 @@ namespace AcornDB.Sync
             _httpClient = new HttpClient();
         }
 
-        public void TryPush<T>(string id, NutShell<T> shell)
+        public void TryPush<T>(string id, Nut<T> shell)
         {
             _ = PushAsync(id, shell);
         }
 
-        private async Task PushAsync<T>(string id, NutShell<T> shell)
+        private async Task PushAsync<T>(string id, Nut<T> shell)
         {
             try
             {
@@ -65,7 +65,7 @@ namespace AcornDB.Sync
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
-                var nuts = JsonSerializer.Deserialize<List<NutShell<T>>>(json, new JsonSerializerOptions
+                var nuts = JsonSerializer.Deserialize<List<Nut<T>>>(json, new JsonSerializerOptions
                 {
                     PropertyNameCaseInsensitive = true
                 });

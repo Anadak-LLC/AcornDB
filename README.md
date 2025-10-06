@@ -33,7 +33,7 @@ They need:
 | Term             | What It Means                                                |
 |------------------|--------------------------------------------------------------|
 | `Tree<T>`        | A local document collection — your "embedded table"          |
-| `NutShell<T>`    | An object wrapped with metadata (TTL, version, timestamp)    |
+| `Nut<T>`         | An object wrapped with metadata (TTL, version, timestamp)    |
 | `ITrunk<T>`      | Storage abstraction: File, Memory, Azure Blob, or versioned  |
 | `Branch`         | A connection to a remote Tree via HTTP                       |
 | `Tangle`         | A live sync session between two Trees                        |
@@ -49,14 +49,15 @@ They need:
 | Feature                          | Description |
 |----------------------------------|-------------|
 | 🌰 `Stash`, `Crack`, `Toss`       | Drop-in persistence with zero boilerplate |
-| 🛡️ `NutShell<T>`                  | Versioned, timestamped, TTL-wrapped records |
+| 🎯 **Auto-ID Detection**          | Stash without explicit IDs - automatically uses `Id` or `Key` properties |
+| 🛡️ `Nut<T>`                       | Versioned, timestamped, TTL-wrapped records |
 | 🔁 `Branch`, `Tangle`, `Grove`    | Live sync between Trees, across machines |
-| 🪢 `Entangle<T>()`                | Automatically starts syncing on stash/toss |
+| 🪢 `Entangle<T>()`                | Sync trees via HTTP or **in-process** without a server |
 | 🎩 `Oversee<T>()`                 | One-liner to monitor remote branches |
-| ⚖️ `Squabble()` + Judge          | Built-in conflict resolution with custom override |
+| ⚖️ `Squabble()` + Judge           | Built-in conflict resolution with custom override |
 | 🧠 `INutment<TKey>`               | Typed ID interface for strongly keyed documents |
 | 🧹 `SmushNow()`                   | Manual compaction of log-based storage |
-| 🛰️ `ExportChanges()` / `ImportChanges()` | Manual sync if you’re old-school |
+| 🛰️ `ExportChanges()` / `ImportChanges()` | Manual sync if you're old-school |
 | 🌲 `Grove.Plant<T>()`             | Auto-creates and registers a `Tree<T>` |
 | 🔐 Totem-based auth (coming)      | Because why not woodland-themed security? |
 
@@ -69,17 +70,87 @@ They need:
 dotnet add package AcornDB
 ```
 
-```csharp
-// Create a Tree and stash some data
-var tree = new Tree<User>();
-tree.Stash("abc", new User { Name = "Squirrelius Maximus" });
+### Quick Example
 
+```csharp
+// Define your model with an Id property
+public class User
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Name { get; set; }
+}
+
+// Create a Tree (defaults to FileTrunk - no config needed!)
+var tree = new Tree<User>();
+
+// Stash without explicit ID (auto-detected from Id property)
+tree.Stash(new User { Name = "Squirrelius Maximus" });
+
+// Crack it back
+var user = tree.Crack("...");
+```
+
+### With Sync
+
+```csharp
 // Set up syncing with a Grove
 var grove = new Grove();
 grove.Plant(tree);
 grove.Oversee<User>(new Branch("http://localhost:5000")); // auto-sync!
 
 tree.Shake(); // optionally force a sync
+```
+
+---
+
+## ✨ What Makes AcornDB Simple
+
+### 🎯 Auto-ID Detection
+No more specifying IDs twice. If your model has an `Id` or `Key` property, AcornDB finds it automatically:
+
+```csharp
+public class Task
+{
+    public string Id { get; set; } = Guid.NewGuid().ToString();
+    public string Title { get; set; }
+}
+
+var tree = new Tree<Task>();
+tree.Stash(new Task { Title = "Learn AcornDB" }); // ID auto-detected!
+```
+
+### 🪵 Optional Trunk (Defaults to FileTrunk)
+Skip the boilerplate. Trees default to file-based storage:
+
+```csharp
+// Before
+var tree = new Tree<User>(new FileTrunk<User>("data/User"));
+
+// Now
+var tree = new Tree<User>(); // Automatically uses FileTrunk!
+```
+
+### 🪢 In-Process Sync
+Connect trees directly without HTTP:
+
+```csharp
+var tree1 = new Tree<User>();
+var tree2 = new Tree<User>(new MemoryTrunk<User>());
+
+tree1.Entangle(tree2); // No server needed!
+```
+
+### 📁 Shared Storage Sync
+Multiple processes? Just point to the same directory:
+
+```csharp
+// Process 1
+var tree1 = new Tree<User>(new FileTrunk<User>("shared/data"));
+tree1.Stash(new User { Id = "alice", Name = "Alice" });
+
+// Process 2
+var tree2 = new Tree<User>(new FileTrunk<User>("shared/data"));
+var alice = tree2.Crack("alice"); // Already there!
 ```
 
 ---
@@ -100,18 +171,21 @@ AcornDB uses **Trunks** to abstract storage — swap your backend without touchi
 ### Examples
 
 ```csharp
-// 📁 FileTrunk: Simple, no history
-var fileTree = new Tree<User>(new FileTrunk<User>("data/users"));
-fileTree.Stash("alice", new User("Alice"));
+// 📁 FileTrunk (DEFAULT): Simple, no history
+var fileTree = new Tree<User>(); // Defaults to FileTrunk!
+fileTree.Stash(new User { Id = "alice", Name = "Alice" }); // Auto-ID
+
+// Or explicit path
+var customTree = new Tree<User>(new FileTrunk<User>("data/users"));
 
 // 💾 MemoryTrunk: Fast, non-durable
 var memTree = new Tree<User>(new MemoryTrunk<User>());
-memTree.Stash("bob", new User("Bob"));
+memTree.Stash(new User { Id = "bob", Name = "Bob" });
 
 // 📚 DocumentStoreTrunk: Full history & versioning
 var docTree = new Tree<User>(new DocumentStoreTrunk<User>("data/versioned"));
-docTree.Stash("charlie", new User("Charlie v1"));
-docTree.Stash("charlie", new User("Charlie v2"));
+docTree.Stash(new User { Id = "charlie", Name = "Charlie v1" });
+docTree.Stash(new User { Id = "charlie", Name = "Charlie v2" });
 
 var history = docTree.GetHistory("charlie"); // Get previous versions!
 // Returns: 1 previous version ("Charlie v1")
@@ -126,12 +200,11 @@ targetTrunk.ImportChanges(sourceTrunk.ExportChanges()); // Migrate!
 ### Time-Travel with DocumentStoreTrunk
 
 ```csharp
-var trunk = new DocumentStoreTrunk<Product>("data/products");
-var tree = new Tree<Product>(trunk);
+var tree = new Tree<Product>(new DocumentStoreTrunk<Product>("data/products"));
 
-tree.Stash("widget", new Product("Widget v1.0"));
-tree.Stash("widget", new Product("Widget v2.0"));
-tree.Stash("widget", new Product("Widget v3.0"));
+tree.Stash(new Product { Id = "widget", Name = "Widget v1.0" });
+tree.Stash(new Product { Id = "widget", Name = "Widget v2.0" });
+tree.Stash(new Product { Id = "widget", Name = "Widget v3.0" });
 
 var current = tree.Crack("widget");     // "Widget v3.0"
 var history = tree.GetHistory("widget"); // ["Widget v1.0", "Widget v2.0"]
@@ -222,9 +295,10 @@ grove.Plant(new Tree<Product>(new FileTrunk<Product>("data/products")));
 var localTree = new Tree<User>(new MemoryTrunk<User>());
 var branch = new Branch("http://localhost:5000/bark/User");
 
-// Manual push
-localTree.Stash("alice", new User("Alice"));
-branch.TryPush("alice", localTree.Crack("alice"));
+// Manual push with auto-ID
+var alice = new User { Id = "alice", Name = "Alice" };
+localTree.Stash(alice);
+branch.TryPush(alice.Id, localTree.Crack(alice.Id));
 
 // Manual pull
 await branch.ShakeAsync(localTree); // Pulls all remote changes
@@ -249,8 +323,9 @@ grove.Plant(new Tree<User>(new DocumentStoreTrunk<User>("data/users")));
 var tree1 = new Tree<User>(new FileTrunk<User>("client1/users"));
 var branch = new Branch("http://localhost:5000");
 
-tree1.Stash("alice", new User("Alice"));
-branch.TryPush("alice", tree1.Crack("alice")); // Syncs to server
+var alice = new User { Id = "alice", Name = "Alice" };
+tree1.Stash(alice); // Auto-ID detection
+branch.TryPush(alice.Id, tree1.Crack(alice.Id)); // Syncs to server
 ```
 
 **Client 2** (Mobile App):
@@ -292,52 +367,65 @@ See `AcornVisualizer/README.md` for full documentation.
 
 ---
 
-## 🌲 P2P File System Sync (Same Host)
+## 🌲 Same-Host Sync (No Server Required!)
 
-For same-host multi-process scenarios, AcornDB supports **file system-based peer-to-peer sync** without needing a server!
+For processes on the same host, AcornDB offers **three simple sync strategies**:
 
-### How It Works
+### ✅ Option 1: Shared FileTrunk (Simplest!)
 
-Instead of HTTP, processes sync via a shared directory:
+**Just point both trees to the same directory:**
 
-```
-Process 1 (data/process1) ──┐
-                            ├──► Sync Hub (data/sync-hub)
-Process 2 (data/process2) ──┘
-```
-
-Each process:
-- Maintains its own local `DocumentStoreTrunk`
-- Exports changes to the shared sync hub
-- Imports changes from other processes
-- Resolves conflicts via timestamp comparison
-
-### Example: Two Processes on Same Host
-
-**Process 1:**
 ```csharp
-var localTree = new Tree<User>(new DocumentStoreTrunk<User>("data/process1/users"));
+// Process 1
+var tree1 = new Tree<User>(new FileTrunk<User>("shared/users"));
+tree1.Stash(new User { Id = "alice", Name = "Alice" });
+
+// Process 2
+var tree2 = new Tree<User>(new FileTrunk<User>("shared/users"));
+var alice = tree2.Crack("alice"); // ✅ Automatically synced!
+```
+
+**Zero setup. Zero config. Just works.**
+
+---
+
+### 🪢 Option 2: In-Process Tree Entanglement
+
+**Sync two trees directly without HTTP:**
+
+```csharp
+var tree1 = new Tree<User>();
+var tree2 = new Tree<User>(new MemoryTrunk<User>());
+
+tree1.Entangle(tree2); // Direct tree-to-tree sync!
+
+tree1.Stash(new User { Id = "bob", Name = "Bob" });
+// Automatically synced to tree2 via InProcessBranch
+```
+
+**Perfect for in-memory scenarios or testing.**
+
+---
+
+### 📂 Option 3: File System Sync Hub
+
+**For more complex multi-process scenarios:**
+
+```csharp
+// Process 1
+var tree1 = new Tree<User>(new DocumentStoreTrunk<User>("data/process1/users"));
 var syncHub = new FileSystemSyncHub<User>("data/sync-hub");
 
-localTree.Stash("alice", new User { Name = "Alice" });
+tree1.Stash(new User { Id = "alice", Name = "Alice" });
+syncHub.PublishChanges("process1", tree1.ExportChanges());
 
-// Export to hub
-syncHub.PublishChanges("process1", localTree.ExportChanges());
-```
-
-**Process 2:**
-```csharp
-var localTree = new Tree<User>(new DocumentStoreTrunk<User>("data/process2/users"));
-var syncHub = new FileSystemSyncHub<User>("data/sync-hub");
-
-// Import from hub
+// Process 2
+var tree2 = new Tree<User>(new DocumentStoreTrunk<User>("data/process2/users"));
 var changes = syncHub.PullChanges("process2");
-foreach (var shell in changes)
+foreach (var nut in changes)
 {
-    localTree.Stash(shell.Id, shell.Payload);
+    tree2.Stash(nut.Payload);
 }
-
-// Process 2 now has Alice!
 ```
 
 ### Try the Demo
@@ -354,16 +442,18 @@ run-demo.cmd 2
 
 Watch changes sync between processes in real-time via the file system!
 
-### When to Use File-Based vs HTTP Sync
+### When to Use Each Sync Strategy
 
 | Scenario | Recommended Approach |
 |----------|---------------------|
-| Same host, multiple processes | 🟢 File-based P2P |
+| Same host, multiple processes | 🟢 Shared FileTrunk |
+| Same process, different trees | 🟢 In-Process Entanglement |
 | Different hosts | 🟢 TreeBark HTTP |
-| Desktop apps with multiple instances | 🟢 File-based P2P |
+| Desktop apps with multiple instances | 🟢 Shared FileTrunk |
 | Mobile to cloud | 🟢 TreeBark HTTP |
 | Distributed systems | 🟢 TreeBark HTTP |
-| CLI tools | 🟢 File-based P2P |
+| CLI tools | 🟢 Shared FileTrunk |
+| Complex multi-process with separate storage | 🟢 File System Sync Hub |
 
 ---
 
@@ -371,7 +461,7 @@ Watch changes sync between processes in real-time via the file system!
 
 | Folder             | Purpose                                      |
 |--------------------|----------------------------------------------|
-| `AcornDB`          | Core engine (Tree, NutShell, Trunk, Tangle)  |
+| `AcornDB`          | Core engine (Tree, Nut, Trunk, Tangle)       |
 | `AcornSyncServer`  | **TreeBark**: HTTP sync server (REST API)    |
 | `AcornVisualizer`  | **Web UI**: Interactive grove dashboard      |
 | `AcornDB.Canopy`   | SignalR hub + visualizations                 |

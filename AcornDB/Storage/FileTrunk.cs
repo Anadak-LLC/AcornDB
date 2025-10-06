@@ -15,20 +15,20 @@ namespace AcornDB.Storage
             Directory.CreateDirectory(_folderPath);
         }
 
-        public void Save(string id, NutShell<T> shell)
+        public void Save(string id, Nut<T> nut)
         {
             var file = Path.Combine(_folderPath, id + ".json");
-            var json = JsonConvert.SerializeObject(shell, Formatting.Indented);
+            var json = JsonConvert.SerializeObject(nut, Formatting.Indented);
             File.WriteAllText(file, json, Encoding.UTF8);
         }
 
-        public NutShell<T>? Load(string id)
+        public Nut<T>? Load(string id)
         {
             var file = Path.Combine(_folderPath, id + ".json");
             if (!File.Exists(file)) return null;
 
             var content = File.ReadAllText(file);
-            return JsonConvert.DeserializeObject<NutShell<T>>(content);
+            return JsonConvert.DeserializeObject<Nut<T>>(content);
         }
 
         public void Delete(string id)
@@ -40,35 +40,35 @@ namespace AcornDB.Storage
             }
         }
 
-        public IEnumerable<NutShell<T>> LoadAll()
+        public IEnumerable<Nut<T>> LoadAll()
         {
-            var list = new List<NutShell<T>>();
+            var list = new List<Nut<T>>();
             foreach (var file in Directory.GetFiles(_folderPath, "*.json"))
             {
                 var content = File.ReadAllText(file);
-                var shell = JsonConvert.DeserializeObject<NutShell<T>>(content);
-                if (shell != null) list.Add(shell);
+                var nut = JsonConvert.DeserializeObject<Nut<T>>(content);
+                if (nut != null) list.Add(nut);
             }
             return list;
         }
 
         // Optional features - not supported by FileTrunk
-        public IReadOnlyList<NutShell<T>> GetHistory(string id)
+        public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             throw new NotSupportedException("FileTrunk does not support history. Use DocumentStoreTrunk for versioning.");
         }
 
-        public IEnumerable<NutShell<T>> ExportChanges()
+        public IEnumerable<Nut<T>> ExportChanges()
         {
             // Simple implementation: export all current data
             return LoadAll();
         }
 
-        public void ImportChanges(IEnumerable<NutShell<T>> incoming)
+        public void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
-            foreach (var shell in incoming)
+            foreach (var nut in incoming)
             {
-                Save(shell.Id, shell);
+                Save(nut.Id, nut);
             }
         }
     }

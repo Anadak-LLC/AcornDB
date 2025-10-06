@@ -5,16 +5,16 @@ namespace AcornDB.Storage
     /// </summary>
     public class MemoryTrunk<T> : ITrunk<T>
     {
-        private readonly Dictionary<string, NutShell<T>> _storage = new();
+        private readonly Dictionary<string, Nut<T>> _storage = new();
 
-        public void Save(string id, NutShell<T> shell)
+        public void Save(string id, Nut<T> nut)
         {
-            _storage[id] = shell;
+            _storage[id] = nut;
         }
 
-        public NutShell<T>? Load(string id)
+        public Nut<T>? Load(string id)
         {
-            return _storage.TryGetValue(id, out var shell) ? shell : null;
+            return _storage.TryGetValue(id, out var nut) ? nut : null;
         }
 
         public void Delete(string id)
@@ -22,27 +22,27 @@ namespace AcornDB.Storage
             _storage.Remove(id);
         }
 
-        public IEnumerable<NutShell<T>> LoadAll()
+        public IEnumerable<Nut<T>> LoadAll()
         {
             return _storage.Values.ToList();
         }
 
         // Optional features - not supported by MemoryTrunk
-        public IReadOnlyList<NutShell<T>> GetHistory(string id)
+        public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             throw new NotSupportedException("MemoryTrunk does not support history.");
         }
 
-        public IEnumerable<NutShell<T>> ExportChanges()
+        public IEnumerable<Nut<T>> ExportChanges()
         {
             return LoadAll();
         }
 
-        public void ImportChanges(IEnumerable<NutShell<T>> incoming)
+        public void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
-            foreach (var shell in incoming)
+            foreach (var nut in incoming)
             {
-                Save(shell.Id, shell);
+                Save(nut.Id, nut);
             }
         }
     }
