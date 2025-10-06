@@ -1,0 +1,16 @@
+﻿{
+  "ChangeId": "c1990887-5ae4-4578-a730-4ef46b76e24a",
+  "Id": "admin",
+  "Payload": {
+    "Name": "Admin User"
+  },
+  "Timestamp": "2025-10-05T20:19:44.289252Z",
+  "ExpiresAt": null,
+  "Version": 1,
+  "Value": {
+    "Name": "Admin User"
+  },
+  "Nut": {
+    "Name": "Admin User"
+  }
+}

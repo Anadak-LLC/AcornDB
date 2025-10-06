@@ -10,17 +10,15 @@ using System;
 
 namespace AcornDB.Models
 {
-    public partial class Hardwood
+    public static class HardwoodServerExtensions
     {
-        private IHost? _server;
-
         // Extended Grow implementation for Canopy project
-        public void GrowWithServer(Grove grove)
+        public static void GrowWithServer(this Hardwood hardwood, Grove grove)
         {
-            _server = Host.CreateDefaultBuilder()
+            var server = Host.CreateDefaultBuilder()
                 .ConfigureWebHostDefaults(webBuilder =>
                 {
-                    webBuilder.UseUrls($"http://*:{Port}");
+                    webBuilder.UseUrls($"http://*:{hardwood.Port}");
                     webBuilder.Configure(app =>
                     {
                         app.UseRouting();
@@ -89,7 +87,7 @@ namespace AcornDB.Models
                     });
                 }).Build();
 
-            _server.Start();
+            server.Start();
         }
     }
 }

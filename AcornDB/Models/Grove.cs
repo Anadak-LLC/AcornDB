@@ -116,5 +116,57 @@ namespace AcornDB.Models
 
             return stats;
         }
+
+        public List<TreeInfo> GetTreeInfo()
+        {
+            var result = new List<TreeInfo>();
+            foreach (var kvp in _trees)
+            {
+                var type = kvp.Value.GetType();
+                var genericArg = type.GenericTypeArguments.FirstOrDefault();
+
+                dynamic tree = kvp.Value;
+                result.Add(new TreeInfo
+                {
+                    Id = kvp.Key,
+                    Type = genericArg?.Name ?? "Unknown",
+                    NutCount = tree._cache.Count,
+                    IsRemote = false // Local trees in this Grove
+                });
+            }
+            return result;
+        }
+
+        public object? GetTreeByTypeName(string typeName)
+        {
+            return _trees.TryGetValue(typeName, out var tree) ? tree : null;
+        }
+
+        public IEnumerable<object> ExportChanges(string typeName)
+        {
+            var tree = GetTreeByTypeName(typeName);
+            if (tree == null) return Enumerable.Empty<object>();
+
+            var exportMethod = tree.GetType().GetMethod("ExportChanges");
+            var result = exportMethod?.Invoke(tree, null);
+            return result as IEnumerable<object> ?? Enumerable.Empty<object>();
+        }
+
+        public void ImportChanges(string typeName, IEnumerable<object> changes)
+        {
+            var tree = GetTreeByTypeName(typeName);
+            if (tree == null) return;
+
+            var importMethod = tree.GetType().GetMethod("ImportChanges");
+            importMethod?.Invoke(tree, new[] { changes });
+        }
+    }
+
+    public class TreeInfo
+    {
+        public string Id { get; set; } = "";
+        public string Type { get; set; } = "";
+        public int NutCount { get; set; }
+        public bool IsRemote { get; set; }
     }
 }

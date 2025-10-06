@@ -1,0 +1,16 @@
+﻿{
+  "ChangeId": "39697391-feb6-4d16-b613-11995ec5f9f4",
+  "Id": "bob",
+  "Payload": {
+    "Name": "Bob Nutcracker"
+  },
+  "Timestamp": "2025-10-05T18:48:13.4492906Z",
+  "ExpiresAt": null,
+  "Version": 1,
+  "Value": {
+    "Name": "Bob Nutcracker"
+  },
+  "Nut": {
+    "Name": "Bob Nutcracker"
+  }
+}

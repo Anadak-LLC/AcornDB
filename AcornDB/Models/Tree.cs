@@ -11,10 +11,15 @@ namespace AcornDB
     public partial class Tree<T>
     {
         private readonly Dictionary<string, NutShell<T>> _cache = new();
-        private readonly Dictionary<string, List<NutShell<T>>> _history = new();
         private readonly List<Branch> _branches = new();
         internal readonly List<Tangle<T>> _tangles = new();
         private readonly ITrunk<T> _trunk;
+
+        // Stats tracking
+        private int _totalStashed = 0;
+        private int _totalTossed = 0;
+        private int _squabblesResolved = 0;
+        private int _smushesPerformed = 0;
 
         public Tree(ITrunk<T>? trunk = null)
         {
@@ -33,6 +38,7 @@ namespace AcornDB
 
             _cache[id] = shell;
             _trunk.Save(id, shell);
+            _totalStashed++;
 
             foreach (var branch in _branches)
             {
@@ -59,16 +65,21 @@ namespace AcornDB
         {
             _cache.Remove(id);
             _trunk.Delete(id);
+            _totalTossed++;
         }
 
         public void Shake()
         {
             Console.WriteLine("🌳 Shaking tree...");
+
+            // Export changes from trunk for sync
+            var changes = _trunk.ExportChanges();
+
             foreach (var branch in _branches)
             {
-                foreach (var (id, shell) in _cache)
+                foreach (var shell in changes)
                 {
-                    branch.TryPush(id, shell);
+                    branch.TryPush(shell.Id, shell);
                 }
             }
         }
@@ -80,11 +91,12 @@ namespace AcornDB
                 if (existing.Timestamp >= incoming.Timestamp)
                 {
                     Console.WriteLine($"> ⚖️ Squabble: Local nut for '{id}' is fresher. Keeping it.");
+                    _squabblesResolved++;
                     return;
                 }
 
                 Console.WriteLine($"> 🥜 Squabble: Incoming nut for '{id}' is newer. Replacing it.");
-                AddToHistory(id, existing);
+                _squabblesResolved++;
             }
             else
             {
@@ -92,25 +104,18 @@ namespace AcornDB
             }
 
             _cache[id] = incoming;
-            _trunk.Save(id, incoming);
-        }
-
-        private void AddToHistory(string id, NutShell<T> previous)
-        {
-            if (!_history.ContainsKey(id))
-                _history[id] = new();
-
-            _history[id].Add(previous);
+            _trunk.Save(id, incoming); // Trunk handles versioning
         }
 
         public IReadOnlyList<NutShell<T>> GetHistory(string id)
         {
-            return _history.TryGetValue(id, out var versions) ? versions : new List<NutShell<T>>();
+            // Delegate to trunk - may throw NotSupportedException if trunk doesn't support history
+            return _trunk.GetHistory(id);
         }
 
         public IEnumerable<NutShell<T>> ExportChanges()
         {
-            return _cache.Values;
+            return _trunk.ExportChanges();
         }
 
         public void Entangle(Branch branch)
@@ -124,20 +129,27 @@ namespace AcornDB
 
         public bool UndoSquabble(string id)
         {
-            if (!_history.TryGetValue(id, out var versions) || versions.Count == 0)
+            try
             {
-                Console.WriteLine($"> 🕳️ No squabble history for '{id}' to undo.");
+                var versions = _trunk.GetHistory(id);
+                if (versions.Count == 0)
+                {
+                    Console.WriteLine($"> 🕳️ No squabble history for '{id}' to undo.");
+                    return false;
+                }
+
+                var lastVersion = versions[^1];
+                _cache[id] = lastVersion;
+                _trunk.Save(id, lastVersion);
+
+                Console.WriteLine($"> ⏪ Squabble undone for '{id}'. Reverted to version from {lastVersion.Timestamp}.");
+                return true;
+            }
+            catch (NotSupportedException)
+            {
+                Console.WriteLine($"> ⚠️ History not supported by this trunk. Cannot undo squabble for '{id}'.");
                 return false;
             }
-
-            var lastVersion = versions[^1];
-            versions.RemoveAt(versions.Count - 1);
-
-            _cache[id] = lastVersion;
-            _trunk.Save(id, lastVersion);
-
-            Console.WriteLine($"> ⏪ Squabble undone for '{id}'. Reverted to version from {lastVersion.Timestamp}.");
-            return true;
         }
 
         internal void RegisterTangle(Tangle<T> tangle)
@@ -165,6 +177,18 @@ namespace AcornDB
                 if (!string.IsNullOrWhiteSpace(shell.Id))
                     _cache[shell.Id] = shell;
             }
+        }
+
+        public TreeStats GetNutStats()
+        {
+            return new TreeStats
+            {
+                TotalStashed = _totalStashed,
+                TotalTossed = _totalTossed,
+                SquabblesResolved = _squabblesResolved,
+                SmushesPerformed = _smushesPerformed,
+                ActiveTangles = _tangles.Count
+            };
         }
     }
 }

@@ -1,0 +1,16 @@
+﻿{
+  "ChangeId": "f5726e63-2487-468e-8841-7a216c468b1e",
+  "Id": "charlie",
+  "Payload": {
+    "Name": "Charlie Chipmunk"
+  },
+  "Timestamp": "2025-10-05T18:48:13.451279Z",
+  "ExpiresAt": null,
+  "Version": 1,
+  "Value": {
+    "Name": "Charlie Chipmunk"
+  },
+  "Nut": {
+    "Name": "Charlie Chipmunk"
+  }
+}

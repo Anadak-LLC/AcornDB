@@ -20,13 +20,13 @@ namespace AcornDB.Controllers
         {
             var result = new GroveGraphDto();
 
-            foreach (var tree in _grove.GetAllTrees())
+            foreach (var tree in _grove.GetTreeInfo())
             {
                 result.Trees.Add(new TreeNodeDto
                 {
-                    Id = tree.TreeId,
-                    Type = tree.TypeName,
-                    NutCount = tree.Count,
+                    Id = tree.Id,
+                    Type = tree.Type,
+                    NutCount = tree.NutCount,
                     IsRemote = tree.IsRemote
                 });
             }

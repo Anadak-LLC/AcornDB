@@ -51,5 +51,25 @@ namespace AcornDB.Storage
             }
             return list;
         }
+
+        // Optional features - not supported by FileTrunk
+        public IReadOnlyList<NutShell<T>> GetHistory(string id)
+        {
+            throw new NotSupportedException("FileTrunk does not support history. Use DocumentStoreTrunk for versioning.");
+        }
+
+        public IEnumerable<NutShell<T>> ExportChanges()
+        {
+            // Simple implementation: export all current data
+            return LoadAll();
+        }
+
+        public void ImportChanges(IEnumerable<NutShell<T>> incoming)
+        {
+            foreach (var shell in incoming)
+            {
+                Save(shell.Id, shell);
+            }
+        }
     }
 }
