@@ -264,6 +264,34 @@ var alice = tree2.Crack("alice"); // "Alice" is now local
 
 ---
 
+## 🌰 AcornDB Visualizer - Web UI
+
+Explore your Grove with an interactive web dashboard!
+
+```bash
+cd AcornVisualizer
+dotnet run
+# Open browser to http://localhost:5100
+```
+
+**Features:**
+- 📊 **Live Dashboard** - Real-time stats on trees, nuts, and operations
+- 🌳 **Tree Explorer** - Browse all trees with detailed metadata
+- 📈 **Graph View** - Interactive circular node visualization
+- 🔍 **Nut Inspector** - View payloads, timestamps, and history
+- ⚙️ **Trunk Info** - See capabilities (history, sync, durable, async)
+- 🔄 **Auto-Refresh** - Updates every 5 seconds
+
+**Perfect for:**
+- Local development and debugging
+- Visual demos and presentations
+- Understanding your grove structure
+- Monitoring nut operations
+
+See `AcornVisualizer/README.md` for full documentation.
+
+---
+
 ## 🌲 P2P File System Sync (Same Host)
 
 For same-host multi-process scenarios, AcornDB supports **file system-based peer-to-peer sync** without needing a server!
@@ -345,6 +373,7 @@ Watch changes sync between processes in real-time via the file system!
 |--------------------|----------------------------------------------|
 | `AcornDB`          | Core engine (Tree, NutShell, Trunk, Tangle)  |
 | `AcornSyncServer`  | **TreeBark**: HTTP sync server (REST API)    |
+| `AcornVisualizer`  | **Web UI**: Interactive grove dashboard      |
 | `AcornDB.Canopy`   | SignalR hub + visualizations                 |
 | `AcornDB.Demo`     | Examples showcasing all features             |
 | `SyncDemo`         | **Live multi-client sync demonstration**     |
@@ -352,14 +381,14 @@ Watch changes sync between processes in real-time via the file system!
 
 ---
 
-## 🧙 What’s Coming
+## 🧙 What's Coming
 
-- 🔐 **Auth**: Totems, ForageRights, Critters, and BarkCodes  
-- 📡 **Mesh sync**: Peer-to-peer Tangle networks  
-- 🪟 **NutDash**: GUI dashboard to browse trees  
-- 📦 **NuGet & CLI**: Install and create projects with `acorn new`  
-- 🔁 **AutoRecovery**: Offline-first sync queue with resilience  
-- 🧪 **Playgrounds**: Sample apps, code snippets, and demos  
+- 🔐 **Auth**: Totems, ForageRights, Critters, and BarkCodes
+- 📡 **Mesh sync**: Peer-to-peer Tangle networks
+- 📦 **NuGet & CLI**: Install and create projects with `acorn new`
+- 🔁 **AutoRecovery**: Offline-first sync queue with resilience
+- 🧪 **Playgrounds**: Sample apps, code snippets, and demos
+- 🎨 **Visualizer Enhancements**: Real-time updates, diff viewer, dark mode  
 
 ---
 

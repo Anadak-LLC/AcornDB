@@ -130,7 +130,7 @@ namespace AcornDB.Models
                 {
                     Id = kvp.Key,
                     Type = genericArg?.Name ?? "Unknown",
-                    NutCount = tree._cache.Count,
+                    NutCount = tree.NutCount,
                     IsRemote = false // Local trees in this Grove
                 });
             }

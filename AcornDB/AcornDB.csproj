@@ -4,12 +4,42 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AcornDB</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Anadak LLC</Authors>
+    <Company>Anadak LLC</Company>
+    <Product>AcornDB</Product>
+    <Description>🌰 AcornDB - A lightweight, reactive, embedded database for .NET. Local-first persistence with offline sync, versioned storage, and zero configuration. Perfect for desktop apps, IoT devices, and edge workloads.</Description>
+    <PackageTags>database;embedded;nosql;document-db;local-first;offline-sync;reactive;iot;edge;storage;versioning</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageIcon>icon.png</PackageIcon>
+    <Copyright>Copyright © 2025 Anadak LLC</Copyright>
+    <PackageReleaseNotes>Initial release with core features: Tree, NutShell, Trunk abstraction, file/memory/document storage, and sync capabilities.</PackageReleaseNotes>
+
+    <!-- Build Settings -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="System.Reactive" Version="6.0.0" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.19.1" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\README.md" Pack="true" PackagePath="\" />
+    <None Include="..\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\icon.png')" />
   </ItemGroup>
 
 </Project>

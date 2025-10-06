@@ -1,1 +1,74 @@
-// Placeholder for Pages/Index.cshtml
+@page
+@model AcornVisualizer.Pages.IndexModel
+@{
+    ViewData["Title"] = "AcornDB Visualizer";
+}
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"]</title>
+    <link rel="stylesheet" href="~/canopy.css" />
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>🌰 AcornDB Visualizer</h1>
+            <p class="subtitle">Live Grove Explorer</p>
+        </header>
+
+        <div class="stats-panel">
+            <div class="stat-card">
+                <div class="stat-value" id="totalTrees">-</div>
+                <div class="stat-label">Trees</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalNuts">-</div>
+                <div class="stat-label">Total Nuts</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalStashed">-</div>
+                <div class="stat-label">Stashed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalTossed">-</div>
+                <div class="stat-label">Tossed</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-value" id="totalSquabbles">-</div>
+                <div class="stat-label">Squabbles</div>
+            </div>
+        </div>
+
+        <div class="main-content">
+            <div class="trees-panel">
+                <h2>🌳 Trees in Grove</h2>
+                <div id="treesList"></div>
+            </div>
+
+            <div class="detail-panel">
+                <h2 id="detailTitle">Select a Tree</h2>
+                <div id="treeDetail">
+                    <p class="placeholder">Click on a tree to view its contents</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button onclick="refreshData()" class="btn-refresh">🔄 Refresh</button>
+            <a href="/Visualizer" class="btn-visualize">📊 Graph View</a>
+        </div>
+    </div>
+
+    <script src="~/canopy.js"></script>
+    <script>
+        // Auto-refresh every 5 seconds
+        setInterval(refreshData, 5000);
+
+        // Initial load
+        refreshData();
+    </script>
+</body>
+</html>

@@ -21,6 +21,9 @@ namespace AcornDB
         private int _squabblesResolved = 0;
         private int _smushesPerformed = 0;
 
+        // Public properties
+        public int NutCount => _cache.Count;
+
         public Tree(ITrunk<T>? trunk = null)
         {
             _trunk = trunk ?? new FileTrunk<T>(); // default
