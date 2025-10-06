@@ -70,4 +70,34 @@ namespace AcornVisualizer.Models
         public bool IsDurable { get; set; }
         public bool SupportsAsync { get; set; }
     }
+
+    public class NutHistoryDto
+    {
+        public string Id { get; set; } = "";
+        public List<NutVersionDto> History { get; set; } = new();
+    }
+
+    public class NutVersionDto
+    {
+        public int Version { get; set; }
+        public string PayloadJson { get; set; } = "";
+        public DateTime Timestamp { get; set; }
+    }
+
+    public class CreateNutRequest
+    {
+        public string Id { get; set; } = "";
+        public string PayloadJson { get; set; } = "";
+    }
+
+    public class UpdateNutRequest
+    {
+        public string PayloadJson { get; set; } = "";
+    }
+
+    public class RegisterTreeRequest
+    {
+        public string TypeName { get; set; } = "";
+        public string RemoteUrl { get; set; } = "";
+    }
 }

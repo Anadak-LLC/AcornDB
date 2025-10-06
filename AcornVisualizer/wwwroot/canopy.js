@@ -61,6 +61,9 @@ function updateTreesList(trees) {
                     ${tree.supportsHistory ? '<span class="badge" title="Has History">📜</span>' : ''}
                 </div>
             </div>
+            <div class="tree-card-footer">
+                <a href="/TreeManager?tree=${tree.id}" class="btn-manage" onclick="event.stopPropagation()">⚙️ Manage</a>
+            </div>
         `;
 
         container.appendChild(card);

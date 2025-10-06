@@ -4,10 +4,34 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AcornDB.Canopy</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Anadak LLC</Authors>
+    <Company>Anadak LLC</Company>
+    <Product>AcornDB.Canopy</Product>
+    <Description>🌲 AcornDB.Canopy - SignalR hub and real-time visualization extensions for AcornDB. Adds Hardwood HTTP server, live sync orchestration, and real-time grove monitoring capabilities.</Description>
+    <PackageTags>acorndb;signalr;realtime;websockets;monitoring;visualization;http-server</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
+    <!-- PackageIcon>icon.png</PackageIcon --> <!-- Disabled: Icon must be <1MB. Resize and uncomment before publishing. -->
+    <Copyright>Copyright © 2025 Anadak LLC</Copyright>
+    <PackageReleaseNotes>Initial release with Hardwood server, SignalR integration, and real-time monitoring.</PackageReleaseNotes>
+
+    <!-- Build Settings -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
   </PropertyGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.SignalR.Core" Version="1.1.0" />
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
   </ItemGroup>
 
   <ItemGroup>
@@ -16,6 +40,10 @@
 
   <ItemGroup>
     <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="..\icon.png" Pack="true" PackagePath="\" Condition="Exists('..\icon.png')" />
   </ItemGroup>
 
 </Project>

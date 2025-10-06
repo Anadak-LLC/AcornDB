@@ -158,6 +158,32 @@ header h1 {
     margin-top: 5px;
 }
 
+.tree-card-footer {
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #e0e0e0;
+}
+
+.btn-manage {
+    display: inline-block;
+    width: 100%;
+    text-align: center;
+    padding: 8px 12px;
+    background: #8B4513;
+    color: white;
+    text-decoration: none;
+    border-radius: 6px;
+    font-size: 0.9em;
+    font-weight: 500;
+    transition: all 0.2s;
+}
+
+.btn-manage:hover {
+    background: #A0522D;
+    transform: translateY(-2px);
+    box-shadow: 0 2px 4px rgba(0,0,0,0.2);
+}
+
 /* Detail Panel */
 .placeholder {
     text-align: center;

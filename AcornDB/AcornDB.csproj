@@ -18,7 +18,7 @@
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageIcon>icon.png</PackageIcon>
+    <!-- PackageIcon>icon.png</PackageIcon --> <!-- Disabled: Icon must be <1MB, current is 1.6MB. Resize and uncomment before publishing. -->
     <Copyright>Copyright © 2025 Anadak LLC</Copyright>
     <PackageReleaseNotes>Initial release with core features: Tree, NutShell, Trunk abstraction, file/memory/document storage, and sync capabilities.</PackageReleaseNotes>
 
