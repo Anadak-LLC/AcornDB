@@ -29,8 +29,8 @@ namespace AcornDB
 
         public void PushDelete(string key)
         {
-            Console.WriteLine($"> 🔄 Tangle '{_id}': Push delete for '{key}' (not yet implemented)");
-            // TODO: Implement delete push to remote
+            Console.WriteLine($"> 🔄 Tangle '{_id}': Push delete for '{key}'");
+            _remoteBranch.TryDelete<T>(key);
         }
 
         public void PushAll(Tree<T> tree)

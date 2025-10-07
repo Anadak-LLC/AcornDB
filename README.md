@@ -369,7 +369,7 @@ See `AcornVisualizer/README.md` for full documentation.
 
 ## 🌲 Same-Host Sync (No Server Required!)
 
-For processes on the same host, AcornDB offers **three simple sync strategies**:
+For processes on the same host, AcornDB offers **two simple sync strategies**:
 
 ### ✅ Option 1: Shared FileTrunk (Simplest!)
 
@@ -406,41 +406,6 @@ tree1.Stash(new User { Id = "bob", Name = "Bob" });
 **Perfect for in-memory scenarios or testing.**
 
 ---
-
-### 📂 Option 3: File System Sync Hub
-
-**For more complex multi-process scenarios:**
-
-```csharp
-// Process 1
-var tree1 = new Tree<User>(new DocumentStoreTrunk<User>("data/process1/users"));
-var syncHub = new FileSystemSyncHub<User>("data/sync-hub");
-
-tree1.Stash(new User { Id = "alice", Name = "Alice" });
-syncHub.PublishChanges("process1", tree1.ExportChanges());
-
-// Process 2
-var tree2 = new Tree<User>(new DocumentStoreTrunk<User>("data/process2/users"));
-var changes = syncHub.PullChanges("process2");
-foreach (var nut in changes)
-{
-    tree2.Stash(nut.Payload);
-}
-```
-
-### Try the Demo
-
-```bash
-# Terminal 1
-cd SyncDemo
-run-demo.cmd 1
-
-# Terminal 2
-cd SyncDemo
-run-demo.cmd 2
-```
-
-Watch changes sync between processes in real-time via the file system!
 
 ### When to Use Each Sync Strategy
 

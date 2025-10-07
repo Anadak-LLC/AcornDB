@@ -15,7 +15,7 @@ namespace AcornDB.Sync
             _targetTree = targetTree ?? throw new ArgumentNullException(nameof(targetTree));
         }
 
-        public new void TryPush<TItem>(string id, Nut<TItem> nut)
+        public override void TryPush<TItem>(string id, Nut<TItem> nut)
         {
             if (typeof(TItem) != typeof(T))
             {
@@ -38,7 +38,7 @@ namespace AcornDB.Sync
             }
         }
 
-        public new async Task ShakeAsync<TItem>(Tree<TItem> sourceTree)
+        public override async Task ShakeAsync<TItem>(Tree<TItem> sourceTree)
         {
             if (typeof(TItem) != typeof(T))
             {

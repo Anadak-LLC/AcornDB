@@ -58,7 +58,33 @@ namespace AcornDB.Models
         public void EntangleAll(string remoteUrl)
         {
             Console.WriteLine($"> 🌐 Grove entangling all trees with {remoteUrl}");
-            // TODO: Implement auto-entangle for all trees
+
+            var branch = new Branch(remoteUrl);
+
+            foreach (var kvp in _trees)
+            {
+                var tree = kvp.Value;
+                var treeType = tree.GetType();
+                var genericArg = treeType.GenericTypeArguments.FirstOrDefault();
+
+                if (genericArg == null) continue;
+
+                // Use reflection to call Entangle<T> with the correct type
+                var entangleMethod = typeof(Grove).GetMethod(nameof(Entangle));
+                var genericEntangle = entangleMethod?.MakeGenericMethod(genericArg);
+
+                try
+                {
+                    var tangleId = $"{genericArg.Name}_Tangle";
+                    genericEntangle?.Invoke(this, new object[] { branch, tangleId });
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"> ⚠️ Failed to entangle Tree<{genericArg.Name}>: {ex.Message}");
+                }
+            }
+
+            Console.WriteLine($"> ✅ Grove entangled {_trees.Count} trees with {remoteUrl}");
         }
 
         public bool TryStash(string typeName, string key, string json)

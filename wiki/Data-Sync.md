@@ -33,14 +33,14 @@ var branch = new Branch("http://sync-server:5000");
 
 ```csharp
 var user = new User { Name = "Alice" };
-var shell = new NutShell<User>
+var nut = new Nut<User>
 {
     Id = "alice",
     Payload = user,
     Timestamp = DateTime.UtcNow
 };
 
-branch.TryPush("alice", shell);
+branch.TryPush("alice", nut);
 // Pushes to: http://sync-server:5000/bark/user/stash
 ```
 
@@ -182,7 +182,7 @@ var alice = tree2.Crack("alice"); // Now available locally
 
 ## 🌐 Same-Host Sync Strategies
 
-For processes on the same host, you have **three options**:
+For processes on the same host, you have **two simple options**:
 
 ### Option 1: Shared FileTrunk (Simplest ✅)
 
@@ -222,62 +222,6 @@ tree1.Stash(new User { Id = "bob", Name = "Bob" });
 
 ---
 
-### Option 3: File System Sync Hub
-
-Processes sync via a shared directory:
-
-```
-Process 1 (data/process1) ──┐
-                            ├──► Sync Hub (data/sync-hub)
-Process 2 (data/process2) ──┘
-```
-
-### Example: Two Processes on Same Host
-
-**Process 1:**
-
-```csharp
-var localTree = new Tree<User>(new DocumentStoreTrunk<User>("data/process1/users"));
-var syncHub = new FileSystemSyncHub<User>("data/sync-hub");
-
-localTree.Stash("alice", new User { Name = "Alice" });
-
-// Export to hub
-syncHub.PublishChanges("process1", localTree.ExportChanges());
-```
-
-**Process 2:**
-
-```csharp
-var localTree = new Tree<User>(new DocumentStoreTrunk<User>("data/process2/users"));
-var syncHub = new FileSystemSyncHub<User>("data/sync-hub");
-
-// Import from hub
-var changes = syncHub.PullChanges("process2");
-foreach (var shell in changes)
-{
-    localTree.Stash(shell.Id, shell.Payload);
-}
-
-// Process 2 now has Alice!
-```
-
-### Running the Demo
-
-```bash
-# Terminal 1
-cd SyncDemo
-run-demo.cmd 1
-
-# Terminal 2
-cd SyncDemo
-run-demo.cmd 2
-```
-
-Watch changes sync in real-time via the file system!
-
----
-
 ## 🍃 Manual Shake
 
 Force sync on-demand:
@@ -301,9 +245,9 @@ For manual sync or migration scenarios:
 
 ```csharp
 var changes = tree.ExportChanges();
-foreach (var shell in changes)
+foreach (var nut in changes)
 {
-    Console.WriteLine($"{shell.Id}: {shell.Payload}");
+    Console.WriteLine($"{nut.Id}: {nut.Payload}");
 }
 ```
 
@@ -323,15 +267,27 @@ targetTrunk.ImportChanges(changes);
 
 | Strategy | Use Case | Pros | Cons |
 |----------|----------|------|------|
+| **Shared FileTrunk** | Same-host processes | Simplest, no setup | Requires shared filesystem |
+| **In-Process Entangle** | Same-process trees | Real-time, no network | Same-process only |
 | **Branch + Manual Push** | On-demand sync | Full control | Requires manual calls |
-| **Tangle (Auto-sync)** | Real-time sync | Automatic | Network overhead |
+| **Tangle (Auto-sync)** | Real-time remote sync | Automatic | Network overhead |
 | **Grove.Oversee** | Multi-tree auto-sync | One-liner setup | Less granular control |
-| **File System P2P** | Same-host processes | No network required | Same-host only |
 | **Export/Import** | Migrations, backups | Simple, portable | Manual, not real-time |
 
 ---
 
 ## 🧭 When to Use What
+
+### Use **Shared FileTrunk** when:
+- Multiple processes on the same host
+- Both processes can access the same directory
+- You want the simplest possible sync (zero setup)
+- Building CLI tools with shared state
+
+### Use **In-Process Entanglement** when:
+- Syncing trees within the same process
+- Working with in-memory scenarios
+- You need real-time tree-to-tree sync without HTTP
 
 ### Use **Branch + TryPush** when:
 - You want manual control over sync timing
@@ -347,12 +303,6 @@ targetTrunk.ImportChanges(changes);
 - Managing multiple Trees with the same sync endpoint
 - You want auto-monitoring with minimal code
 - Building multi-tree applications
-
-### Use **File System P2P** when:
-- Multiple processes on the same host
-- No network required
-- Desktop apps with multiple instances
-- CLI tools with shared state
 
 ### Use **Export/Import** when:
 - Migrating between storage backends

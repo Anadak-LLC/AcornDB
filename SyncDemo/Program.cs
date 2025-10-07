@@ -248,7 +248,7 @@ public class FileSystemSyncHub<T>
     /// <summary>
     /// Publish changes from a process to the hub
     /// </summary>
-    public void PublishChanges(string processId, IEnumerable<NutShell<T>> changes)
+    public void PublishChanges(string processId, IEnumerable<Nut<T>> changes)
     {
         var filePath = Path.Combine(_hubPath, $"{processId}.json");
         var json = JsonSerializer.Serialize(changes, new JsonSerializerOptions
@@ -262,9 +262,9 @@ public class FileSystemSyncHub<T>
     /// <summary>
     /// Pull changes from all other processes in the hub
     /// </summary>
-    public IEnumerable<NutShell<T>> PullChanges(string currentProcessId)
+    public IEnumerable<Nut<T>> PullChanges(string currentProcessId)
     {
-        var allChanges = new List<NutShell<T>>();
+        var allChanges = new List<Nut<T>>();
 
         foreach (var file in Directory.GetFiles(_hubPath, "*.json"))
         {
@@ -277,7 +277,7 @@ public class FileSystemSyncHub<T>
             try
             {
                 var json = File.ReadAllText(file);
-                var changes = JsonSerializer.Deserialize<List<NutShell<T>>>(json);
+                var changes = JsonSerializer.Deserialize<List<Nut<T>>>(json);
 
                 if (changes != null)
                 {

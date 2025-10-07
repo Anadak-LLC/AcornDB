@@ -1,23 +1,23 @@
 namespace AcornDB.Storage
 {
     /// <summary>
-    /// Capabilities interface for feature detection on trunks.
-    /// Allows runtime checking of trunk features without try/catch.
+    /// Describes the capabilities of a trunk implementation
+    /// Allows runtime discovery of what features a trunk supports
     /// </summary>
     public interface ITrunkCapabilities
     {
         /// <summary>
-        /// Whether this trunk supports versioning and GetHistory()
+        /// Whether this trunk supports retrieving historical versions of nuts
         /// </summary>
         bool SupportsHistory { get; }
 
         /// <summary>
-        /// Whether this trunk supports ExportChanges() and ImportChanges()
+        /// Whether this trunk can be used for synchronization (export/import changes)
         /// </summary>
         bool SupportsSync { get; }
 
         /// <summary>
-        /// Whether this trunk persists data to disk/cloud
+        /// Whether this trunk persists data durably (vs in-memory only)
         /// </summary>
         bool IsDurable { get; }
 
@@ -113,7 +113,7 @@ namespace AcornDB.Storage
     /// <summary>
     /// Default implementation of trunk capabilities
     /// </summary>
-    internal class TrunkCapabilities : ITrunkCapabilities
+    public class TrunkCapabilities : ITrunkCapabilities
     {
         public bool SupportsHistory { get; init; }
         public bool SupportsSync { get; init; }

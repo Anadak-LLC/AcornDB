@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AcornDB.Persistence.RDBMS</PackageId>
+    <Version>0.1.0</Version>
+    <Authors>Anadak LLC</Authors>
+    <Company>Anadak LLC</Company>
+    <Product>AcornDB.Persistence.RDBMS</Product>
+    <Description>🌰 RDBMS storage providers for AcornDB - SQLite, SQL Server, PostgreSQL, MySQL trunk implementations for relational database persistence.</Description>
+    <PackageTags>database;embedded;sql;sqlite;sqlserver;postgresql;mysql;rdbms;acorndb</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
+    <Copyright>Copyright © 2025 Anadak LLC</Copyright>
+    <PackageReleaseNotes>v0.1.0: Initial release with SQLite, SQL Server, PostgreSQL, and MySQL trunk implementations.</PackageReleaseNotes>
+
+    <!-- Build Settings -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Reference core AcornDB project -->
+    <ProjectReference Include="..\AcornDB\AcornDB.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- RDBMS packages -->
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.9" />
+    <PackageReference Include="Microsoft.Data.SqlClient" Version="5.2.2" />
+    <PackageReference Include="Npgsql" Version="8.0.5" />
+    <PackageReference Include="MySqlConnector" Version="2.4.0" />
+  </ItemGroup>
+
+</Project>
