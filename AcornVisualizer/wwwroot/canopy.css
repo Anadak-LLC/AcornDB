@@ -344,6 +344,227 @@ header h1 {
     margin-bottom: 8px;
 }
 
+/* Management Section */
+.management-section {
+    margin-bottom: 30px;
+}
+
+.management-section h2 {
+    color: #8B4513;
+    margin-bottom: 20px;
+    font-size: 1.8em;
+    text-align: center;
+}
+
+.management-card {
+    background: white;
+    padding: 25px;
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+    margin-bottom: 20px;
+}
+
+.management-card h3 {
+    color: #8B4513;
+    margin-bottom: 10px;
+    font-size: 1.3em;
+}
+
+.help-text {
+    color: #666;
+    font-size: 0.9em;
+    margin-bottom: 15px;
+}
+
+.form-row {
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+}
+
+.form-input {
+    flex: 1;
+    min-width: 200px;
+    padding: 12px;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    font-size: 1em;
+    transition: border-color 0.3s;
+}
+
+.form-input:focus {
+    outline: none;
+    border-color: #8B4513;
+}
+
+.btn-add,
+.btn-discovery,
+.btn-stop,
+.btn-connect {
+    padding: 12px 24px;
+    border: none;
+    border-radius: 8px;
+    font-size: 1em;
+    font-weight: bold;
+    cursor: pointer;
+    transition: all 0.3s;
+}
+
+.btn-add {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+}
+
+.btn-add:hover {
+    background: linear-gradient(135deg, #218838 0%, #1ba87a 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(40, 167, 69, 0.3);
+}
+
+.btn-discovery {
+    background: linear-gradient(135deg, #007bff 0%, #00c6ff 100%);
+    color: white;
+}
+
+.btn-discovery:hover {
+    background: linear-gradient(135deg, #0056b3 0%, #009ce0 100%);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0, 123, 255, 0.3);
+}
+
+.btn-stop {
+    background: linear-gradient(135deg, #dc3545 0%, #ff6b6b 100%);
+    color: white;
+}
+
+.btn-stop:hover {
+    background: linear-gradient(135deg, #c82333 0%, #ee5a5a 100%);
+}
+
+.btn-connect {
+    padding: 8px 16px;
+    background: linear-gradient(135deg, #8B4513 0%, #A0522D 100%);
+    color: white;
+    font-size: 0.9em;
+}
+
+.btn-connect:hover {
+    background: linear-gradient(135deg, #704010 0%, #8B4520 100%);
+    transform: translateY(-1px);
+}
+
+.status-message {
+    margin-top: 10px;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 0.95em;
+    font-weight: 500;
+}
+
+.status-message.success {
+    background: #d4edda;
+    color: #155724;
+    border: 1px solid #c3e6cb;
+}
+
+.status-message.error {
+    background: #f8d7da;
+    color: #721c24;
+    border: 1px solid #f5c6cb;
+}
+
+.status-badge {
+    padding: 6px 12px;
+    border-radius: 20px;
+    font-size: 0.9em;
+    font-weight: bold;
+    background: #e0e0e0;
+    color: #666;
+}
+
+.status-badge.status-running {
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
+/* Discovered Groves */
+.discovered-groves {
+    margin-top: 15px;
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.grove-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.grove-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 15px;
+    background: #f8f9fa;
+    border: 2px solid #e0e0e0;
+    border-radius: 8px;
+    transition: all 0.3s;
+}
+
+.grove-item:hover {
+    background: #fff;
+    border-color: #8B4513;
+    box-shadow: 0 2px 8px rgba(139, 69, 19, 0.2);
+}
+
+.grove-item.connected {
+    background: #d4edda;
+    border-color: #28a745;
+}
+
+.grove-info {
+    flex: 1;
+}
+
+.grove-name {
+    font-weight: bold;
+    color: #333;
+    margin-bottom: 4px;
+}
+
+.grove-meta {
+    font-size: 0.85em;
+    color: #666;
+}
+
+.grove-actions {
+    display: flex;
+    align-items: center;
+}
+
+.badge-connected {
+    padding: 6px 12px;
+    background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+    color: white;
+    border-radius: 20px;
+    font-size: 0.85em;
+    font-weight: bold;
+}
+
+.placeholder {
+    text-align: center;
+    color: #999;
+    padding: 20px;
+    font-style: italic;
+}
+
 /* Responsive */
 @media (max-width: 900px) {
     .main-content {
@@ -352,5 +573,20 @@ header h1 {
 
     .stats-panel {
         grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .form-row {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .form-input {
+        width: 100%;
+    }
+
+    .grove-item {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 10px;
     }
 }

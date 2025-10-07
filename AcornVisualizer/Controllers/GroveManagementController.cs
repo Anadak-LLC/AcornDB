@@ -1,4 +1,5 @@
 using Microsoft.AspNetCore.Mvc;
+using AcornDB;
 using AcornDB.Models;
 using AcornDB.Sync;
 using AcornDB.Storage;
@@ -158,6 +159,70 @@ namespace AcornVisualizer.Controllers
                 return StatusCode(500, new { message = $"Clear failed: {ex.Message}" });
             }
         }
+
+        [HttpPost("add-local-tree")]
+        public ActionResult AddLocalTree([FromBody] AddLocalTreeRequest request)
+        {
+            if (string.IsNullOrWhiteSpace(request.TypeName))
+            {
+                return BadRequest(new { message = "TypeName is required" });
+            }
+
+            if (string.IsNullOrWhiteSpace(request.FilePath))
+            {
+                return BadRequest(new { message = "FilePath is required" });
+            }
+
+            if (!Directory.Exists(request.FilePath))
+            {
+                return BadRequest(new { message = $"Directory '{request.FilePath}' does not exist" });
+            }
+
+            try
+            {
+                // Create a dynamic type for the tree
+                var typeName = request.TypeName;
+
+                // Check if tree already exists
+                var existing = _grove.GetTreeByTypeName(typeName);
+                if (existing != null)
+                {
+                    return BadRequest(new { message = $"Tree '{typeName}' already exists in grove" });
+                }
+
+                // Create a generic object type tree using FileTrunk
+                var treeType = typeof(Tree<>).MakeGenericType(typeof(Dictionary<string, object>));
+                var trunkType = typeof(FileTrunk<>).MakeGenericType(typeof(Dictionary<string, object>));
+                var trunk = Activator.CreateInstance(trunkType, request.FilePath);
+                var tree = Activator.CreateInstance(treeType, trunk, null, null);
+
+                if (tree == null)
+                {
+                    return StatusCode(500, new { message = "Failed to create tree instance" });
+                }
+
+                // Plant the tree in the grove
+                var plantMethod = typeof(Grove).GetMethod("Plant")?.MakeGenericMethod(typeof(Dictionary<string, object>));
+                plantMethod?.Invoke(_grove, new[] { tree });
+
+                return Ok(new
+                {
+                    message = $"Local tree '{typeName}' added successfully from path '{request.FilePath}'",
+                    typeName = typeName,
+                    filePath = request.FilePath
+                });
+            }
+            catch (Exception ex)
+            {
+                return StatusCode(500, new { message = $"Failed to add local tree: {ex.Message}" });
+            }
+        }
+    }
+
+    public class AddLocalTreeRequest
+    {
+        public string TypeName { get; set; } = "";
+        public string FilePath { get; set; } = "";
     }
 
     public class TreeInfoDto

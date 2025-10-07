@@ -1,485 +1,409 @@
-
 # 🌰 AcornDB
 
 ![AcornDB logo](https://raw.githubusercontent.com/Anadak-LLC/AcornDB/main/cdf1927f-1efd-4e54-8772-45476d5e6819.png)
 
-**AcornDB** is a lightweight, reactive, embedded database for .NET — for devs who’d rather ship products than pay $400/month to store 5MB of JSON.
+**A distributed, embeddable, reactive object database for .NET.**
+Local-first persistence with mesh sync, LRU cache eviction, TTL enforcement, pluggable storage backends, and zero configuration.
 
-> 🐿️ Nutty by design. Practical by necessity.
-
----
-
-## 🚀 Why AcornDB Exists
-
-Most apps don’t need Cosmos DB, Kafka, or Redis.
-
-They need:
-- Fast, local-first persistence
-- Simple per-tenant or per-user storage
-- Offline support + syncing that doesn’t make you cry
-
-**AcornDB is for:**
-- Desktop apps  
-- IoT devices  
-- Mobile backends  
-- CLI tools  
-- Serverless & edge workloads  
-- And yes — *you* with the single-user SaaS that stores 10KB per user
-
----
-
-## 🍁 Core Concepts
-
-| Term             | What It Means                                                |
-|------------------|--------------------------------------------------------------|
-| `Tree<T>`        | A local document collection — your "embedded table"          |
-| `Nut<T>`         | An object wrapped with metadata (TTL, version, timestamp)    |
-| `ITrunk<T>`      | Storage abstraction: File, Memory, Azure Blob, or versioned  |
-| `Branch`         | A connection to a remote Tree via HTTP                       |
-| `Tangle`         | A live sync session between two Trees                        |
-| `Grove`          | A set of Trees managed + synced together                     |
-| `Canopy`         | (Internal) sync orchestrator living inside the Grove         |
-| `Stash/Crack/Toss` | Insert, read, and delete objects — squirrel-style verbs    |
-| `Shake()`        | Manual sync trigger                                          |
-
----
-
-## 🔧 Features
-
-| Feature                          | Description |
-|----------------------------------|-------------|
-| 🌰 `Stash`, `Crack`, `Toss`       | Drop-in persistence with zero boilerplate |
-| 🎯 **Auto-ID Detection**          | Stash without explicit IDs - automatically uses `Id` or `Key` properties |
-| 🛡️ `Nut<T>`                       | Versioned, timestamped, TTL-wrapped records |
-| 🔁 `Branch`, `Tangle`, `Grove`    | Live sync between Trees, across machines |
-| 🪢 `Entangle<T>()`                | Sync trees via HTTP or **in-process** without a server |
-| 🎩 `Oversee<T>()`                 | One-liner to monitor remote branches |
-| ⚖️ `Squabble()` + Judge           | Built-in conflict resolution with custom override |
-| 🧠 `INutment<TKey>`               | Typed ID interface for strongly keyed documents |
-| 🧹 `SmushNow()`                   | Manual compaction of log-based storage |
-| 🛰️ `ExportChanges()` / `ImportChanges()` | Manual sync if you're old-school |
-| 🌲 `Grove.Plant<T>()`             | Auto-creates and registers a `Tree<T>` |
-| 🔐 Totem-based auth (coming)      | Because why not woodland-themed security? |
-
----
-
-## 🧪 Getting Started
+> 🐿️ Built for developers who'd rather ship products than manage infrastructure.
 
 ```bash
-# Coming soon to NuGet:
 dotnet add package AcornDB
+dotnet add package AcornDB.Persistence.Cloud    # Optional: S3, Azure Blob
+dotnet add package AcornDB.Persistence.RDBMS    # Optional: SQLite, SQL Server, PostgreSQL, MySQL
 ```
 
-### Quick Example
+---
+
+## 🚀 Why AcornDB?
+
+Most apps don't need Cosmos DB, Kafka, or a $400/month cloud bill to store 5MB of JSON.
+
+**You need:**
+- ✅ Fast, local-first persistence
+- ✅ Simple per-tenant or per-user storage
+- ✅ Offline support + sync that actually works
+- ✅ Zero configuration, zero ceremony
+
+**Perfect for:**
+- Desktop & mobile apps
+- IoT & edge devices
+- CLI tools & utilities
+- Serverless & edge workloads
+- Single-user SaaS apps
+
+---
+
+## ⚡ Quick Start
+
+### 30-Second Example
 
 ```csharp
-// Define your model with an Id property
+using AcornDB;
+
 public class User
 {
     public string Id { get; set; } = Guid.NewGuid().ToString();
     public string Name { get; set; }
 }
 
-// Create a Tree (defaults to FileTrunk - no config needed!)
-var tree = new Tree<User>();
+// Create a tree (defaults to file storage, zero config!)
+var tree = new Acorn<User>().Sprout();
 
-// Stash without explicit ID (auto-detected from Id property)
-tree.Stash(new User { Name = "Squirrelius Maximus" });
+// Stash (auto-detects ID from property)
+tree.Stash(new User { Name = "Alice" });
 
-// Crack it back
-var user = tree.Crack("...");
+// Crack (retrieve)
+var alice = tree.Crack("alice-id");
+
+// Query with LINQ
+var adults = tree.GetAll().Where(u => u.Age >= 18).ToList();
 ```
 
-### With Sync
+### Git as a Database
+
+Every `Stash()` creates a Git commit. Use Git tools to inspect your database:
 
 ```csharp
-// Set up syncing with a Grove
-var grove = new Grove();
-grove.Plant(tree);
-grove.Oversee<User>(new Branch("http://localhost:5000")); // auto-sync!
+using AcornDB;
+using AcornDB.Storage;
 
-tree.Shake(); // optionally force a sync
+var tree = new Acorn<User>()
+    .WithGitStorage(repoPath: "./my_db", autoPush: true)
+    .Sprout();
+
+tree.Stash(new User { Id = "alice", Name = "Alice" });
+// ✅ Git commit created: "Stash: alice at 2025-10-07 10:30:45"
+
+// Time-travel through history
+var history = tree.GetHistory("alice"); // All previous versions
 ```
 
----
-
-## ✨ What Makes AcornDB Simple
-
-### 🎯 Auto-ID Detection
-No more specifying IDs twice. If your model has an `Id` or `Key` property, AcornDB finds it automatically:
-
-```csharp
-public class Task
-{
-    public string Id { get; set; } = Guid.NewGuid().ToString();
-    public string Title { get; set; }
-}
-
-var tree = new Tree<Task>();
-tree.Stash(new Task { Title = "Learn AcornDB" }); // ID auto-detected!
+```bash
+cd my_db
+git log --oneline
+# f4e8a91 Stash: alice at 2025-10-07 10:30:45
+# c2d1b3a Stash: bob at 2025-10-07 10:25:12
 ```
 
-### 🪵 Optional Trunk (Defaults to FileTrunk)
-Skip the boilerplate. Trees default to file-based storage:
+**[Read More: GitHub Trunk Guide →](wiki/GITHUB_TRUNK_DEMO.md)**
+
+### Dynamic Storage with Nursery
+
+Discover and grow storage backends at runtime:
 
 ```csharp
-// Before
-var tree = new Tree<User>(new FileTrunk<User>("data/User"));
+// Browse available storage types
+Console.WriteLine(Nursery.GetCatalog());
 
-// Now
-var tree = new Tree<User>(); // Automatically uses FileTrunk!
+// Grow trunk from config (no hardcoded dependencies!)
+var tree = new Acorn<User>()
+    .WithTrunkFromNursery("git", new()
+    {
+        { "repoPath", "./my_repo" },
+        { "authorName", "Alice" }
+    })
+    .Sprout();
+
+// Change storage backend via environment variable
+var storageType = Environment.GetEnvironmentVariable("STORAGE") ?? "file";
+var tree = new Acorn<User>().WithTrunkFromNursery(storageType).Sprout();
 ```
 
-### 🪢 In-Process Sync
-Connect trees directly without HTTP:
+**[Read More: Nursery Guide →](NURSERY_GUIDE.md)**
+
+### Real-Time Sync
 
 ```csharp
-var tree1 = new Tree<User>();
-var tree2 = new Tree<User>(new MemoryTrunk<User>());
+// In-process sync (no HTTP server needed!)
+var tree1 = new Acorn<User>().Sprout();
+var tree2 = new Acorn<User>().InMemory().Sprout();
 
-tree1.Entangle(tree2); // No server needed!
-```
+tree1.Entangle(tree2); // Direct tree-to-tree sync
 
-### 📁 Shared Storage Sync
-Multiple processes? Just point to the same directory:
+tree1.Stash(new User { Name = "Bob" });
+// ✅ Automatically synced to tree2!
 
-```csharp
-// Process 1
-var tree1 = new Tree<User>(new FileTrunk<User>("shared/data"));
-tree1.Stash(new User { Id = "alice", Name = "Alice" });
-
-// Process 2
-var tree2 = new Tree<User>(new FileTrunk<User>("shared/data"));
-var alice = tree2.Crack("alice"); // Already there!
-```
-
----
-
-## 🗄️ Storage Abstraction (Trunks)
-
-AcornDB uses **Trunks** to abstract storage — swap your backend without touching your Tree code.
-
-### Available Trunks
-
-| Trunk                  | Use Case                              | History | Sync |
-|------------------------|---------------------------------------|---------|------|
-| `FileTrunk<T>`         | Simple file-based storage            | ❌      | ✅   |
-| `MemoryTrunk<T>`       | Fast in-memory (great for tests)     | ❌      | ✅   |
-| `DocumentStoreTrunk<T>`| **Full versioning & time-travel**    | ✅      | ✅   |
-| `AzureTrunk<T>`        | Azure Blob Storage                   | ❌      | ✅   |
-
-### Examples
-
-```csharp
-// 📁 FileTrunk (DEFAULT): Simple, no history
-var fileTree = new Tree<User>(); // Defaults to FileTrunk!
-fileTree.Stash(new User { Id = "alice", Name = "Alice" }); // Auto-ID
-
-// Or explicit path
-var customTree = new Tree<User>(new FileTrunk<User>("data/users"));
-
-// 💾 MemoryTrunk: Fast, non-durable
-var memTree = new Tree<User>(new MemoryTrunk<User>());
-memTree.Stash(new User { Id = "bob", Name = "Bob" });
-
-// 📚 DocumentStoreTrunk: Full history & versioning
-var docTree = new Tree<User>(new DocumentStoreTrunk<User>("data/versioned"));
-docTree.Stash(new User { Id = "charlie", Name = "Charlie v1" });
-docTree.Stash(new User { Id = "charlie", Name = "Charlie v2" });
-
-var history = docTree.GetHistory("charlie"); // Get previous versions!
-// Returns: 1 previous version ("Charlie v1")
-
-// 🔄 Export/Import between trunks
-var sourceTrunk = new FileTrunk<User>("data/source");
-var targetTrunk = new AzureTrunk<User>("connection-string");
-
-targetTrunk.ImportChanges(sourceTrunk.ExportChanges()); // Migrate!
-```
-
-### Time-Travel with DocumentStoreTrunk
-
-```csharp
-var tree = new Tree<Product>(new DocumentStoreTrunk<Product>("data/products"));
-
-tree.Stash(new Product { Id = "widget", Name = "Widget v1.0" });
-tree.Stash(new Product { Id = "widget", Name = "Widget v2.0" });
-tree.Stash(new Product { Id = "widget", Name = "Widget v3.0" });
-
-var current = tree.Crack("widget");     // "Widget v3.0"
-var history = tree.GetHistory("widget"); // ["Widget v1.0", "Widget v2.0"]
-
-// All changes stored in append-only log: data/products/changes.log
-```
-
-### NotSupportedException Pattern
-
-Trunks that don't support history throw `NotSupportedException`:
-
-```csharp
-var memTree = new Tree<User>(new MemoryTrunk<User>());
-try {
-    var history = memTree.GetHistory("user1");
-} catch (NotSupportedException) {
-    Console.WriteLine("MemoryTrunk doesn't support history!");
-}
-```
-
-### Feature Detection with ITrunkCapabilities
-
-Check trunk features **without exceptions**:
-
-```csharp
-var trunk = new MemoryTrunk<User>();
-var caps = trunk.GetCapabilities();
-
-Console.WriteLine($"Trunk: {caps.TrunkType}");
-Console.WriteLine($"History: {caps.SupportsHistory}");
-Console.WriteLine($"Sync: {caps.SupportsSync}");
-Console.WriteLine($"Durable: {caps.IsDurable}");
-Console.WriteLine($"Async: {caps.SupportsAsync}");
-
-// Use extension methods for quick checks
-if (trunk.CanGetHistory())
-{
-    var history = trunk.GetHistory("user1");
-}
-else
-{
-    Console.WriteLine("This trunk doesn't support history");
-}
-```
-
-**Capability Matrix:**
-
-| Trunk              | History | Sync | Durable | Async |
-|--------------------|---------|------|---------|-------|
-| FileTrunk          | ❌      | ✅   | ✅      | ❌    |
-| MemoryTrunk        | ❌      | ✅   | ❌      | ❌    |
-| DocumentStoreTrunk | ✅      | ✅   | ✅      | ❌    |
-| AzureTrunk         | ❌      | ✅   | ✅      | ✅    |
-
----
-
-## 🌐 Sync with TreeBark
-
-**TreeBark** is the HTTP sync server for AcornDB - it exposes Trees over REST endpoints.
-
-### Quick Start Sync Server
-
-```csharp
-// Server side (AcornSyncServer project)
-var grove = new Grove();
-grove.Plant(new Tree<User>(new FileTrunk<User>("data/users")));
-grove.Plant(new Tree<Product>(new FileTrunk<Product>("data/products")));
-
-// Run with: dotnet run --project AcornSyncServer
-// TreeBark starts on http://localhost:5000
-```
-
-### TreeBark REST API
-
-| Endpoint                        | Method | Description                    |
-|---------------------------------|--------|--------------------------------|
-| `/`                             | GET    | Health check + API docs        |
-| `/bark/{treeName}/stash`        | POST   | Stash a nut to remote tree     |
-| `/bark/{treeName}/crack/{id}`   | GET    | Crack a nut from remote tree   |
-| `/bark/{treeName}/toss/{id}`    | DELETE | Toss a nut from remote tree    |
-| `/bark/{treeName}/export`       | GET    | Export all nuts from tree      |
-| `/bark/{treeName}/import`       | POST   | Import nuts into tree          |
-
-### Client-Side Sync with Branch
-
-```csharp
-// Client side - connect to remote TreeBark server
-var localTree = new Tree<User>(new MemoryTrunk<User>());
-var branch = new Branch("http://localhost:5000/bark/User");
-
-// Manual push with auto-ID
-var alice = new User { Id = "alice", Name = "Alice" };
-localTree.Stash(alice);
-branch.TryPush(alice.Id, localTree.Crack(alice.Id));
-
-// Manual pull
-await branch.ShakeAsync(localTree); // Pulls all remote changes
-
-// Auto-sync with Tangle
-var grove = new Grove();
-grove.Plant(localTree);
-grove.Entangle<User>(branch, "sync-session-1"); // Auto-syncs on every stash!
-```
-
-### Full Sync Example
-
-**Server** (`dotnet run --project AcornSyncServer`):
-```csharp
-var grove = new Grove();
-grove.Plant(new Tree<User>(new DocumentStoreTrunk<User>("data/users")));
-// TreeBark running on http://localhost:5000
-```
-
-**Client 1** (Desktop App):
-```csharp
-var tree1 = new Tree<User>(new FileTrunk<User>("client1/users"));
+// HTTP sync with TreeBark server
 var branch = new Branch("http://localhost:5000");
-
-var alice = new User { Id = "alice", Name = "Alice" };
-tree1.Stash(alice); // Auto-ID detection
-branch.TryPush(alice.Id, tree1.Crack(alice.Id)); // Syncs to server
+grove.Oversee<User>(branch); // Auto-syncs on every change
 ```
 
-**Client 2** (Mobile App):
-```csharp
-var tree2 = new Tree<User>(new MemoryTrunk<User>());
-var branch = new Branch("http://localhost:5000");
+**[Read More: Data Sync Guide →](wiki/Data-Sync.md)**
 
-await branch.ShakeAsync(tree2); // Pulls "alice" from server!
-var alice = tree2.Crack("alice"); // "Alice" is now local
+---
+
+## 🎯 Features
+
+### ✅ Implemented (v0.4)
+
+| Feature | Description |
+|---------|-------------|
+| **🌰 Core API** | `Stash()`, `Crack()`, `Toss()` - squirrel-style CRUD |
+| **🎯 Auto-ID Detection** | Automatic ID extraction from `Id` or `Key` properties |
+| **🔁 Reactive Events** | `Subscribe()` for real-time change notifications |
+| **🪢 In-Process Sync** | Direct tree-to-tree sync without HTTP |
+| **🌐 HTTP Sync** | TreeBark server for distributed sync |
+| **🛡️ Versioned Nuts** | Timestamps, TTL, conflict detection built-in |
+| **⚖️ Conflict Resolution** | Pluggable `IConflictJudge<T>` (timestamp, version, custom) |
+| **🧠 LRU Cache** | Automatic eviction with configurable limits |
+| **⏰ TTL Enforcement** | Auto-cleanup of expired items |
+| **🌲 Grove Management** | Multi-tree orchestration and sync |
+| **📊 AcornVisualizer** | Web UI for browsing groves and nuts |
+| **🐿️ Git Storage** | GitHubTrunk - every stash is a Git commit! |
+| **🌱 Nursery System** | Dynamic trunk discovery and factory pattern |
+| **☁️ Cloud Storage** | S3, Azure Blob (via `AcornDB.Persistence.Cloud`) |
+| **💾 RDBMS Storage** | SQLite, SQL Server, PostgreSQL, MySQL (via `AcornDB.Persistence.RDBMS`) |
+| **🔐 Encryption** | AES encryption with password or custom provider |
+| **🗜️ Compression** | Gzip/Brotli compression for storage optimization |
+| **📈 LINQ Support** | `GetAll()` returns `IEnumerable<T>` for LINQ queries |
+| **📜 Full History** | `GetHistory(id)` for version history (Git & DocumentStore trunks) |
+
+### 🔜 Roadmap (Upcoming)
+
+| Feature | Target | Description |
+|---------|--------|-------------|
+| **🔒 BarkCodes Auth** | v0.5 | Token-based authentication for sync |
+| **🎭 Critters RBAC** | v0.5 | Role-based access control |
+| **🌐 Mesh Sync** | v0.5 | Peer-to-peer multi-tree sync networks |
+| **📦 CLI Tool** | v0.5 | `acorn new`, `acorn inspect`, `acorn migrate` |
+| **🔄 Auto-Recovery** | v0.6 | Offline-first sync queue with retry |
+| **📊 Prometheus Export** | v0.6 | OpenTelemetry metrics integration |
+| **🎨 Dark Mode UI** | v0.6 | Canopy dashboard enhancements |
+
+**[View Full Roadmap →](AcornDB_Consolidated_Roadmap.md)**
+
+---
+
+## 🗄️ Storage Backends (Trunks)
+
+AcornDB uses **Trunks** to abstract storage. Swap backends without changing your code.
+
+### Built-in Trunks
+
+| Trunk | Package | Durable | History | Async | Use Case |
+|-------|---------|---------|---------|-------|----------|
+| `FileTrunk` | Core | ✅ | ❌ | ❌ | Simple file storage (default) |
+| `MemoryTrunk` | Core | ❌ | ❌ | ❌ | Fast in-memory (testing) |
+| `DocumentStoreTrunk` | Core | ✅ | ✅ | ❌ | Versioning & time-travel |
+| `GitHubTrunk` | Core | ✅ | ✅ | ❌ | Git-as-database with commit history |
+| `AzureTrunk` | Cloud | ✅ | ❌ | ✅ | Azure Blob Storage |
+| `S3Trunk` | Cloud | ✅ | ❌ | ✅ | AWS S3, MinIO, DigitalOcean Spaces |
+| `SqliteTrunk` | RDBMS | ✅ | ❌ | ❌ | SQLite database |
+| `SqlServerTrunk` | RDBMS | ✅ | ❌ | ❌ | Microsoft SQL Server |
+| `PostgreSqlTrunk` | RDBMS | ✅ | ❌ | ❌ | PostgreSQL |
+| `MySqlTrunk` | RDBMS | ✅ | ❌ | ❌ | MySQL/MariaDB |
+
+**[Read More: Storage Guide →](wiki/Storage.md)**
+**[Cloud Storage Guide →](wiki/CLOUD_STORAGE_GUIDE.md)**
+**[Nursery Guide →](NURSERY_GUIDE.md)**
+
+### Using Fluent API
+
+```csharp
+using AcornDB;
+
+// File storage (default)
+var tree = new Acorn<User>().Sprout();
+
+// Git storage
+var gitTree = new Acorn<User>()
+    .WithGitStorage("./my_repo", authorName: "Alice")
+    .Sprout();
+
+// With encryption + compression
+var secureTree = new Acorn<User>()
+    .WithEncryption("my-password")
+    .WithCompression()
+    .Sprout();
+
+// LRU cache with limit
+var cachedTree = new Acorn<User>()
+    .WithLRUCache(maxSize: 1000)
+    .Sprout();
+
+// Via Nursery (dynamic)
+var dynamicTree = new Acorn<User>()
+    .WithTrunkFromNursery("git", new() { { "repoPath", "./data" } })
+    .Sprout();
+```
+
+### Cloud & RDBMS Extensions
+
+```csharp
+using AcornDB.Persistence.Cloud;
+using AcornDB.Persistence.RDBMS;
+
+// S3 storage
+var s3Tree = new Acorn<User>()
+    .WithS3Storage(accessKey, secretKey, bucketName, region: "us-east-1")
+    .Sprout();
+
+// Azure Blob
+var azureTree = new Acorn<User>()
+    .WithAzureBlobStorage(connectionString, containerName)
+    .Sprout();
+
+// SQLite
+var sqliteTree = new Acorn<User>()
+    .WithSqlite("Data Source=mydb.db")
+    .Sprout();
+
+// PostgreSQL
+var pgTree = new Acorn<User>()
+    .WithPostgreSQL("Host=localhost;Database=acorn")
+    .Sprout();
 ```
 
 ---
 
-## 🌰 AcornDB Visualizer - Web UI
+## 🌲 Core Concepts
 
-Explore your Grove with an interactive web dashboard!
+| Term | Description |
+|------|-------------|
+| **Tree&lt;T&gt;** | A collection of documents (like a table) |
+| **Nut&lt;T&gt;** | A document with metadata (timestamp, version, TTL) |
+| **Trunk** | Storage backend abstraction (file, memory, Git, cloud, SQL) |
+| **Branch** | Connection to a remote Tree via HTTP |
+| **Tangle** | Live sync session between two Trees |
+| **Grove** | Container managing multiple Trees with unified sync |
+| **Nursery** | Factory registry for discovering and creating trunks |
+
+**[Read More: Core Concepts →](wiki/Concepts.md)**
+
+---
+
+## 📚 Documentation
+
+- **[Getting Started Guide](wiki/Getting-Started.md)** - Your first AcornDB app
+- **[Core Concepts](wiki/Concepts.md)** - Understanding Trees, Nuts, and Trunks
+- **[Storage Guide](wiki/Storage.md)** - Available trunk types and usage
+- **[Data Sync Guide](wiki/Data-Sync.md)** - In-process, HTTP, and mesh sync
+- **[Conflict Resolution](wiki/Conflict-Resolution.md)** - Handling sync conflicts
+- **[Events & Reactivity](wiki/Events.md)** - Real-time change notifications
+- **[GitHub Trunk Demo](wiki/GITHUB_TRUNK_DEMO.md)** - Git-as-database guide
+- **[Nursery Guide](NURSERY_GUIDE.md)** - Dynamic trunk discovery
+- **[Cloud Storage Guide](wiki/CLOUD_STORAGE_GUIDE.md)** - S3, Azure Blob setup
+- **[Dashboard & Visualizer](wiki/Dashboard.md)** - Web UI for grove management
+- **[Cluster & Mesh](wiki/Cluster-&-Mesh.md)** - Distributed sync patterns
+
+---
+
+## 🧪 Examples
+
+```csharp
+// Example 1: Local-first desktop app
+var tree = new Acorn<Document>()
+    .WithStoragePath("./user_data")
+    .WithLRUCache(5000)
+    .Sprout();
+
+tree.Subscribe(doc => Console.WriteLine($"Changed: {doc.Title}"));
+
+// Example 2: IoT edge device with cloud backup
+var edgeTree = new Acorn<SensorReading>()
+    .WithStoragePath("./local_cache")
+    .Sprout();
+
+var cloudBranch = new Branch("https://api.example.com/sync");
+grove.Oversee<SensorReading>(cloudBranch); // Auto-syncs to cloud
+
+// Example 3: Multi-tenant SaaS with per-tenant storage
+string GetTenantPath(string tenantId) => $"./data/{tenantId}";
+
+var tenantTree = new Acorn<Order>()
+    .WithStoragePath(GetTenantPath(currentTenantId))
+    .Sprout();
+
+// Example 4: Git-based audit log
+var auditLog = new Acorn<AuditEntry>()
+    .WithGitStorage("./audit_log", authorName: "System")
+    .Sprout();
+
+auditLog.Stash(new AuditEntry { Action = "Login", User = "alice" });
+// Git commit created with full history!
+```
+
+**[More Examples: Demo Project →](AcornDB.Demo/)**
+**[Live Sync Demo →](SyncDemo/)**
+
+---
+
+## 🎨 AcornVisualizer - Web UI
+
+Explore your Grove with an interactive dashboard:
 
 ```bash
 cd AcornVisualizer
 dotnet run
-# Open browser to http://localhost:5100
+# Open http://localhost:5100
 ```
 
 **Features:**
-- 📊 **Live Dashboard** - Real-time stats on trees, nuts, and operations
-- 🌳 **Tree Explorer** - Browse all trees with detailed metadata
-- 📈 **Graph View** - Interactive circular node visualization
-- 🔍 **Nut Inspector** - View payloads, timestamps, and history
-- ⚙️ **Trunk Info** - See capabilities (history, sync, durable, async)
-- 🔄 **Auto-Refresh** - Updates every 5 seconds
+- 📊 Real-time statistics
+- 🌳 Tree explorer with metadata
+- 📈 Interactive graph visualization
+- 🔍 Nut inspector with history
+- ⚙️ Trunk capabilities viewer
 
-**Perfect for:**
-- Local development and debugging
-- Visual demos and presentations
-- Understanding your grove structure
-- Monitoring nut operations
-
-See `AcornVisualizer/README.md` for full documentation.
-
----
-
-## 🌲 Same-Host Sync (No Server Required!)
-
-For processes on the same host, AcornDB offers **two simple sync strategies**:
-
-### ✅ Option 1: Shared FileTrunk (Simplest!)
-
-**Just point both trees to the same directory:**
-
-```csharp
-// Process 1
-var tree1 = new Tree<User>(new FileTrunk<User>("shared/users"));
-tree1.Stash(new User { Id = "alice", Name = "Alice" });
-
-// Process 2
-var tree2 = new Tree<User>(new FileTrunk<User>("shared/users"));
-var alice = tree2.Crack("alice"); // ✅ Automatically synced!
-```
-
-**Zero setup. Zero config. Just works.**
-
----
-
-### 🪢 Option 2: In-Process Tree Entanglement
-
-**Sync two trees directly without HTTP:**
-
-```csharp
-var tree1 = new Tree<User>();
-var tree2 = new Tree<User>(new MemoryTrunk<User>());
-
-tree1.Entangle(tree2); // Direct tree-to-tree sync!
-
-tree1.Stash(new User { Id = "bob", Name = "Bob" });
-// Automatically synced to tree2 via InProcessBranch
-```
-
-**Perfect for in-memory scenarios or testing.**
-
----
-
-### When to Use Each Sync Strategy
-
-| Scenario | Recommended Approach |
-|----------|---------------------|
-| Same host, multiple processes | 🟢 Shared FileTrunk |
-| Same process, different trees | 🟢 In-Process Entanglement |
-| Different hosts | 🟢 TreeBark HTTP |
-| Desktop apps with multiple instances | 🟢 Shared FileTrunk |
-| Mobile to cloud | 🟢 TreeBark HTTP |
-| Distributed systems | 🟢 TreeBark HTTP |
-| CLI tools | 🟢 Shared FileTrunk |
-| Complex multi-process with separate storage | 🟢 File System Sync Hub |
+**[Read More: Dashboard Guide →](wiki/Dashboard.md)**
 
 ---
 
 ## 🧱 Project Structure
 
-| Folder             | Purpose                                      |
-|--------------------|----------------------------------------------|
-| `AcornDB`          | Core engine (Tree, Nut, Trunk, Tangle)       |
-| `AcornSyncServer`  | **TreeBark**: HTTP sync server (REST API)    |
-| `AcornVisualizer`  | **Web UI**: Interactive grove dashboard      |
-| `AcornDB.Canopy`   | SignalR hub + visualizations                 |
-| `AcornDB.Demo`     | Examples showcasing all features             |
-| `SyncDemo`         | **Live multi-client sync demonstration**     |
-| `AcornDB.Test`     | xUnit tests (**26 passing**)                 |
+| Project | Purpose |
+|---------|---------|
+| `AcornDB` | Core library (Tree, Nut, Trunk, Sync) |
+| `AcornDB.Persistence.Cloud` | S3, Azure Blob, cloud storage providers |
+| `AcornDB.Persistence.RDBMS` | SQLite, SQL Server, PostgreSQL, MySQL |
+| `AcornSyncServer` | TreeBark - HTTP sync server |
+| `AcornVisualizer` | Web UI dashboard |
+| `AcornDB.Demo` | Example applications |
+| `AcornDB.Test` | Test suite (100+ tests) |
+| `AcornDB.Benchmarks` | Performance benchmarks |
 
 ---
 
-## 🧙 What's Coming
+## 🌰 The Acorn Philosophy
 
-- 🔐 **Auth**: Totems, ForageRights, Critters, and BarkCodes
-- 📡 **Mesh sync**: Peer-to-peer Tangle networks
-- 📦 **NuGet & CLI**: Install and create projects with `acorn new`
-- 🔁 **AutoRecovery**: Offline-first sync queue with resilience
-- 🧪 **Playgrounds**: Sample apps, code snippets, and demos
-- 🎨 **Visualizer Enhancements**: Real-time updates, diff viewer, dark mode  
+> 🐿️ **Serious software. Zero seriousness.**
 
----
-
-
-
----
-
-## 🌲 The Acorn Ethos
-
-> 🐿️ Serious software. Zero seriousness.
-
-AcornDB was born out of frustration with bloated infra, soulless APIs, and naming things like `DataClientServiceManagerFactoryFactory`.
-
-So we built something better — not just in function, but in **vibe**.
+We built AcornDB because we were tired of:
+- Paying $$$ to store JSON
+- Managing Kubernetes for simple persistence
+- Writing `DataClientServiceManagerFactoryFactory`
+- YAML-induced existential dread
 
 **We believe:**
+- Developers deserve tools that make them **smile**
+- Syncing JSON shouldn't require a PhD
+- Local-first is the future
+- API names should be memorable (`Stash`, `Crack`, `Shake` > `Insert`, `Select`, `Synchronize`)
 
-- Developers deserve **fun**.
-- Tools should make you **smile**, not sigh.
-- Syncing JSON should not require Kubernetes and a degree in wizardry.
-- **"Toss the nut and shake the tree"** should be valid engineering advice.
-
-If you’ve ever rage-quit YAML, yelled at Terraform, or cried syncing offline-first apps —  
-welcome. You’ve found your grove.
-
-🌰 *Stash boldly. Crack with confidence. And never, ever apologize for getting a little squirrelly.*
-
-
-## 🦦 Built with acorns and sarcasm
-
-We’re tired of YAML. Tired of cloud bills. Tired of `DataServiceFactoryClientFactoryFactory`.
-
-So we built AcornDB.
-
-If you fork this, star it, or build something fun — send us your weirdest squirrel pun.
+If you've ever rage-quit YAML or cried syncing offline-first apps — **welcome home**. 🌳
 
 ---
 
-## 🐿️ Stay nutty.
+## 🤝 Contributing
+
+We welcome contributions! Check out:
+- [Roadmap](AcornDB_Consolidated_Roadmap.md) for planned features
+- [Issues](https://github.com/Anadak-LLC/AcornDB/issues) for bugs and enhancements
+- [Wiki](https://github.com/Anadak-LLC/AcornDB/wiki) for documentation
+
+---
+
+## 📜 License
+
+MIT License - see [LICENSE](LICENSE) for details
+
+---
+
+## 🐿️ Stay Nutty
+
+Built with acorns and sarcasm by developers who've had enough.
+
+⭐ **Star the repo** if AcornDB saved you from another cloud bill
+🍴 **Fork it** if you want to get squirrelly
+💬 **Share your weirdest squirrel pun** in the discussions

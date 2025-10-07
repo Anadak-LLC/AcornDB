@@ -1,6 +1,8 @@
+
 using AcornDB;
 using AcornDB.Models;
 using AcornDB.Storage;
+using AcornVisualizer.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -8,6 +10,13 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorPages();
 builder.Services.AddControllers();
 builder.Services.AddSingleton<Grove>();
+builder.Services.AddSingleton<DiscoveryService>(sp =>
+{
+    var grove = sp.GetRequiredService<Grove>();
+    // Default port 5100, but can be overridden via config
+    var port = builder.Configuration.GetValue<int?>("VisualizerPort") ?? 5100;
+    return new DiscoveryService(grove, port);
+});
 
 var app = builder.Build();
 
