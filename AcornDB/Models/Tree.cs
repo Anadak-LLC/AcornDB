@@ -12,7 +12,7 @@ namespace AcornDB
     public partial class Tree<T>
     {
         private readonly Dictionary<string, Nut<T>> _cache = new();
-        private readonly List<Branch> _branches = new();
+        private readonly List<IBranch> _branches = new(); // Stores Branch and IBranch implementations
         internal readonly List<Tangle<T>> _tangles = new();
         private readonly ITrunk<T> _trunk;
         private readonly EventManager<T> _eventManager = new();
@@ -101,10 +101,9 @@ namespace AcornDB
             // Raise reactive event
             OnStashEvent?.Invoke(id, item, nut);
 
-            foreach (var branch in _branches)
-            {
-                branch.TryPush(id, nut);
-            }
+            // Create and propagate leaf to branches (new leaf-based system)
+            var leaf = CreateLeaf(Sync.LeafType.Stash, id, nut);
+            PropagateLeaf(leaf);
 
             // Check if cache eviction is needed
             CheckAndEvictCache();
@@ -151,13 +150,11 @@ namespace AcornDB
             // Propagate delete to branches and tangles (if requested)
             if (propagate)
             {
-                // Push to all branches
-                foreach (var branch in _branches)
-                {
-                    branch.TryDelete<T>(id);
-                }
+                // Create and propagate leaf to branches (new leaf-based system)
+                var leaf = CreateLeaf(Sync.LeafType.Toss, id, null);
+                PropagateLeaf(leaf);
 
-                // Push to all tangles
+                // Push to tangles (legacy support)
                 PushDeleteToAllTangles(id);
             }
         }
@@ -169,7 +166,7 @@ namespace AcornDB
             // Export changes from trunk for sync
             var changes = _trunk.ExportChanges();
 
-            foreach (var branch in _branches)
+            foreach (var branch in _branches.OfType<Branch>())
             {
                 foreach (var shell in changes)
                 {
@@ -180,12 +177,34 @@ namespace AcornDB
 
         public void Squabble(string id, Nut<T> incoming)
         {
+            Squabble(id, incoming, Sync.ConflictDirection.UseJudge);
+        }
+
+        public void Squabble(string id, Nut<T> incoming, Sync.ConflictDirection conflictDirection)
+        {
             if (_cache.TryGetValue(id, out var existing))
             {
-                // Use the conflict judge to determine which nut to keep
-                var winner = _conflictJudge.Judge(existing, incoming);
-                _squabblesResolved++;
+                // Determine winner based on conflict direction
+                Nut<T> winner;
 
+                switch (conflictDirection)
+                {
+                    case Sync.ConflictDirection.PreferLocal:
+                        winner = existing;
+                        break;
+
+                    case Sync.ConflictDirection.PreferRemote:
+                        winner = incoming;
+                        break;
+
+                    case Sync.ConflictDirection.UseJudge:
+                    default:
+                        // Use the conflict judge to determine which nut to keep
+                        winner = _conflictJudge.Judge(existing, incoming);
+                        break;
+                }
+
+                _squabblesResolved++;
                 OnSquabbleEvent?.Invoke(id, winner);
 
                 // If the winner is the existing nut, keep it and return
@@ -268,6 +287,28 @@ namespace AcornDB
         }
 
         /// <summary>
+        /// Entangle with any IBranch implementation (audit, metrics, custom, etc.)
+        /// Returns the branch for lifecycle management
+        /// </summary>
+        public IBranch Entangle(IBranch branch)
+        {
+            // Delegate to Branch overload if it's a Branch instance
+            if (branch is Branch branchInstance)
+            {
+                return Entangle(branchInstance);
+            }
+
+            // Add non-Branch IBranch implementations directly
+            if (!_branches.Contains(branch))
+            {
+                _branches.Add(branch);
+                Console.WriteLine($"> 🌉 Tree<{typeof(T).Name}> entangled with {branch.BranchId}");
+            }
+
+            return branch;
+        }
+
+        /// <summary>
         /// Entangle with another tree in-process (no HTTP required)
         /// Returns the tangle for lifecycle management
         /// </summary>
@@ -299,6 +340,29 @@ namespace AcornDB
         }
 
         /// <summary>
+        /// Detangle (disconnect) a specific IBranch
+        /// Removes the branch from this tree and disposes it
+        /// </summary>
+        public void Detangle(IBranch branch)
+        {
+            // Delegate to Branch overload if it's a Branch instance
+            if (branch is Branch branchInstance)
+            {
+                Detangle(branchInstance);
+                return;
+            }
+
+            // Handle non-Branch IBranch implementations
+            if (_branches.Remove(branch))
+            {
+                Console.WriteLine($"> 🔓 Tree<{typeof(T).Name}> detangled from {branch.BranchId}");
+
+                // Dispose the branch
+                branch.Dispose();
+            }
+        }
+
+        /// <summary>
         /// Detangle (disconnect) a specific tangle
         /// Removes the tangle from this tree and disposes it
         /// </summary>
@@ -321,7 +385,7 @@ namespace AcornDB
         {
             Console.WriteLine($"> 🔓 Tree<{typeof(T).Name}> detangling all connections...");
 
-            // Dispose and clear all branches
+            // Dispose and clear all branches (both Branch and IBranch)
             foreach (var branch in _branches.ToList())
             {
                 if (branch is IDisposable disposable)

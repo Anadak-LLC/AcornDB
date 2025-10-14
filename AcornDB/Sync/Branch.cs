@@ -6,22 +6,49 @@ using System.Text.Json;
 
 namespace AcornDB.Sync
 {
-    public partial class Branch : IDisposable
+    public partial class Branch : IBranch
     {
+        public string BranchId { get; }
         public string RemoteUrl { get; }
         public SyncMode SyncMode { get; set; } = SyncMode.Bidirectional;
         public ConflictDirection ConflictDirection { get; set; } = ConflictDirection.UseJudge;
 
+        /// <summary>
+        /// Capabilities supported by this branch (all by default)
+        /// </summary>
+        public BranchCapabilities Capabilities => BranchCapabilities.All;
+
         private readonly HttpClient _httpClient;
         private readonly HashSet<string> _pushedNuts = new(); // Track pushed nuts to avoid re-pushing
         private readonly HashSet<string> _deletedNuts = new(); // Track deleted nuts to avoid re-deleting
+        private long _pullCount = 0; // Track nuts pulled from remote
+        private long _conflictCount = 0; // Track conflicts resolved
         private bool _isDisposed;
 
         public Branch(string remoteUrl, SyncMode syncMode = SyncMode.Bidirectional)
         {
+            BranchId = $"remote-{Guid.NewGuid().ToString().Substring(0, 8)}";
             RemoteUrl = remoteUrl.TrimEnd('/');
             SyncMode = syncMode;
             _httpClient = new HttpClient();
+        }
+
+        /// <summary>
+        /// Configure sync mode (fluent API)
+        /// </summary>
+        public Branch WithSyncMode(SyncMode syncMode)
+        {
+            SyncMode = syncMode;
+            return this;
+        }
+
+        /// <summary>
+        /// Configure conflict direction (fluent API)
+        /// </summary>
+        public Branch WithConflictDirection(ConflictDirection conflictDirection)
+        {
+            ConflictDirection = conflictDirection;
+            return this;
         }
 
         public virtual void TryPush<T>(string id, Nut<T> shell)
@@ -138,7 +165,18 @@ namespace AcornDB.Sync
 
                 foreach (var nut in nuts)
                 {
-                    targetTree.Squabble(nut.Id, nut);
+                    // Check if nut exists (potential conflict)
+                    bool isConflict = targetTree.Crack(nut.Id) != null;
+
+                    // Use the branch's conflict direction preference
+                    targetTree.Squabble(nut.Id, nut, ConflictDirection);
+
+                    // Track statistics
+                    System.Threading.Interlocked.Increment(ref _pullCount);
+                    if (isConflict)
+                    {
+                        System.Threading.Interlocked.Increment(ref _conflictCount);
+                    }
                 }
 
                 Console.WriteLine($"> 🍂 Shake complete: {nuts.Count} nuts received from {RemoteUrl}");
@@ -147,6 +185,66 @@ namespace AcornDB.Sync
             {
                 Console.WriteLine($"> 🌐 Branch shake failed: {ex.Message}");
             }
+        }
+
+        // ===== IBranch Interface Implementation =====
+
+        /// <summary>
+        /// Handle a stash leaf (IBranch interface)
+        /// </summary>
+        public void OnStash<T>(Leaf<T> leaf)
+        {
+            if (leaf.Data != null)
+            {
+                TryPush(leaf.Key, leaf.Data);
+            }
+        }
+
+        /// <summary>
+        /// Handle a toss leaf (IBranch interface)
+        /// </summary>
+        public void OnToss<T>(Leaf<T> leaf)
+        {
+            TryDelete<T>(leaf.Key);
+        }
+
+        /// <summary>
+        /// Handle a squabble leaf (IBranch interface)
+        /// </summary>
+        public void OnSquabble<T>(Leaf<T> leaf)
+        {
+            // Squabbles are treated like stashes for remote sync
+            if (leaf.Data != null)
+            {
+                TryPush(leaf.Key, leaf.Data);
+            }
+        }
+
+        /// <summary>
+        /// Handle shake operation (IBranch interface)
+        /// </summary>
+        public async Task OnShakeAsync<T>(Tree<T> tree)
+        {
+            await ShakeAsync(tree);
+        }
+
+        /// <summary>
+        /// Flush any batched leaves (not implemented yet - placeholder for future batching)
+        /// </summary>
+        public void FlushBatch()
+        {
+            // TODO: Implement batching in future iteration
+            // For now, all operations are immediate (no batching)
+        }
+
+        /// <summary>
+        /// Get the remote tree ID (if known - currently not tracked)
+        /// </summary>
+        public string? GetRemoteTreeId()
+        {
+            // TODO: In future, exchange tree IDs during handshake
+            // For now, we don't track remote tree IDs
+            return null;
         }
 
         /// <summary>
@@ -169,7 +267,10 @@ namespace AcornDB.Sync
                 RemoteUrl = RemoteUrl,
                 SyncMode = SyncMode,
                 ConflictDirection = ConflictDirection,
-                TotalPushed = _pushedNuts.Count
+                TotalPushed = _pushedNuts.Count,
+                TotalDeleted = _deletedNuts.Count,
+                TotalPulled = _pullCount,
+                TotalConflicts = _conflictCount
             };
         }
 
@@ -229,5 +330,9 @@ namespace AcornDB.Sync
         public SyncMode SyncMode { get; set; }
         public ConflictDirection ConflictDirection { get; set; }
         public int TotalPushed { get; set; }
+        public int TotalDeleted { get; set; }
+        public long TotalPulled { get; set; }
+        public long TotalConflicts { get; set; }
+        public long TotalOperations => TotalPushed + TotalDeleted + TotalPulled;
     }
 }

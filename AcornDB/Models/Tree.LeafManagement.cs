@@ -12,9 +12,9 @@ namespace AcornDB
         // Sequence counter for unique leaf IDs
         private long _leafSequenceCounter = 0;
 
-        // Processed leaves cache (LRU) for deduplication
-        private readonly Cache.LRUCacheStrategy<string, bool> _processedLeaves =
-            new Cache.LRUCacheStrategy<string, bool>(maxSize: 10_000);
+        // Processed leaves cache for deduplication (simple dictionary with size limit)
+        private readonly Dictionary<string, DateTime> _processedLeaves = new();
+        private const int MaxProcessedLeaves = 10_000;
 
         // Maximum hops a leaf can take before being dropped (prevents infinite propagation)
         private const int MaxLeafHops = 10;
@@ -26,7 +26,7 @@ namespace AcornDB
         public void HandleLeaf(Leaf<T> leaf)
         {
             // 1. Already processed this exact leaf?
-            if (_processedLeaves.Get(leaf.LeafId) != null)
+            if (_processedLeaves.ContainsKey(leaf.LeafId))
             {
                 Console.WriteLine($"> 🍃 Leaf {leaf.LeafId} already processed, skipping");
                 return;
@@ -56,8 +56,14 @@ namespace AcornDB
             // 5. Apply the change locally (WITHOUT propagating to avoid loops)
             ApplyLeafLocally(leaf);
 
-            // 6. Mark this leaf as processed
-            _processedLeaves.Add(leaf.LeafId, true);
+            // 6. Mark this leaf as processed (with LRU eviction if needed)
+            if (_processedLeaves.Count >= MaxProcessedLeaves)
+            {
+                // Simple LRU: remove oldest entry
+                var oldest = _processedLeaves.OrderBy(kvp => kvp.Value).First().Key;
+                _processedLeaves.Remove(oldest);
+            }
+            _processedLeaves[leaf.LeafId] = DateTime.UtcNow;
 
             // 7. Mark this tree as visited and increment hop count
             leaf.MarkVisited(TreeId);
