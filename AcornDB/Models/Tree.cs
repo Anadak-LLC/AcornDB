@@ -131,7 +131,7 @@ namespace AcornDB
             return default;
         }
 
-        public void Toss(string id)
+        public void Toss(string id, bool propagate = true)
         {
             var item = Crack(id);
             _cache.Remove(id);
@@ -147,6 +147,19 @@ namespace AcornDB
             // Notify subscribers if item existed
             if (item != null)
                 _eventManager.RaiseChanged(item);
+
+            // Propagate delete to branches and tangles (if requested)
+            if (propagate)
+            {
+                // Push to all branches
+                foreach (var branch in _branches)
+                {
+                    branch.TryDelete<T>(id);
+                }
+
+                // Push to all tangles
+                PushDeleteToAllTangles(id);
+            }
         }
 
         public void Shake()
@@ -242,24 +255,90 @@ namespace AcornDB
 
         /// <summary>
         /// Entangle with a remote branch via HTTP
+        /// Returns the branch for lifecycle management
         /// </summary>
-        public void Entangle(Branch branch)
+        public Branch Entangle(Branch branch)
         {
             if (!_branches.Contains(branch))
             {
                 _branches.Add(branch);
                 Console.WriteLine($"> 🌉 Tree<{typeof(T).Name}> entangled with {branch.RemoteUrl}");
             }
+            return branch;
         }
 
         /// <summary>
         /// Entangle with another tree in-process (no HTTP required)
+        /// Returns the tangle for lifecycle management
         /// </summary>
-        public void Entangle(Tree<T> otherTree)
+        public Tangle<T> Entangle(Tree<T> otherTree)
         {
             var inProcessBranch = new InProcessBranch<T>(otherTree);
             Entangle(inProcessBranch);
+            var tangle = new Tangle<T>(this, inProcessBranch, $"InProcess-{Guid.NewGuid().ToString().Substring(0, 8)}");
             Console.WriteLine($"> 🪢 Tree<{typeof(T).Name}> entangled in-process");
+            return tangle;
+        }
+
+        /// <summary>
+        /// Detangle (disconnect) a specific branch
+        /// Removes the branch from this tree and disposes it if disposable
+        /// </summary>
+        public void Detangle(Branch branch)
+        {
+            if (_branches.Remove(branch))
+            {
+                Console.WriteLine($"> 🔓 Tree<{typeof(T).Name}> detangled from {branch.RemoteUrl}");
+
+                // Dispose the branch if it implements IDisposable
+                if (branch is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Detangle (disconnect) a specific tangle
+        /// Removes the tangle from this tree and disposes it
+        /// </summary>
+        public void Detangle(Tangle<T> tangle)
+        {
+            if (_tangles.Remove(tangle))
+            {
+                Console.WriteLine($"> 🔓 Tree<{typeof(T).Name}> detangled (tangle removed)");
+
+                // Dispose the tangle
+                tangle?.Dispose();
+            }
+        }
+
+        /// <summary>
+        /// Detangle all connections (branches and tangles)
+        /// Clears all entanglements and disposes resources
+        /// </summary>
+        public void DetangleAll()
+        {
+            Console.WriteLine($"> 🔓 Tree<{typeof(T).Name}> detangling all connections...");
+
+            // Dispose and clear all branches
+            foreach (var branch in _branches.ToList())
+            {
+                if (branch is IDisposable disposable)
+                {
+                    disposable.Dispose();
+                }
+            }
+            _branches.Clear();
+
+            // Dispose and clear all tangles
+            foreach (var tangle in _tangles.ToList())
+            {
+                tangle?.Dispose();
+            }
+            _tangles.Clear();
+
+            Console.WriteLine($"> 🔓 All entanglements cleared!");
         }
 
         public bool UndoSquabble(string id)
@@ -292,7 +371,15 @@ namespace AcornDB
             _tangles.Add(tangle);
         }
 
-        internal IEnumerable<Tangle<T>> GetTangles()
+        internal void UnregisterTangle(Tangle<T> tangle)
+        {
+            _tangles.Remove(tangle);
+        }
+
+        /// <summary>
+        /// Get all active tangles for this tree (for observability and testing)
+        /// </summary>
+        public IEnumerable<Tangle<T>> GetTangles()
         {
             return _tangles;
         }

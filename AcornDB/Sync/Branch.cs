@@ -6,7 +6,7 @@ using System.Text.Json;
 
 namespace AcornDB.Sync
 {
-    public partial class Branch
+    public partial class Branch : IDisposable
     {
         public string RemoteUrl { get; }
         public SyncMode SyncMode { get; set; } = SyncMode.Bidirectional;
@@ -14,6 +14,8 @@ namespace AcornDB.Sync
 
         private readonly HttpClient _httpClient;
         private readonly HashSet<string> _pushedNuts = new(); // Track pushed nuts to avoid re-pushing
+        private readonly HashSet<string> _deletedNuts = new(); // Track deleted nuts to avoid re-deleting
+        private bool _isDisposed;
 
         public Branch(string remoteUrl, SyncMode syncMode = SyncMode.Bidirectional)
         {
@@ -24,6 +26,8 @@ namespace AcornDB.Sync
 
         public virtual void TryPush<T>(string id, Nut<T> shell)
         {
+            ThrowIfDisposed();
+
             // Respect sync mode - only push if push is enabled
             if (SyncMode == SyncMode.PullOnly || SyncMode == SyncMode.Disabled)
                 return;
@@ -39,10 +43,17 @@ namespace AcornDB.Sync
 
         public virtual void TryDelete<T>(string id)
         {
+            ThrowIfDisposed();
+
             // Respect sync mode - only delete if push is enabled
             if (SyncMode == SyncMode.PullOnly || SyncMode == SyncMode.Disabled)
                 return;
 
+            // Check if we've already deleted this nut to avoid duplicates
+            if (_deletedNuts.Contains(id))
+                return;
+
+            _deletedNuts.Add(id);
             _ = DeleteAsync<T>(id);
         }
 
@@ -99,6 +110,8 @@ namespace AcornDB.Sync
 
         public virtual async Task ShakeAsync<T>(Tree<T> targetTree)
         {
+            ThrowIfDisposed();
+
             // Respect sync mode - only pull if pull is enabled
             if (SyncMode == SyncMode.PushOnly || SyncMode == SyncMode.Disabled)
                 return;
@@ -143,6 +156,7 @@ namespace AcornDB.Sync
         public void ClearPushHistory()
         {
             _pushedNuts.Clear();
+            _deletedNuts.Clear();
         }
 
         /// <summary>
@@ -157,6 +171,52 @@ namespace AcornDB.Sync
                 ConflictDirection = ConflictDirection,
                 TotalPushed = _pushedNuts.Count
             };
+        }
+
+        /// <summary>
+        /// Snap the branch connection (nutty alias for Dispose)
+        /// Disconnects from remote and releases resources
+        /// </summary>
+        public void Snap()
+        {
+            if (!_isDisposed)
+            {
+                Console.WriteLine($"> 🪓 Branch to {RemoteUrl} snapped!");
+            }
+            Dispose();
+        }
+
+        /// <summary>
+        /// Dispose of the branch and release resources
+        /// </summary>
+        public void Dispose()
+        {
+            if (_isDisposed)
+                return;
+
+            _isDisposed = true;
+
+            // Dispose HttpClient
+            _httpClient?.Dispose();
+
+            // Clear internal state
+            _pushedNuts.Clear();
+            _deletedNuts.Clear();
+
+            GC.SuppressFinalize(this);
+        }
+
+        /// <summary>
+        /// Check if this branch has been disposed
+        /// </summary>
+        private void ThrowIfDisposed()
+        {
+            if (_isDisposed)
+            {
+                throw new ObjectDisposedException(
+                    nameof(Branch),
+                    $"Cannot use branch to {RemoteUrl} - it has been snapped (disposed).");
+            }
         }
     }
 

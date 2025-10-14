@@ -207,7 +207,7 @@ namespace AcornDB.Test
         }
 
         [Fact]
-        public void InProcessEntangle_Toss_DoesNotSync()
+        public void InProcessEntangle_Toss_SyncsDelete()
         {
             var tree1 = new Tree<User>(new MemoryTrunk<User>());
             var tree2 = new Tree<User>(new MemoryTrunk<User>());
@@ -220,13 +220,11 @@ namespace AcornDB.Test
 
             // Toss from tree1
             tree1.Toss("henry");
+            System.Threading.Thread.Sleep(100); // Allow sync to propagate
 
-            // Note: Current implementation doesn't sync deletes
-            // This test documents the current behavior
-            // TODO: When delete sync is implemented, update this test
-            var stillExists = tree2.Crack("henry");
-            // Currently, delete does NOT sync, so item still exists in tree2
-            Assert.NotNull(stillExists);
+            // Delete DOES sync, so item should be deleted in tree2
+            var deleted = tree2.Crack("henry");
+            Assert.Null(deleted); // Item should be deleted in tree2
         }
 
         [Fact]

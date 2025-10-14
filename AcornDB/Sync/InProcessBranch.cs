@@ -38,6 +38,26 @@ namespace AcornDB.Sync
             }
         }
 
+        public override void TryDelete<TItem>(string id)
+        {
+            if (typeof(TItem) != typeof(T))
+            {
+                Console.WriteLine($"> ⚠️ InProcessBranch: Type mismatch during delete - expected {typeof(T).Name}, got {typeof(TItem).Name}");
+                return;
+            }
+
+            try
+            {
+                // Delete directly on target tree without propagating (propagate=false prevents loops)
+                _targetTree.Toss(id, propagate: false);
+                Console.WriteLine($"> 🔄 InProcessBranch: Deleted '{id}' from target tree");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"> ⚠️ InProcessBranch delete failed: {ex.Message}");
+            }
+        }
+
         public override async Task ShakeAsync<TItem>(Tree<TItem> sourceTree)
         {
             if (typeof(TItem) != typeof(T))
