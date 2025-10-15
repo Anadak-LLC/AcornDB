@@ -27,6 +27,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornDB.Cli", "AcornDB.Cli\
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornDB.Persistence.DataLake", "AcornDB.Persistence.DataLake\AcornDB.Persistence.DataLake.csproj", "{B2CE9659-70C6-47CC-B2BE-11C3419348F3}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornDB.SampleApps", "AcornDB.SampleApps\AcornDB.SampleApps.csproj", "{B7B3E6E8-C939-716B-D40E-2570B72472CB}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -181,6 +183,18 @@ Global
 		{B2CE9659-70C6-47CC-B2BE-11C3419348F3}.Release|x64.Build.0 = Release|Any CPU
 		{B2CE9659-70C6-47CC-B2BE-11C3419348F3}.Release|x86.ActiveCfg = Release|Any CPU
 		{B2CE9659-70C6-47CC-B2BE-11C3419348F3}.Release|x86.Build.0 = Release|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Debug|x64.Build.0 = Debug|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Debug|x86.Build.0 = Debug|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Release|x64.ActiveCfg = Release|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Release|x64.Build.0 = Release|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Release|x86.ActiveCfg = Release|Any CPU
+		{B7B3E6E8-C939-716B-D40E-2570B72472CB}.Release|x86.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

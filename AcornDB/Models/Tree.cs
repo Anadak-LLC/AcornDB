@@ -45,18 +45,12 @@ namespace AcornDB
         /// Get all nuts in the tree (payload + metadata)
         /// Useful for queries and exports
         /// </summary>
-        public IEnumerable<Nut<T>> GetAllNuts()
+        public IEnumerable<Nut<T>> NutShells()
         {
             return _cache.Values.ToList();
         }
 
-        /// <summary>
-        /// Get all payloads in the tree
-        /// </summary>
-        public IEnumerable<T> GetAll()
-        {
-            return _cache.Values.Select(nut => nut.Payload).ToList();
-        }
+        public IEnumerable<T> Nuts => _cache.Values.Select(nut => nut.Payload);
 
         public Tree(ITrunk<T>? trunk = null, Cache.ICacheStrategy<T>? cacheStrategy = null, IConflictJudge<T>? conflictJudge = null)
         {

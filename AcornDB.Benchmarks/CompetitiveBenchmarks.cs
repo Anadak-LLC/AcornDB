@@ -203,7 +203,7 @@ namespace AcornDB.Benchmarks
             }
 
             // Benchmark: Scan all documents (no index)
-            var allDocs = tree.GetAll().ToList();
+            var allDocs = tree.Nuts.ToList();
         }
 
         [Benchmark]
@@ -223,7 +223,7 @@ namespace AcornDB.Benchmarks
             }
 
             // Benchmark: Filter documents (LINQ)
-            var activeDocs = tree.GetAll().Where(d => d.IsActive && d.Value > 100).ToList();
+            var activeDocs = tree.Nuts.Where(d => d.IsActive && d.Value > 100).ToList();
         }
 
         // ===== File-based Storage Comparison =====
