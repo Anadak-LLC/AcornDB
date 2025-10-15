@@ -2,13 +2,12 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AcornDB\AcornDB.csproj" />
+    <ProjectReference Include="..\AcornDB.Persistence.Cloud\AcornDB.Persistence.Cloud.csproj" />
   </ItemGroup>
 
   <ItemGroup>
-    <PackageReference Include="AWSSDK.S3" Version="4.0.7.7" />
-    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.0.32" />
-    <PackageReference Include="Azure.Storage.Blobs" Version="12.25.1" />
-    <PackageReference Include="Azure.Data.Tables" Version="12.9.1" />
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Parquet.Net" Version="5.2.0" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -17,19 +16,19 @@
     <Nullable>enable</Nullable>
 
     <!-- NuGet Package Metadata -->
-    <PackageId>AcornDB.Persistence.Cloud</PackageId>
+    <PackageId>AcornDB.Persistence.DataLake</PackageId>
     <Version>0.1.0</Version>
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
-    <Product>AcornDB.Persistence.Cloud</Product>
-    <Description>🌰 Cloud storage providers for AcornDB - AWS S3, Azure Blob Storage, and other cloud-based trunk implementations. Separate package to keep core AcornDB lean.</Description>
-    <PackageTags>acorndb;cloud;aws;s3;azure;blob-storage;storage;persistence;database;nosql;distributed</PackageTags>
+    <Product>AcornDB.Persistence.DataLake</Product>
+    <Description>🌰 Data Lake persistence for AcornDB - Apache Parquet integration with partitioning support for S3, Azure Data Lake, and local file systems. Enables bidirectional data lake interoperability with columnar storage formats.</Description>
+    <PackageTags>acorndb;datalake;parquet;analytics;columnar;s3;azure;data-lake;storage;persistence;database</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
     <Copyright>Copyright © 2025 Anadak LLC</Copyright>
-    <PackageReleaseNotes>v0.1.0: Initial release with AWS S3 and Azure Blob Storage support</PackageReleaseNotes>
+    <PackageReleaseNotes>v0.1.0: Initial release with Apache Parquet support and data lake partitioning</PackageReleaseNotes>
 
     <!-- Build Settings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

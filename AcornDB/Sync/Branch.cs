@@ -27,6 +27,14 @@ namespace AcornDB.Sync
         private bool _useDeltaSync = true; // Enable incremental/delta sync by default
         private bool _isDisposed;
 
+        // Batching support
+        private readonly List<BatchOperation> _batchQueue = new();
+        private readonly object _batchLock = new();
+        private System.Threading.Timer? _batchTimer;
+        private int _batchSize = 10; // Max operations per batch
+        private int _batchTimeoutMs = 100; // Auto-flush after 100ms
+        private bool _batchingEnabled = false; // Batching disabled by default for backwards compatibility
+
         public Branch(string remoteUrl, SyncMode syncMode = SyncMode.Bidirectional)
         {
             BranchId = $"remote-{Guid.NewGuid().ToString().Substring(0, 8)}";
@@ -63,6 +71,33 @@ namespace AcornDB.Sync
             return this;
         }
 
+        /// <summary>
+        /// Enable batching for push/delete operations (fluent API)
+        /// Batches multiple operations together to reduce network overhead
+        /// </summary>
+        /// <param name="batchSize">Maximum number of operations per batch (default: 10)</param>
+        /// <param name="batchTimeoutMs">Auto-flush timeout in milliseconds (default: 100ms)</param>
+        public Branch WithBatching(int batchSize = 10, int batchTimeoutMs = 100)
+        {
+            _batchingEnabled = true;
+            _batchSize = batchSize;
+            _batchTimeoutMs = batchTimeoutMs;
+            InitializeBatchTimer();
+            return this;
+        }
+
+        private void InitializeBatchTimer()
+        {
+            if (_batchTimer != null) return;
+
+            _batchTimer = new System.Threading.Timer(
+                callback: _ => FlushBatch(),
+                state: null,
+                dueTime: _batchTimeoutMs,
+                period: _batchTimeoutMs
+            );
+        }
+
         public virtual void TryPush<T>(string id, Nut<T> shell)
         {
             ThrowIfDisposed();
@@ -77,7 +112,22 @@ namespace AcornDB.Sync
                 return;
 
             _pushedNuts.Add(nutKey);
-            _ = PushAsync(id, shell);
+
+            // Use batching if enabled
+            if (_batchingEnabled)
+            {
+                AddToBatch(new BatchOperation
+                {
+                    Type = BatchOperationType.Push,
+                    Id = id,
+                    Nut = shell,
+                    TypeName = typeof(T).Name
+                });
+            }
+            else
+            {
+                _ = PushAsync(id, shell);
+            }
         }
 
         public virtual void TryDelete<T>(string id)
@@ -93,7 +143,21 @@ namespace AcornDB.Sync
                 return;
 
             _deletedNuts.Add(id);
-            _ = DeleteAsync<T>(id);
+
+            // Use batching if enabled
+            if (_batchingEnabled)
+            {
+                AddToBatch(new BatchOperation
+                {
+                    Type = BatchOperationType.Delete,
+                    Id = id,
+                    TypeName = typeof(T).Name
+                });
+            }
+            else
+            {
+                _ = DeleteAsync<T>(id);
+            }
         }
 
         private async Task DeleteAsync<T>(string id)
@@ -271,12 +335,96 @@ namespace AcornDB.Sync
         }
 
         /// <summary>
-        /// Flush any batched leaves (not implemented yet - placeholder for future batching)
+        /// Flush any batched operations to the remote
+        /// Sends all pending operations in a single HTTP request
         /// </summary>
         public void FlushBatch()
         {
-            // TODO: Implement batching in future iteration
-            // For now, all operations are immediate (no batching)
+            if (!_batchingEnabled) return;
+
+            List<BatchOperation> operationsToFlush;
+
+            lock (_batchLock)
+            {
+                if (_batchQueue.Count == 0) return;
+
+                // Copy batch and clear queue
+                operationsToFlush = new List<BatchOperation>(_batchQueue);
+                _batchQueue.Clear();
+            }
+
+            // Send batch asynchronously (fire and forget)
+            _ = SendBatchAsync(operationsToFlush);
+        }
+
+        private void AddToBatch(BatchOperation operation)
+        {
+            lock (_batchLock)
+            {
+                _batchQueue.Add(operation);
+
+                // Auto-flush if batch size reached
+                if (_batchQueue.Count >= _batchSize)
+                {
+                    FlushBatch();
+                }
+            }
+        }
+
+        private async Task SendBatchAsync(List<BatchOperation> operations)
+        {
+            try
+            {
+                // Group operations by type and tree
+                var grouped = operations.GroupBy(op => new { op.TypeName, op.Type });
+
+                foreach (var group in grouped)
+                {
+                    var treeName = group.Key.TypeName.ToLowerInvariant();
+                    var operationType = group.Key.Type;
+
+                    if (operationType == BatchOperationType.Push)
+                    {
+                        // Batch push operations
+                        var endpoint = $"{RemoteUrl}/bark/{treeName}/batch/stash";
+                        var nuts = group.Select(op => op.Nut).ToList();
+                        var json = JsonSerializer.Serialize(nuts);
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                        var response = await _httpClient.PostAsync(endpoint, content);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"> 🌐 Batch push: {nuts.Count} nuts synced to {RemoteUrl}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"> 🌐 Batch push failed: {response.StatusCode}");
+                        }
+                    }
+                    else if (operationType == BatchOperationType.Delete)
+                    {
+                        // Batch delete operations
+                        var endpoint = $"{RemoteUrl}/bark/{treeName}/batch/toss";
+                        var ids = group.Select(op => op.Id).ToList();
+                        var json = JsonSerializer.Serialize(ids);
+                        var content = new StringContent(json, Encoding.UTF8, "application/json");
+
+                        var response = await _httpClient.PostAsync(endpoint, content);
+                        if (response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"> 🌐 Batch delete: {ids.Count} nuts deleted from {RemoteUrl}");
+                        }
+                        else
+                        {
+                            Console.WriteLine($"> 🌐 Batch delete failed: {response.StatusCode}");
+                        }
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"> 🌐 Batch send failed: {ex.Message}");
+            }
         }
 
         /// <summary>
@@ -341,12 +489,25 @@ namespace AcornDB.Sync
 
             _isDisposed = true;
 
+            // Flush any remaining batched operations
+            if (_batchingEnabled)
+            {
+                FlushBatch();
+            }
+
+            // Dispose batch timer
+            _batchTimer?.Dispose();
+
             // Dispose HttpClient
             _httpClient?.Dispose();
 
             // Clear internal state
             _pushedNuts.Clear();
             _deletedNuts.Clear();
+            lock (_batchLock)
+            {
+                _batchQueue.Clear();
+            }
 
             GC.SuppressFinalize(this);
         }
@@ -381,5 +542,25 @@ namespace AcornDB.Sync
         public DateTime LastSyncTimestamp { get; set; }
         public long TotalOperations => TotalPushed + TotalDeleted + TotalPulled;
         public bool HasSynced => LastSyncTimestamp != DateTime.MinValue;
+    }
+
+    /// <summary>
+    /// Represents a batched operation (push or delete)
+    /// </summary>
+    internal class BatchOperation
+    {
+        public BatchOperationType Type { get; set; }
+        public string Id { get; set; } = "";
+        public object? Nut { get; set; }
+        public string TypeName { get; set; } = "";
+    }
+
+    /// <summary>
+    /// Type of batch operation
+    /// </summary>
+    internal enum BatchOperationType
+    {
+        Push,
+        Delete
     }
 }
