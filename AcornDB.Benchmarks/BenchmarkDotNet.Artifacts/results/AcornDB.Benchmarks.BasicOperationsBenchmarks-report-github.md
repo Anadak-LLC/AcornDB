@@ -9,10 +9,10 @@ AMD Ryzen 9 7900X 4.70GHz, 1 CPU, 24 logical and 12 physical cores
 IterationCount=5  WarmupCount=3  
 
 ```
-| Method                             | Mean           | Error           | StdDev        | Median         | Gen0    | Gen1   | Allocated  |
-|----------------------------------- |---------------:|----------------:|--------------:|---------------:|--------:|-------:|-----------:|
-| Stash_MemoryTrunk_1000Items        |       218.3 μs |         3.57 μs |       0.55 μs |       218.4 μs | 12.6953 | 6.1035 |  210.94 KB |
-| Stash_FileTrunk_1000Items          | 1,642,575.7 μs | 2,309,442.55 μs | 599,754.90 μs | 2,061,451.1 μs |       - |      - | 4022.38 KB |
-| Crack_MemoryTrunk_1000Items        |       294.7 μs |         1.47 μs |       0.38 μs |       294.7 μs | 15.1367 | 7.3242 |     250 KB |
-| Toss_MemoryTrunk_1000Items         |       318.9 μs |         6.41 μs |       1.67 μs |       318.9 μs | 15.1367 | 4.3945 |     250 KB |
-| StashAndCrack_Mixed_1000Operations |       250.1 μs |         6.00 μs |       1.56 μs |       249.4 μs | 14.1602 | 4.3945 |  234.38 KB |
+| Method                             | Mean           | Error         | StdDev       | Gen0    | Gen1    | Allocated |
+|----------------------------------- |---------------:|--------------:|-------------:|--------:|--------:|----------:|
+| Stash_MemoryTrunk_1000Items        |       299.1 μs |      17.02 μs |      4.42 μs | 33.2031 | 16.1133 | 546.88 KB |
+| Stash_FileTrunk_1000Items          | 1,239,405.6 μs | 588,646.58 μs | 91,093.71 μs |       - |       - |   4454 KB |
+| Crack_MemoryTrunk_1000Items        |       364.0 μs |       7.31 μs |      1.90 μs | 35.6445 | 17.5781 | 585.94 KB |
+| Toss_MemoryTrunk_1000Items         |       477.9 μs |      11.06 μs |      2.87 μs | 55.6641 | 17.0898 | 914.06 KB |
+| StashAndCrack_Mixed_1000Operations |       323.2 μs |       9.62 μs |      2.50 μs | 34.6680 | 11.2305 | 570.31 KB |

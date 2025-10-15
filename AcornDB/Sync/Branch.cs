@@ -23,6 +23,8 @@ namespace AcornDB.Sync
         private readonly HashSet<string> _deletedNuts = new(); // Track deleted nuts to avoid re-deleting
         private long _pullCount = 0; // Track nuts pulled from remote
         private long _conflictCount = 0; // Track conflicts resolved
+        private DateTime _lastSyncTimestamp = DateTime.MinValue; // Track last successful sync for delta sync
+        private bool _useDeltaSync = true; // Enable incremental/delta sync by default
         private bool _isDisposed;
 
         public Branch(string remoteUrl, SyncMode syncMode = SyncMode.Bidirectional)
@@ -48,6 +50,16 @@ namespace AcornDB.Sync
         public Branch WithConflictDirection(ConflictDirection conflictDirection)
         {
             ConflictDirection = conflictDirection;
+            return this;
+        }
+
+        /// <summary>
+        /// Configure delta sync (fluent API)
+        /// When enabled, only syncs changes since last successful sync
+        /// </summary>
+        public Branch WithDeltaSync(bool enabled)
+        {
+            _useDeltaSync = enabled;
             return this;
         }
 
@@ -146,13 +158,39 @@ namespace AcornDB.Sync
             try
             {
                 var treeName = typeof(T).Name.ToLowerInvariant();
+
+                // Determine if we should use delta sync
+                bool isFirstSync = _lastSyncTimestamp == DateTime.MinValue;
+                bool useDelta = _useDeltaSync && !isFirstSync;
+
+                // Build endpoint with optional delta sync parameter
                 var endpoint = $"{RemoteUrl}/bark/{treeName}/export";
+                if (useDelta)
+                {
+                    endpoint += $"?since={_lastSyncTimestamp.Ticks}";
+                }
 
                 var response = await _httpClient.GetAsync(endpoint);
                 if (!response.IsSuccessStatusCode)
                 {
-                    Console.WriteLine($"> 🌐 Failed to shake branch from {RemoteUrl}: {response.StatusCode}");
-                    return;
+                    // If delta sync failed, fallback to full sync
+                    if (useDelta)
+                    {
+                        Console.WriteLine($"> 🌐 Delta sync failed from {RemoteUrl}: {response.StatusCode}, falling back to full sync");
+                        endpoint = $"{RemoteUrl}/bark/{treeName}/export";
+                        response = await _httpClient.GetAsync(endpoint);
+
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Console.WriteLine($"> 🌐 Failed to shake branch from {RemoteUrl}: {response.StatusCode}");
+                            return;
+                        }
+                    }
+                    else
+                    {
+                        Console.WriteLine($"> 🌐 Failed to shake branch from {RemoteUrl}: {response.StatusCode}");
+                        return;
+                    }
                 }
 
                 var json = await response.Content.ReadAsStringAsync();
@@ -179,7 +217,11 @@ namespace AcornDB.Sync
                     }
                 }
 
-                Console.WriteLine($"> 🍂 Shake complete: {nuts.Count} nuts received from {RemoteUrl}");
+                // Update last sync timestamp for next delta sync
+                _lastSyncTimestamp = DateTime.UtcNow;
+
+                var syncType = useDelta ? "delta" : (isFirstSync ? "initial" : "full");
+                Console.WriteLine($"> 🍂 Shake complete ({syncType}): {nuts.Count} nuts received from {RemoteUrl}");
             }
             catch (Exception ex)
             {
@@ -270,7 +312,9 @@ namespace AcornDB.Sync
                 TotalPushed = _pushedNuts.Count,
                 TotalDeleted = _deletedNuts.Count,
                 TotalPulled = _pullCount,
-                TotalConflicts = _conflictCount
+                TotalConflicts = _conflictCount,
+                DeltaSyncEnabled = _useDeltaSync,
+                LastSyncTimestamp = _lastSyncTimestamp
             };
         }
 
@@ -333,6 +377,9 @@ namespace AcornDB.Sync
         public int TotalDeleted { get; set; }
         public long TotalPulled { get; set; }
         public long TotalConflicts { get; set; }
+        public bool DeltaSyncEnabled { get; set; }
+        public DateTime LastSyncTimestamp { get; set; }
         public long TotalOperations => TotalPushed + TotalDeleted + TotalPulled;
+        public bool HasSynced => LastSyncTimestamp != DateTime.MinValue;
     }
 }

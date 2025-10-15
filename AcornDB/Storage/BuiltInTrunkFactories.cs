@@ -200,55 +200,9 @@ namespace AcornDB.Storage
         }
     }
 
-    /// <summary>
-    /// Factory for creating AzureTrunk instances
-    /// </summary>
-    public class AzureTrunkFactory : ITrunkFactory
-    {
-        public ITrunk<object> Create(Type itemType, Dictionary<string, object> configuration)
-        {
-            if (!configuration.TryGetValue("connectionString", out var connStrObj) || connStrObj == null)
-                throw new ArgumentException("Azure Trunk requires 'connectionString' configuration");
-
-            if (!configuration.TryGetValue("containerName", out var containerObj) || containerObj == null)
-                throw new ArgumentException("Azure Trunk requires 'containerName' configuration");
-
-            var connectionString = connStrObj.ToString()!;
-            var containerName = containerObj.ToString()!;
-
-            var trunkType = typeof(AzureTrunk<>).MakeGenericType(itemType);
-            var trunk = Activator.CreateInstance(trunkType, connectionString, containerName);
-            return (ITrunk<object>)trunk!;
-        }
-
-        public TrunkMetadata GetMetadata()
-        {
-            return new TrunkMetadata
-            {
-                TypeId = "azure",
-                DisplayName = "Azure Trunk",
-                Description = "Azure Blob Storage trunk for cloud persistence. Async operations supported.",
-                Capabilities = new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = true,
-                    SupportsAsync = true,
-                    TrunkType = "AzureTrunk"
-                },
-                RequiredConfigKeys = new List<string> { "connectionString", "containerName" },
-                OptionalConfigKeys = new Dictionary<string, object>(),
-                IsBuiltIn = true,
-                Category = "Cloud"
-            };
-        }
-
-        public bool ValidateConfiguration(Dictionary<string, object> configuration)
-        {
-            return configuration.ContainsKey("connectionString")
-                && configuration.ContainsKey("containerName")
-                && configuration["connectionString"] != null
-                && configuration["containerName"] != null;
-        }
-    }
+    // NOTE: AzureTrunk and cloud-based trunks have been moved to AcornDB.Persistence.Cloud package
+    // To use Azure, S3, or other cloud storage:
+    // 1. Install: AcornDB.Persistence.Cloud NuGet package
+    // 2. Use: new AzureTrunk<T>(connectionString, containerName) or
+    //         new CloudTrunk<T>(new AzureBlobProvider(connectionString, containerName))
 }

@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>AcornDB.Benchmarks.DeltaSyncBenchmarks-20251014-140417</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.4, Windows 11 (10.0.26100.6584/24H2/2024Update/HudsonValley)
+AMD Ryzen 9 7900X 4.70GHz, 1 CPU, 24 logical and 12 physical cores
+.NET SDK 9.0.304
+  [Host]     : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
+  Job-ARDWEO : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
+</code></pre>
+<pre><code>InvocationCount=1  IterationCount=5  UnrollFactor=1  
+WarmupCount=2  
+</code></pre>
+
+<table>
+<thead><tr><th>Method                       </th><th>TotalDocuments</th><th>ChangePercentage</th><th>Mean   </th><th>Error </th><th>StdDev </th><th>Median </th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>FullSync_ExportAll</td><td>10000</td><td>0.01</td><td>59.60 &mu;s</td><td>55.65 &mu;s</td><td>8.612 &mu;s</td><td>61.05 &mu;s</td><td>1.02</td><td>0.19</td><td>-</td><td>-</td><td>156.36 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>10000</td><td>0.01</td><td>640.83 &mu;s</td><td>506.23 &mu;s</td><td>78.339 &mu;s</td><td>629.60 &mu;s</td><td>10.93</td><td>1.93</td><td>-</td><td>-</td><td>1996.06 KB</td><td>12.77</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>10000</td><td>0.01</td><td>115.39 &mu;s</td><td>111.25 &mu;s</td><td>28.890 &mu;s</td><td>110.15 &mu;s</td><td>1.97</td><td>0.53</td><td>-</td><td>-</td><td>2.82 KB</td><td>0.02</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>10000</td><td>0.01</td><td>127.76 &mu;s</td><td>103.99 &mu;s</td><td>27.006 &mu;s</td><td>116.90 &mu;s</td><td>2.18</td><td>0.52</td><td>-</td><td>-</td><td>2.82 KB</td><td>0.02</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>10000</td><td>0.01</td><td>136.60 &mu;s</td><td>166.91 &mu;s</td><td>25.829 &mu;s</td><td>127.80 &mu;s</td><td>2.33</td><td>0.51</td><td>-</td><td>-</td><td>22.57 KB</td><td>0.14</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>10000</td><td>0.01</td><td>178.52 &mu;s</td><td>137.53 &mu;s</td><td>35.716 &mu;s</td><td>169.20 &mu;s</td><td>3.05</td><td>0.70</td><td>-</td><td>-</td><td>159.18 KB</td><td>1.02</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>10000</td><td>0.01</td><td>114,650.05 &mu;s</td><td>6,877.26 &mu;s</td><td>1,064.263 &mu;s</td><td>114,538.95 &mu;s</td><td>1,956.29</td><td>270.90</td><td>-</td><td>-</td><td>171.11 KB</td><td>1.09</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>10000</td><td>0.01</td><td>252,335.20 &mu;s</td><td>18,638.92 &mu;s</td><td>4,840.469 &mu;s</td><td>251,416.30 &mu;s</td><td>4,305.63</td><td>596.13</td><td>4000.0000</td><td>1000.0000</td><td>92332.56 KB</td><td>590.52</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>10000</td><td>0.01</td><td>162.28 &mu;s</td><td>88.44 &mu;s</td><td>22.969 &mu;s</td><td>157.50 &mu;s</td><td>2.77</td><td>0.53</td><td>-</td><td>-</td><td>284.67 KB</td><td>1.82</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>10000</td><td>0.01</td><td>212.02 &mu;s</td><td>134.58 &mu;s</td><td>34.950 &mu;s</td><td>206.90 &mu;s</td><td>3.62</td><td>0.74</td><td>-</td><td>-</td><td>159.18 KB</td><td>1.02</td>
+</tr><tr><td>FullSync_ExportAll</td><td>10000</td><td>0.05</td><td>114.38 &mu;s</td><td>285.28 &mu;s</td><td>74.085 &mu;s</td><td>86.00 &mu;s</td><td>1.48</td><td>1.43</td><td>-</td><td>-</td><td>156.36 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>10000</td><td>0.05</td><td>542.70 &mu;s</td><td>200.09 &mu;s</td><td>30.964 &mu;s</td><td>546.25 &mu;s</td><td>7.02</td><td>4.68</td><td>-</td><td>-</td><td>1996.06 KB</td><td>12.77</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>10000</td><td>0.05</td><td>98.30 &mu;s</td><td>20.32 &mu;s</td><td>3.144 &mu;s</td><td>98.35 &mu;s</td><td>1.27</td><td>0.84</td><td>-</td><td>-</td><td>12.12 KB</td><td>0.08</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>10000</td><td>0.05</td><td>996.23 &mu;s</td><td>4,196.13 &mu;s</td><td>1,089.723 &mu;s</td><td>260.25 &mu;s</td><td>12.88</td><td>17.53</td><td>-</td><td>-</td><td>12.12 KB</td><td>0.08</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>10000</td><td>0.05</td><td>166.40 &mu;s</td><td>21.15 &mu;s</td><td>3.273 &mu;s</td><td>165.45 &mu;s</td><td>2.15</td><td>1.43</td><td>-</td><td>-</td><td>105.9 KB</td><td>0.68</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>10000</td><td>0.05</td><td>145.35 &mu;s</td><td>52.28 &mu;s</td><td>8.091 &mu;s</td><td>145.35 &mu;s</td><td>1.88</td><td>1.25</td><td>-</td><td>-</td><td>168.48 KB</td><td>1.08</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>10000</td><td>0.05</td><td>116,522.60 &mu;s</td><td>14,408.47 &mu;s</td><td>2,229.726 &mu;s</td><td>116,122.05 &mu;s</td><td>1,507.01</td><td>1,000.61</td><td>-</td><td>-</td><td>858.53 KB</td><td>5.49</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>10000</td><td>0.05</td><td>260,996.77 &mu;s</td><td>63,418.79 &mu;s</td><td>16,469.658 &mu;s</td><td>258,574.65 &mu;s</td><td>3,375.53</td><td>2,240.50</td><td>4000.0000</td><td>1000.0000</td><td>92332.56 KB</td><td>590.52</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>10000</td><td>0.05</td><td>153.30 &mu;s</td><td>107.43 &mu;s</td><td>16.625 &mu;s</td><td>151.40 &mu;s</td><td>1.98</td><td>1.34</td><td>-</td><td>-</td><td>156.56 KB</td><td>1.00</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>10000</td><td>0.05</td><td>180.75 &mu;s</td><td>174.20 &mu;s</td><td>26.958 &mu;s</td><td>177.25 &mu;s</td><td>2.34</td><td>1.59</td><td>-</td><td>-</td><td>164.48 KB</td><td>1.05</td>
+</tr><tr><td>FullSync_ExportAll</td><td>10000</td><td>0.1</td><td>66.72 &mu;s</td><td>123.13 &mu;s</td><td>31.975 &mu;s</td><td>54.30 &mu;s</td><td>1.17</td><td>0.69</td><td>-</td><td>-</td><td>156.36 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>10000</td><td>0.1</td><td>760.20 &mu;s</td><td>574.90 &mu;s</td><td>88.966 &mu;s</td><td>736.85 &mu;s</td><td>13.35</td><td>5.10</td><td>-</td><td>-</td><td>1996.06 KB</td><td>12.77</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>10000</td><td>0.1</td><td>127.84 &mu;s</td><td>129.67 &mu;s</td><td>33.675 &mu;s</td><td>109.70 &mu;s</td><td>2.24</td><td>1.00</td><td>-</td><td>-</td><td>15.94 KB</td><td>0.10</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>10000</td><td>0.1</td><td>114.72 &mu;s</td><td>69.97 &mu;s</td><td>10.828 &mu;s</td><td>111.30 &mu;s</td><td>2.01</td><td>0.76</td><td>-</td><td>-</td><td>15.94 KB</td><td>0.10</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>10000</td><td>0.1</td><td>249.70 &mu;s</td><td>298.34 &mu;s</td><td>77.479 &mu;s</td><td>215.20 &mu;s</td><td>4.38</td><td>2.07</td><td>-</td><td>-</td><td>215.42 KB</td><td>1.38</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>10000</td><td>0.1</td><td>195.53 &mu;s</td><td>220.78 &mu;s</td><td>34.165 &mu;s</td><td>204.75 &mu;s</td><td>3.43</td><td>1.38</td><td>-</td><td>-</td><td>172.3 KB</td><td>1.10</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>10000</td><td>0.1</td><td>124,060.20 &mu;s</td><td>19,347.43 &mu;s</td><td>5,024.465 &mu;s</td><td>126,029.90 &mu;s</td><td>2,178.31</td><td>796.94</td><td>-</td><td>-</td><td>1709.48 KB</td><td>10.93</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>10000</td><td>0.1</td><td>253,494.42 &mu;s</td><td>37,750.51 &mu;s</td><td>9,803.689 &mu;s</td><td>248,576.90 &mu;s</td><td>4,450.97</td><td>1,627.57</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>588.77</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>10000</td><td>0.1</td><td>198.06 &mu;s</td><td>113.21 &mu;s</td><td>29.400 &mu;s</td><td>196.90 &mu;s</td><td>3.48</td><td>1.36</td><td>-</td><td>-</td><td>156.56 KB</td><td>1.00</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>10000</td><td>0.1</td><td>178.03 &mu;s</td><td>167.21 &mu;s</td><td>25.876 &mu;s</td><td>176.85 &mu;s</td><td>3.13</td><td>1.22</td><td>-</td><td>-</td><td>172.3 KB</td><td>1.10</td>
+</tr><tr><td>FullSync_ExportAll</td><td>10000</td><td>0.5</td><td>100.58 &mu;s</td><td>199.82 &mu;s</td><td>30.923 &mu;s</td><td>114.25 &mu;s</td><td>1.11</td><td>0.55</td><td>-</td><td>-</td><td>156.36 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>10000</td><td>0.5</td><td>868.48 &mu;s</td><td>805.78 &mu;s</td><td>209.258 &mu;s</td><td>857.10 &mu;s</td><td>9.61</td><td>4.39</td><td>-</td><td>-</td><td>1996.06 KB</td><td>12.77</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>10000</td><td>0.5</td><td>170.82 &mu;s</td><td>122.69 &mu;s</td><td>31.863 &mu;s</td><td>179.80 &mu;s</td><td>1.89</td><td>0.82</td><td>-</td><td>-</td><td>78.44 KB</td><td>0.50</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>10000</td><td>0.5</td><td>160.50 &mu;s</td><td>292.09 &mu;s</td><td>45.201 &mu;s</td><td>145.05 &mu;s</td><td>1.78</td><td>0.85</td><td>-</td><td>-</td><td>78.44 KB</td><td>0.50</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>10000</td><td>0.5</td><td>612.43 &mu;s</td><td>453.02 &mu;s</td><td>117.647 &mu;s</td><td>657.35 &mu;s</td><td>6.78</td><td>2.94</td><td>-</td><td>-</td><td>959.97 KB</td><td>6.14</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>10000</td><td>0.5</td><td>360.60 &mu;s</td><td>763.37 &mu;s</td><td>118.133 &mu;s</td><td>345.75 &mu;s</td><td>3.99</td><td>2.01</td><td>-</td><td>-</td><td>234.8 KB</td><td>1.50</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>10000</td><td>0.5</td><td>128,875.38 &mu;s</td><td>20,828.81 &mu;s</td><td>5,409.175 &mu;s</td><td>130,163.50 &mu;s</td><td>1,425.70</td><td>560.16</td><td>-</td><td>-</td><td>10714.26 KB</td><td>68.52</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>10000</td><td>0.5</td><td>245,617.58 &mu;s</td><td>34,998.28 &mu;s</td><td>9,088.941 &mu;s</td><td>250,906.40 &mu;s</td><td>2,717.18</td><td>1,066.27</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>588.77</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>10000</td><td>0.5</td><td>198.74 &mu;s</td><td>127.06 &mu;s</td><td>32.996 &mu;s</td><td>211.10 &mu;s</td><td>2.20</td><td>0.93</td><td>-</td><td>-</td><td>156.56 KB</td><td>1.00</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>10000</td><td>0.5</td><td>263.60 &mu;s</td><td>312.03 &mu;s</td><td>81.033 &mu;s</td><td>263.20 &mu;s</td><td>2.92</td><td>1.44</td><td>-</td><td>-</td><td>234.8 KB</td><td>1.50</td>
+</tr><tr><td>FullSync_ExportAll</td><td>50000</td><td>0.01</td><td>871.62 &mu;s</td><td>184.76 &mu;s</td><td>47.982 &mu;s</td><td>883.10 &mu;s</td><td>1.00</td><td>0.07</td><td>-</td><td>-</td><td>781.36 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>50000</td><td>0.01</td><td>4,099.72 &mu;s</td><td>4,028.97 &mu;s</td><td>1,046.310 &mu;s</td><td>4,170.60 &mu;s</td><td>4.72</td><td>1.13</td><td>-</td><td>-</td><td>8734.45 KB</td><td>11.18</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>50000</td><td>0.01</td><td>226.89 &mu;s</td><td>268.31 &mu;s</td><td>69.680 &mu;s</td><td>248.25 &mu;s</td><td>0.26</td><td>0.07</td><td>-</td><td>-</td><td>8.13 KB</td><td>0.01</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>50000</td><td>0.01</td><td>245.36 &mu;s</td><td>192.89 &mu;s</td><td>50.093 &mu;s</td><td>249.00 &mu;s</td><td>0.28</td><td>0.05</td><td>-</td><td>-</td><td>8.13 KB</td><td>0.01</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>50000</td><td>0.01</td><td>289.75 &mu;s</td><td>566.02 &mu;s</td><td>87.592 &mu;s</td><td>310.45 &mu;s</td><td>0.33</td><td>0.09</td><td>-</td><td>-</td><td>101.91 KB</td><td>0.13</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>50000</td><td>0.01</td><td>936.86 &mu;s</td><td>530.56 &mu;s</td><td>137.784 &mu;s</td><td>899.80 &mu;s</td><td>1.08</td><td>0.16</td><td>-</td><td>-</td><td>789.48 KB</td><td>1.01</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>50000</td><td>0.01</td><td>126,428.79 &mu;s</td><td>14,069.68 &mu;s</td><td>3,653.852 &mu;s</td><td>126,372.35 &mu;s</td><td>145.41</td><td>8.41</td><td>-</td><td>-</td><td>854.02 KB</td><td>1.09</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>50000</td><td>0.01</td><td>251,918.96 &mu;s</td><td>12,858.40 &mu;s</td><td>3,339.285 &mu;s</td><td>251,836.30 &mu;s</td><td>289.74</td><td>15.32</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>117.82</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>50000</td><td>0.01</td><td>282.50 &mu;s</td><td>210.95 &mu;s</td><td>54.783 &mu;s</td><td>276.30 &mu;s</td><td>0.32</td><td>0.06</td><td>-</td><td>-</td><td>132.8 KB</td><td>0.17</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>50000</td><td>0.01</td><td>851.76 &mu;s</td><td>642.41 &mu;s</td><td>166.833 &mu;s</td><td>827.70 &mu;s</td><td>0.98</td><td>0.18</td><td>-</td><td>-</td><td>789.48 KB</td><td>1.01</td>
+</tr><tr><td>FullSync_ExportAll</td><td>50000</td><td>0.05</td><td>775.86 &mu;s</td><td>564.34 &mu;s</td><td>146.557 &mu;s</td><td>804.50 &mu;s</td><td>1.03</td><td>0.25</td><td>-</td><td>-</td><td>781.36 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>50000</td><td>0.05</td><td>4,916.82 &mu;s</td><td>5,302.29 &mu;s</td><td>820.536 &mu;s</td><td>5,237.50 &mu;s</td><td>6.52</td><td>1.49</td><td>-</td><td>-</td><td>8734.45 KB</td><td>11.18</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>50000</td><td>0.05</td><td>194.37 &mu;s</td><td>287.50 &mu;s</td><td>74.663 &mu;s</td><td>234.35 &mu;s</td><td>0.26</td><td>0.10</td><td>-</td><td>-</td><td>39.38 KB</td><td>0.05</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>50000</td><td>0.05</td><td>186.80 &mu;s</td><td>209.83 &mu;s</td><td>54.493 &mu;s</td><td>191.20 &mu;s</td><td>0.25</td><td>0.08</td><td>-</td><td>-</td><td>39.38 KB</td><td>0.05</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>50000</td><td>0.05</td><td>523.25 &mu;s</td><td>738.85 &mu;s</td><td>114.338 &mu;s</td><td>500.25 &mu;s</td><td>0.69</td><td>0.18</td><td>-</td><td>-</td><td>460.39 KB</td><td>0.59</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>50000</td><td>0.05</td><td>940.55 &mu;s</td><td>618.19 &mu;s</td><td>160.543 &mu;s</td><td>840.15 &mu;s</td><td>1.25</td><td>0.29</td><td>-</td><td>-</td><td>820.73 KB</td><td>1.05</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>50000</td><td>0.05</td><td>124,245.92 &mu;s</td><td>20,045.61 &mu;s</td><td>5,205.780 &mu;s</td><td>121,734.00 &mu;s</td><td>164.77</td><td>28.88</td><td>-</td><td>-</td><td>5466.11 KB</td><td>7.00</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>50000</td><td>0.05</td><td>261,845.68 &mu;s</td><td>80,212.87 &mu;s</td><td>20,831.027 &mu;s</td><td>259,872.30 &mu;s</td><td>347.24</td><td>64.64</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>117.82</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>50000</td><td>0.05</td><td>345.34 &mu;s</td><td>247.50 &mu;s</td><td>64.274 &mu;s</td><td>328.80 &mu;s</td><td>0.46</td><td>0.11</td><td>-</td><td>-</td><td>132.78 KB</td><td>0.17</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>50000</td><td>0.05</td><td>1,223.00 &mu;s</td><td>788.82 &mu;s</td><td>204.853 &mu;s</td><td>1,362.70 &mu;s</td><td>1.62</td><td>0.37</td><td>-</td><td>-</td><td>820.73 KB</td><td>1.05</td>
+</tr><tr><td>FullSync_ExportAll</td><td>50000</td><td>0.1</td><td>971.53 &mu;s</td><td>879.25 &mu;s</td><td>228.338 &mu;s</td><td>874.55 &mu;s</td><td>1.04</td><td>0.31</td><td>-</td><td>-</td><td>781.36 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>50000</td><td>0.1</td><td>5,669.40 &mu;s</td><td>7,252.52 &mu;s</td><td>1,122.335 &mu;s</td><td>6,120.25 &mu;s</td><td>6.09</td><td>1.64</td><td>-</td><td>-</td><td>8734.45 KB</td><td>11.18</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>50000</td><td>0.1</td><td>338.45 &mu;s</td><td>534.76 &mu;s</td><td>138.876 &mu;s</td><td>259.25 &mu;s</td><td>0.36</td><td>0.16</td><td>-</td><td>-</td><td>78.44 KB</td><td>0.10</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>50000</td><td>0.1</td><td>256.85 &mu;s</td><td>98.29 &mu;s</td><td>25.525 &mu;s</td><td>264.25 &mu;s</td><td>0.28</td><td>0.06</td><td>-</td><td>-</td><td>78.44 KB</td><td>0.10</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>50000</td><td>0.1</td><td>677.18 &mu;s</td><td>264.34 &mu;s</td><td>68.648 &mu;s</td><td>661.70 &mu;s</td><td>0.73</td><td>0.16</td><td>-</td><td>-</td><td>959.97 KB</td><td>1.23</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>50000</td><td>0.1</td><td>949.14 &mu;s</td><td>834.57 &mu;s</td><td>216.734 &mu;s</td><td>953.00 &mu;s</td><td>1.02</td><td>0.30</td><td>-</td><td>-</td><td>859.8 KB</td><td>1.10</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>50000</td><td>0.1</td><td>129,714.75 &mu;s</td><td>20,142.85 &mu;s</td><td>3,117.129 &mu;s</td><td>130,351.90 &mu;s</td><td>139.23</td><td>28.17</td><td>-</td><td>-</td><td>11567.84 KB</td><td>14.80</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>50000</td><td>0.1</td><td>247,305.68 &mu;s</td><td>10,720.85 &mu;s</td><td>2,784.169 &mu;s</td><td>247,463.90 &mu;s</td><td>265.45</td><td>53.20</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>117.82</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>50000</td><td>0.1</td><td>304.34 &mu;s</td><td>198.53 &mu;s</td><td>51.558 &mu;s</td><td>296.20 &mu;s</td><td>0.33</td><td>0.08</td><td>-</td><td>-</td><td>140.58 KB</td><td>0.18</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>50000</td><td>0.1</td><td>1,095.40 &mu;s</td><td>747.10 &mu;s</td><td>194.019 &mu;s</td><td>1,128.70 &mu;s</td><td>1.18</td><td>0.30</td><td>-</td><td>-</td><td>859.8 KB</td><td>1.10</td>
+</tr><tr><td>FullSync_ExportAll</td><td>50000</td><td>0.5</td><td>813.50 &mu;s</td><td>929.24 &mu;s</td><td>241.322 &mu;s</td><td>792.20 &mu;s</td><td>1.10</td><td>0.50</td><td>-</td><td>-</td><td>781.36 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>50000</td><td>0.5</td><td>3,378.47 &mu;s</td><td>4,250.66 &mu;s</td><td>657.794 &mu;s</td><td>3,406.05 &mu;s</td><td>4.56</td><td>1.82</td><td>-</td><td>-</td><td>8734.45 KB</td><td>11.18</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>50000</td><td>0.5</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>50000</td><td>0.5</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>50000</td><td>0.5</td><td>897.81 &mu;s</td><td>535.98 &mu;s</td><td>139.193 &mu;s</td><td>817.45 &mu;s</td><td>1.21</td><td>0.46</td><td>-</td><td>-</td><td>1980.13 KB</td><td>2.53</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>50000</td><td>0.5</td><td>971.66 &mu;s</td><td>1,440.66 &mu;s</td><td>374.135 &mu;s</td><td>1,101.40 &mu;s</td><td>1.31</td><td>0.67</td><td>-</td><td>-</td><td>921.78 KB</td><td>1.18</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>50000</td><td>0.5</td><td>236,401.03 &mu;s</td><td>48,019.34 &mu;s</td><td>12,470.471 &mu;s</td><td>235,339.95 &mu;s</td><td>318.89</td><td>113.49</td><td>3000.0000</td><td>1000.0000</td><td>64968.02 KB</td><td>83.15</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>50000</td><td>0.5</td><td>258,066.21 &mu;s</td><td>51,689.62 &mu;s</td><td>13,423.630 &mu;s</td><td>255,257.25 &mu;s</td><td>348.11</td><td>123.86</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>117.82</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>50000</td><td>0.5</td><td>335.05 &mu;s</td><td>468.15 &mu;s</td><td>121.578 &mu;s</td><td>302.55 &mu;s</td><td>0.45</td><td>0.22</td><td>-</td><td>-</td><td>268.53 KB</td><td>0.34</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>50000</td><td>0.5</td><td>886.99 &mu;s</td><td>1,292.02 &mu;s</td><td>335.533 &mu;s</td><td>1,008.05 &mu;s</td><td>1.20</td><td>0.61</td><td>-</td><td>-</td><td>921.78 KB</td><td>1.18</td>
+</tr><tr><td>FullSync_ExportAll</td><td>100000</td><td>0.01</td><td>1,000.40 &mu;s</td><td>378.40 &mu;s</td><td>58.558 &mu;s</td><td>990.45 &mu;s</td><td>1.00</td><td>0.07</td><td>-</td><td>-</td><td>1562.61 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>100000</td><td>0.01</td><td>6,942.32 &mu;s</td><td>2,665.84 &mu;s</td><td>692.311 &mu;s</td><td>6,991.90 &mu;s</td><td>6.96</td><td>0.73</td><td>-</td><td>-</td><td>18070.95 KB</td><td>11.56</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>100000</td><td>0.01</td><td>207.85 &mu;s</td><td>96.02 &mu;s</td><td>14.859 &mu;s</td><td>209.70 &mu;s</td><td>0.21</td><td>0.02</td><td>-</td><td>-</td><td>15.94 KB</td><td>0.01</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>100000</td><td>0.01</td><td>166.90 &mu;s</td><td>279.81 &mu;s</td><td>43.301 &mu;s</td><td>186.05 &mu;s</td><td>0.17</td><td>0.04</td><td>-</td><td>-</td><td>15.94 KB</td><td>0.01</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>100000</td><td>0.01</td><td>282.37 &mu;s</td><td>306.35 &mu;s</td><td>79.557 &mu;s</td><td>271.25 &mu;s</td><td>0.28</td><td>0.07</td><td>-</td><td>-</td><td>215.42 KB</td><td>0.14</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>100000</td><td>0.01</td><td>1,284.95 &mu;s</td><td>635.33 &mu;s</td><td>164.994 &mu;s</td><td>1,200.55 &mu;s</td><td>1.29</td><td>0.17</td><td>-</td><td>-</td><td>1578.55 KB</td><td>1.01</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>100000</td><td>0.01</td><td>124,901.56 &mu;s</td><td>24,008.72 &mu;s</td><td>6,234.989 &mu;s</td><td>129,071.70 &mu;s</td><td>125.17</td><td>8.60</td><td>-</td><td>-</td><td>2328.03 KB</td><td>1.49</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>100000</td><td>0.01</td><td>258,615.84 &mu;s</td><td>55,789.98 &mu;s</td><td>14,488.481 &mu;s</td><td>262,023.80 &mu;s</td><td>259.17</td><td>18.81</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>58.91</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>100000</td><td>0.01</td><td>323.32 &mu;s</td><td>155.22 &mu;s</td><td>40.311 &mu;s</td><td>322.80 &mu;s</td><td>0.32</td><td>0.04</td><td>-</td><td>-</td><td>140.22 KB</td><td>0.09</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>100000</td><td>0.01</td><td>1,809.80 &mu;s</td><td>1,654.47 &mu;s</td><td>429.660 &mu;s</td><td>1,942.00 &mu;s</td><td>1.81</td><td>0.41</td><td>-</td><td>-</td><td>1578.55 KB</td><td>1.01</td>
+</tr><tr><td>FullSync_ExportAll</td><td>100000</td><td>0.05</td><td>1,220.97 &mu;s</td><td>361.02 &mu;s</td><td>55.868 &mu;s</td><td>1,215.20 &mu;s</td><td>1.00</td><td>0.06</td><td>-</td><td>-</td><td>1562.61 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>100000</td><td>0.05</td><td>8,690.31 &mu;s</td><td>3,625.84 &mu;s</td><td>941.620 &mu;s</td><td>8,376.55 &mu;s</td><td>7.13</td><td>0.77</td><td>-</td><td>-</td><td>18070.95 KB</td><td>11.56</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>100000</td><td>0.05</td><td>217.47 &mu;s</td><td>222.98 &mu;s</td><td>34.507 &mu;s</td><td>227.60 &mu;s</td><td>0.18</td><td>0.03</td><td>-</td><td>-</td><td>78.44 KB</td><td>0.05</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>100000</td><td>0.05</td><td>230.74 &mu;s</td><td>132.52 &mu;s</td><td>34.416 &mu;s</td><td>239.00 &mu;s</td><td>0.19</td><td>0.03</td><td>-</td><td>-</td><td>78.44 KB</td><td>0.05</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>100000</td><td>0.05</td><td>547.40 &mu;s</td><td>545.87 &mu;s</td><td>84.474 &mu;s</td><td>575.75 &mu;s</td><td>0.45</td><td>0.06</td><td>-</td><td>-</td><td>1024.05 KB</td><td>0.66</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>100000</td><td>0.05</td><td>1,342.58 &mu;s</td><td>542.19 &mu;s</td><td>83.904 &mu;s</td><td>1,342.80 &mu;s</td><td>1.10</td><td>0.08</td><td>-</td><td>-</td><td>1641.05 KB</td><td>1.05</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>100000</td><td>0.05</td><td>128,065.15 &mu;s</td><td>8,560.36 &mu;s</td><td>1,324.725 &mu;s</td><td>128,328.40 &mu;s</td><td>105.05</td><td>4.36</td><td>-</td><td>-</td><td>11685.03 KB</td><td>7.48</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>100000</td><td>0.05</td><td>251,323.20 &mu;s</td><td>33,917.43 &mu;s</td><td>5,248.760 &mu;s</td><td>250,730.90 &mu;s</td><td>206.16</td><td>9.19</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>58.91</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>100000</td><td>0.05</td><td>226.05 &mu;s</td><td>254.48 &mu;s</td><td>39.381 &mu;s</td><td>228.50 &mu;s</td><td>0.19</td><td>0.03</td><td>-</td><td>-</td><td>140.19 KB</td><td>0.09</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>100000</td><td>0.05</td><td>1,349.06 &mu;s</td><td>743.61 &mu;s</td><td>193.113 &mu;s</td><td>1,293.50 &mu;s</td><td>1.11</td><td>0.15</td><td>-</td><td>-</td><td>1641.05 KB</td><td>1.05</td>
+</tr><tr><td>FullSync_ExportAll</td><td>100000</td><td>0.1</td><td>1,526.94 &mu;s</td><td>1,124.41 &mu;s</td><td>292.005 &mu;s</td><td>1,422.70 &mu;s</td><td>1.03</td><td>0.25</td><td>-</td><td>-</td><td>1562.61 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>100000</td><td>0.1</td><td>11,186.06 &mu;s</td><td>13,709.31 &mu;s</td><td>3,560.264 &mu;s</td><td>9,303.30 &mu;s</td><td>7.53</td><td>2.53</td><td>-</td><td>-</td><td>18070.95 KB</td><td>11.56</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>100000</td><td>0.1</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>100000</td><td>0.1</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>100000</td><td>0.1</td><td>1,076.79 &mu;s</td><td>587.71 &mu;s</td><td>152.626 &mu;s</td><td>1,031.85 &mu;s</td><td>0.72</td><td>0.15</td><td>-</td><td>-</td><td>1995.48 KB</td><td>1.28</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>100000</td><td>0.1</td><td>1,535.04 &mu;s</td><td>806.65 &mu;s</td><td>209.484 &mu;s</td><td>1,408.80 &mu;s</td><td>1.03</td><td>0.21</td><td>-</td><td>-</td><td>1718.39 KB</td><td>1.10</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>100000</td><td>0.1</td><td>147,753.08 &mu;s</td><td>30,024.00 &mu;s</td><td>7,797.138 &mu;s</td><td>146,700.80 &mu;s</td><td>99.44</td><td>16.78</td><td>1000.0000</td><td>-</td><td>23449.41 KB</td><td>15.01</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>100000</td><td>0.1</td><td>263,148.92 &mu;s</td><td>20,734.96 &mu;s</td><td>3,208.758 &mu;s</td><td>262,475.65 &mu;s</td><td>177.10</td><td>28.83</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>58.91</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>100000</td><td>0.1</td><td>309.56 &mu;s</td><td>185.44 &mu;s</td><td>48.159 &mu;s</td><td>283.00 &mu;s</td><td>0.21</td><td>0.05</td><td>-</td><td>-</td><td>155.78 KB</td><td>0.10</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>100000</td><td>0.1</td><td>1,680.88 &mu;s</td><td>1,348.45 &mu;s</td><td>350.188 &mu;s</td><td>1,855.70 &mu;s</td><td>1.13</td><td>0.28</td><td>-</td><td>-</td><td>1718.39 KB</td><td>1.10</td>
+</tr><tr><td>FullSync_ExportAll</td><td>100000</td><td>0.5</td><td>1,358.75 &mu;s</td><td>2,315.63 &mu;s</td><td>358.347 &mu;s</td><td>1,501.80 &mu;s</td><td>1.08</td><td>0.43</td><td>-</td><td>-</td><td>1562.61 KB</td><td>1.00</td>
+</tr><tr><td>FullSync_ExportAndImport</td><td>100000</td><td>0.5</td><td>8,695.28 &mu;s</td><td>6,382.92 &mu;s</td><td>1,657.623 &mu;s</td><td>8,388.50 &mu;s</td><td>6.88</td><td>2.50</td><td>-</td><td>-</td><td>18070.95 KB</td><td>11.56</td>
+</tr><tr><td>DeltaSync_ExportChangesSince</td><td>100000</td><td>0.5</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>DeltaSync_ExportDeltaChanges</td><td>100000</td><td>0.5</td><td>NA</td><td>NA</td><td>NA</td><td>NA</td><td>?</td><td>?</td><td>NA</td><td>NA</td><td>NA</td><td>?</td>
+</tr><tr><td>DeltaSync_ExportAndImport</td><td>100000</td><td>0.5</td><td>1,327.91 &mu;s</td><td>1,823.27 &mu;s</td><td>473.498 &mu;s</td><td>1,456.85 &mu;s</td><td>1.05</td><td>0.49</td><td>-</td><td>-</td><td>1995.17 KB</td><td>1.28</td>
+</tr><tr><td>DeltaSync_BandwidthSavings_Analysis</td><td>100000</td><td>0.5</td><td>1,557.40 &mu;s</td><td>809.01 &mu;s</td><td>125.195 &mu;s</td><td>1,534.25 &mu;s</td><td>1.23</td><td>0.40</td><td>-</td><td>-</td><td>1718.08 KB</td><td>1.10</td>
+</tr><tr><td>DeltaSync_MultipleRounds</td><td>100000</td><td>0.5</td><td>356,275.21 &mu;s</td><td>83,474.85 &mu;s</td><td>21,678.154 &mu;s</td><td>356,513.55 &mu;s</td><td>281.89</td><td>90.11</td><td>6000.0000</td><td>2000.0000</td><td>130563.63 KB</td><td>83.55</td>
+</tr><tr><td>DeltaSync_LargeDataset_SmallChange</td><td>100000</td><td>0.5</td><td>258,404.50 &mu;s</td><td>62,115.62 &mu;s</td><td>9,612.461 &mu;s</td><td>260,329.85 &mu;s</td><td>204.45</td><td>65.08</td><td>4000.0000</td><td>1000.0000</td><td>92059.07 KB</td><td>58.91</td>
+</tr><tr><td>DeltaSync_FilteringOverhead</td><td>100000</td><td>0.5</td><td>213.20 &mu;s</td><td>272.08 &mu;s</td><td>70.658 &mu;s</td><td>191.80 &mu;s</td><td>0.17</td><td>0.08</td><td>-</td><td>-</td><td>155.47 KB</td><td>0.10</td>
+</tr><tr><td>DeltaSync_MemoryFootprint</td><td>100000</td><td>0.5</td><td>1,997.70 &mu;s</td><td>2,156.01 &mu;s</td><td>559.908 &mu;s</td><td>2,014.00 &mu;s</td><td>1.58</td><td>0.65</td><td>-</td><td>-</td><td>1718.08 KB</td><td>1.10</td>
+</tr></tbody></table>
+</body>
+</html>

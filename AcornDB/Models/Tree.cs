@@ -17,6 +17,7 @@ namespace AcornDB
         private readonly ITrunk<T> _trunk;
         private readonly EventManager<T> _eventManager = new();
         private readonly IConflictJudge<T> _conflictJudge;
+        private readonly object _cacheLock = new(); // Thread-safety for cache operations
 
         // Reactive change notifications
         internal event Action<string, T, Nut<T>>? OnStashEvent;

@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>AcornDB.Benchmarks.CompetitiveBenchmarks-20251014-155108</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.4, Windows 11 (10.0.26100.6584/24H2/2024Update/HudsonValley)
+AMD Ryzen 9 7900X 4.70GHz, 1 CPU, 24 logical and 12 physical cores
+.NET SDK 9.0.304
+  [Host]     : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
+  Job-NTRUNJ : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
+</code></pre>
+<pre><code>IterationCount=5  WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method                        </th><th>DocumentCount</th><th>Mean      </th><th>Error     </th><th>StdDev    </th><th>Ratio</th><th>RatioSD</th><th>Gen0 </th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>AcornDB_Insert_Documents</td><td>1000</td><td>361.6 &mu;s</td><td>15.56 &mu;s</td><td>4.04 &mu;s</td><td>1.00</td><td>0.01</td><td>63.4766</td><td>41.9922</td><td>-</td><td>1043.79 KB</td><td>1.00</td>
+</tr><tr><td>AcornDB_Read_ById</td><td>1000</td><td>379.9 &mu;s</td><td>18.16 &mu;s</td><td>2.81 &mu;s</td><td>1.05</td><td>0.01</td><td>54.1992</td><td>30.2734</td><td>-</td><td>887.46 KB</td><td>0.85</td>
+</tr><tr><td>AcornDB_Update_Documents</td><td>1000</td><td>628.9 &mu;s</td><td>48.32 &mu;s</td><td>12.55 &mu;s</td><td>1.74</td><td>0.04</td><td>85.9375</td><td>49.8047</td><td>-</td><td>1410.9 KB</td><td>1.35</td>
+</tr><tr><td>AcornDB_Delete_Documents</td><td>1000</td><td>542.1 &mu;s</td><td>60.62 &mu;s</td><td>15.74 &mu;s</td><td>1.50</td><td>0.04</td><td>73.2422</td><td>38.0859</td><td>-</td><td>1207.77 KB</td><td>1.16</td>
+</tr><tr><td>AcornDB_Mixed_Workload</td><td>1000</td><td>229.9 &mu;s</td><td>6.29 &mu;s</td><td>1.63 &mu;s</td><td>0.64</td><td>0.01</td><td>33.2031</td><td>15.6250</td><td>-</td><td>543.91 KB</td><td>0.52</td>
+</tr><tr><td>AcornDB_Scan_All_Documents</td><td>1000</td><td>309.4 &mu;s</td><td>12.81 &mu;s</td><td>3.33 &mu;s</td><td>0.86</td><td>0.01</td><td>52.7344</td><td>33.6914</td><td>-</td><td>864.33 KB</td><td>0.83</td>
+</tr><tr><td>AcornDB_Scan_With_Filter</td><td>1000</td><td>298.5 &mu;s</td><td>8.79 &mu;s</td><td>1.36 &mu;s</td><td>0.83</td><td>0.01</td><td>52.2461</td><td>25.8789</td><td>-</td><td>860.09 KB</td><td>0.82</td>
+</tr><tr><td>AcornDB_FileTrunk_Insert</td><td>1000</td><td>1,138,269.5 &mu;s</td><td>257,457.48 &mu;s</td><td>39,841.83 &mu;s</td><td>3,147.99</td><td>103.14</td><td>-</td><td>-</td><td>-</td><td>6084.3 KB</td><td>5.83</td>
+</tr><tr><td>AcornDB_FileTrunk_Read</td><td>1000</td><td>1,142,574.2 &mu;s</td><td>22,920.92 &mu;s</td><td>5,952.49 &mu;s</td><td>3,159.90</td><td>35.70</td><td>-</td><td>-</td><td>-</td><td>6123.4 KB</td><td>5.87</td>
+</tr><tr><td>AcornDB_Throughput_Sequential_Writes</td><td>1000</td><td>296.2 &mu;s</td><td>9.45 &mu;s</td><td>2.45 &mu;s</td><td>0.82</td><td>0.01</td><td>51.7578</td><td>29.2969</td><td>-</td><td>848.48 KB</td><td>0.81</td>
+</tr><tr><td>AcornDB_Throughput_Sequential_Reads</td><td>1000</td><td>364.3 &mu;s</td><td>12.61 &mu;s</td><td>3.27 &mu;s</td><td>1.01</td><td>0.01</td><td>54.1992</td><td>30.2734</td><td>-</td><td>887.46 KB</td><td>0.85</td>
+</tr><tr><td>AcornDB_Cache_Hit_Rate_Test</td><td>1000</td><td>641.6 &mu;s</td><td>16.94 &mu;s</td><td>4.40 &mu;s</td><td>1.77</td><td>0.02</td><td>63.4766</td><td>41.9922</td><td>-</td><td>1043.4 KB</td><td>1.00</td>
+</tr><tr><td>LiteDB_Insert_Documents</td><td>1000</td><td>140,424.2 &mu;s</td><td>14,353.14 &mu;s</td><td>2,221.16 &mu;s</td><td>388.36</td><td>6.77</td><td>1333.3333</td><td>666.6667</td><td>333.3333</td><td>32058.72 KB</td><td>30.71</td>
+</tr><tr><td>LiteDB_Read_ById</td><td>1000</td><td>146,862.2 &mu;s</td><td>53,925.12 &mu;s</td><td>8,344.97 &mu;s</td><td>406.16</td><td>20.93</td><td>3000.0000</td><td>666.6667</td><td>333.3333</td><td>59165.9 KB</td><td>56.68</td>
+</tr><tr><td>LiteDB_Update_Documents</td><td>1000</td><td>187,011.2 &mu;s</td><td>38,649.57 &mu;s</td><td>5,981.06 &mu;s</td><td>517.20</td><td>15.63</td><td>2500.0000</td><td>1000.0000</td><td>500.0000</td><td>50456.17 KB</td><td>48.34</td>
+</tr><tr><td>LiteDB_Delete_Documents</td><td>1000</td><td>246,631.4 &mu;s</td><td>28,389.96 &mu;s</td><td>4,393.38 &mu;s</td><td>682.08</td><td>12.88</td><td>2500.0000</td><td>1000.0000</td><td>500.0000</td><td>50304.32 KB</td><td>48.19</td>
+</tr><tr><td>LiteDB_Mixed_Workload</td><td>1000</td><td>88,921.1 &mu;s</td><td>16,077.17 &mu;s</td><td>4,175.19 &mu;s</td><td>245.92</td><td>10.84</td><td>1250.0000</td><td>1000.0000</td><td>250.0000</td><td>33604.86 KB</td><td>32.20</td>
+</tr><tr><td>LiteDB_Scan_All_Documents</td><td>1000</td><td>136,142.8 &mu;s</td><td>45,247.27 &mu;s</td><td>7,002.07 &mu;s</td><td>376.52</td><td>17.64</td><td>1333.3333</td><td>1000.0000</td><td>333.3333</td><td>33783.27 KB</td><td>32.37</td>
+</tr><tr><td>LiteDB_Scan_With_Filter</td><td>1000</td><td>142,615.1 &mu;s</td><td>20,100.10 &mu;s</td><td>3,110.51 &mu;s</td><td>394.42</td><td>8.66</td><td>1333.3333</td><td>1000.0000</td><td>333.3333</td><td>33827.8 KB</td><td>32.41</td>
+</tr><tr><td>AcornDB_Insert_Documents</td><td>10000</td><td>4,494.2 &mu;s</td><td>105.20 &mu;s</td><td>27.32 &mu;s</td><td>1.00</td><td>0.01</td><td>664.0625</td><td>664.0625</td><td>664.0625</td><td>10254.33 KB</td><td>1.00</td>
+</tr><tr><td>AcornDB_Read_ById</td><td>10000</td><td>4,751.1 &mu;s</td><td>536.62 &mu;s</td><td>139.36 &mu;s</td><td>1.06</td><td>0.03</td><td>664.0625</td><td>664.0625</td><td>664.0625</td><td>8621.44 KB</td><td>0.84</td>
+</tr><tr><td>AcornDB_Update_Documents</td><td>10000</td><td>9,952.6 &mu;s</td><td>1,139.96 &mu;s</td><td>296.05 &mu;s</td><td>2.21</td><td>0.06</td><td>1000.0000</td><td>968.7500</td><td>656.2500</td><td>13855.82 KB</td><td>1.35</td>
+</tr><tr><td>AcornDB_Delete_Documents</td><td>10000</td><td>6,194.5 &mu;s</td><td>177.04 &mu;s</td><td>45.98 &mu;s</td><td>1.38</td><td>0.01</td><td>664.0625</td><td>664.0625</td><td>664.0625</td><td>11824.57 KB</td><td>1.15</td>
+</tr><tr><td>AcornDB_Mixed_Workload</td><td>10000</td><td>3,238.4 &mu;s</td><td>83.96 &mu;s</td><td>21.80 &mu;s</td><td>0.72</td><td>0.01</td><td>386.7188</td><td>332.0313</td><td>277.3438</td><td>5336.17 KB</td><td>0.52</td>
+</tr><tr><td>AcornDB_Scan_All_Documents</td><td>10000</td><td>3,886.7 &mu;s</td><td>288.47 &mu;s</td><td>44.64 &mu;s</td><td>0.86</td><td>0.01</td><td>664.0625</td><td>664.0625</td><td>664.0625</td><td>8387.59 KB</td><td>0.82</td>
+</tr><tr><td>AcornDB_Scan_With_Filter</td><td>10000</td><td>4,082.0 &mu;s</td><td>284.30 &mu;s</td><td>44.00 &mu;s</td><td>0.91</td><td>0.01</td><td>664.0625</td><td>664.0625</td><td>664.0625</td><td>8348.2 KB</td><td>0.81</td>
+</tr><tr><td>AcornDB_FileTrunk_Insert</td><td>10000</td><td>11,203,430.1 &mu;s</td><td>2,986,123.43 &mu;s</td><td>775,486.77 &mu;s</td><td>2,492.92</td><td>158.13</td><td>3000.0000</td><td>1000.0000</td><td>-</td><td>60882.36 KB</td><td>5.94</td>
+</tr><tr><td>AcornDB_FileTrunk_Read</td><td>10000</td><td>10,554,136.3 &mu;s</td><td>679,154.93 &mu;s</td><td>176,374.38 &mu;s</td><td>2,348.44</td><td>38.11</td><td>3000.0000</td><td>1000.0000</td><td>-</td><td>61271.95 KB</td><td>5.98</td>
+</tr><tr><td>AcornDB_Throughput_Sequential_Writes</td><td>10000</td><td>3,888.8 &mu;s</td><td>336.85 &mu;s</td><td>52.13 &mu;s</td><td>0.87</td><td>0.01</td><td>664.0625</td><td>664.0625</td><td>664.0625</td><td>8230.9 KB</td><td>0.80</td>
+</tr><tr><td>AcornDB_Throughput_Sequential_Reads</td><td>10000</td><td>4,789.6 &mu;s</td><td>296.39 &mu;s</td><td>76.97 &mu;s</td><td>1.07</td><td>0.02</td><td>664.0625</td><td>664.0625</td><td>664.0625</td><td>8621.44 KB</td><td>0.84</td>
+</tr><tr><td>AcornDB_Cache_Hit_Rate_Test</td><td>10000</td><td>4,416.7 &mu;s</td><td>350.07 &mu;s</td><td>90.91 &mu;s</td><td>0.98</td><td>0.02</td><td>664.0625</td><td>664.0625</td><td>664.0625</td><td>8425.82 KB</td><td>0.82</td>
+</tr><tr><td>LiteDB_Insert_Documents</td><td>10000</td><td>1,538,645.6 &mu;s</td><td>137,078.08 &mu;s</td><td>35,598.74 &mu;s</td><td>342.37</td><td>7.48</td><td>15000.0000</td><td>2000.0000</td><td>1000.0000</td><td>253102.47 KB</td><td>24.68</td>
+</tr><tr><td>LiteDB_Read_ById</td><td>10000</td><td>1,562,826.4 &mu;s</td><td>146,063.86 &mu;s</td><td>37,932.32 &mu;s</td><td>347.75</td><td>7.94</td><td>35000.0000</td><td>2000.0000</td><td>1000.0000</td><td>575745.63 KB</td><td>56.15</td>
+</tr><tr><td>LiteDB_Update_Documents</td><td>10000</td><td>2,041,888.5 &mu;s</td><td>70,753.67 &mu;s</td><td>10,949.21 &mu;s</td><td>454.35</td><td>3.33</td><td>30000.0000</td><td>2000.0000</td><td>1000.0000</td><td>487849.09 KB</td><td>47.57</td>
+</tr><tr><td>LiteDB_Delete_Documents</td><td>10000</td><td>3,174,542.1 &mu;s</td><td>80,665.12 &mu;s</td><td>12,483.02 &mu;s</td><td>706.38</td><td>4.64</td><td>27000.0000</td><td>2000.0000</td><td>1000.0000</td><td>448684.37 KB</td><td>43.76</td>
+</tr><tr><td>LiteDB_Mixed_Workload</td><td>10000</td><td>1,193,931.1 &mu;s</td><td>176,462.15 &mu;s</td><td>45,826.66 &mu;s</td><td>265.67</td><td>9.42</td><td>17000.0000</td><td>2000.0000</td><td>1000.0000</td><td>280615.64 KB</td><td>27.37</td>
+</tr><tr><td>LiteDB_Scan_All_Documents</td><td>10000</td><td>1,434,434.6 &mu;s</td><td>99,200.36 &mu;s</td><td>15,351.36 &mu;s</td><td>319.18</td><td>3.52</td><td>16000.0000</td><td>2000.0000</td><td>1000.0000</td><td>270445.3 KB</td><td>26.37</td>
+</tr><tr><td>LiteDB_Scan_With_Filter</td><td>10000</td><td>1,439,212.0 &mu;s</td><td>29,061.10 &mu;s</td><td>7,547.08 &mu;s</td><td>320.24</td><td>2.34</td><td>16000.0000</td><td>2000.0000</td><td>1000.0000</td><td>270806.61 KB</td><td>26.41</td>
+</tr><tr><td>AcornDB_Insert_Documents</td><td>50000</td><td>63,214.7 &mu;s</td><td>7,381.09 &mu;s</td><td>1,916.85 &mu;s</td><td>1.00</td><td>0.04</td><td>3777.7778</td><td>3777.7778</td><td>1555.5556</td><td>49737.99 KB</td><td>1.00</td>
+</tr><tr><td>AcornDB_Read_ById</td><td>50000</td><td>64,005.1 &mu;s</td><td>13,129.38 &mu;s</td><td>3,409.66 &mu;s</td><td>1.01</td><td>0.06</td><td>2875.0000</td><td>2250.0000</td><td>1125.0000</td><td>41542.18 KB</td><td>0.84</td>
+</tr><tr><td>AcornDB_Update_Documents</td><td>50000</td><td>110,195.9 &mu;s</td><td>15,378.51 &mu;s</td><td>3,993.75 &mu;s</td><td>1.74</td><td>0.08</td><td>5200.0000</td><td>5200.0000</td><td>2000.0000</td><td>68026.58 KB</td><td>1.37</td>
+</tr><tr><td>AcornDB_Delete_Documents</td><td>50000</td><td>73,423.4 &mu;s</td><td>20,986.31 &mu;s</td><td>5,450.08 &mu;s</td><td>1.16</td><td>0.09</td><td>4250.0000</td><td>2875.0000</td><td>1500.0000</td><td>57557.46 KB</td><td>1.16</td>
+</tr><tr><td>AcornDB_Mixed_Workload</td><td>50000</td><td>34,555.3 &mu;s</td><td>9,512.29 &mu;s</td><td>2,470.31 &mu;s</td><td>0.55</td><td>0.04</td><td>2214.2857</td><td>1785.7143</td><td>1071.4286</td><td>25921.05 KB</td><td>0.52</td>
+</tr><tr><td>AcornDB_Scan_All_Documents</td><td>50000</td><td>59,615.3 &mu;s</td><td>14,629.99 &mu;s</td><td>3,799.36 &mu;s</td><td>0.94</td><td>0.06</td><td>3222.2222</td><td>3111.1111</td><td>1777.7778</td><td>40371.29 KB</td><td>0.81</td>
+</tr><tr><td>AcornDB_Scan_With_Filter</td><td>50000</td><td>57,928.8 &mu;s</td><td>6,333.50 &mu;s</td><td>1,644.79 &mu;s</td><td>0.92</td><td>0.04</td><td>3000.0000</td><td>3000.0000</td><td>1444.4444</td><td>40175.87 KB</td><td>0.81</td>
+</tr><tr><td>AcornDB_FileTrunk_Insert</td><td>50000</td><td>151,173,902.5 &mu;s</td><td>90,641,793.05 &mu;s</td><td>23,539,385.86 &mu;s</td><td>2,393.22</td><td>346.88</td><td>21000.0000</td><td>7000.0000</td><td>4000.0000</td><td>304831.58 KB</td><td>6.13</td>
+</tr><tr><td>AcornDB_FileTrunk_Read</td><td>50000</td><td>162,105,770.1 &mu;s</td><td>42,684,993.40 &mu;s</td><td>11,085,157.26 &mu;s</td><td>2,566.28</td><td>175.70</td><td>21000.0000</td><td>7000.0000</td><td>4000.0000</td><td>306789.01 KB</td><td>6.17</td>
+</tr><tr><td>AcornDB_Throughput_Sequential_Writes</td><td>50000</td><td>52,709.8 &mu;s</td><td>7,028.05 &mu;s</td><td>1,825.16 &mu;s</td><td>0.83</td><td>0.04</td><td>2900.0000</td><td>2800.0000</td><td>1300.0000</td><td>39590.8 KB</td><td>0.80</td>
+</tr><tr><td>AcornDB_Throughput_Sequential_Reads</td><td>50000</td><td>54,538.9 &mu;s</td><td>4,091.08 &mu;s</td><td>633.10 &mu;s</td><td>0.86</td><td>0.03</td><td>3111.1111</td><td>2666.6667</td><td>1333.3333</td><td>41542.12 KB</td><td>0.84</td>
+</tr><tr><td>AcornDB_Cache_Hit_Rate_Test</td><td>50000</td><td>52,014.4 &mu;s</td><td>6,993.00 &mu;s</td><td>1,816.06 &mu;s</td><td>0.82</td><td>0.03</td><td>2900.0000</td><td>2800.0000</td><td>1300.0000</td><td>39784.65 KB</td><td>0.80</td>
+</tr><tr><td>LiteDB_Insert_Documents</td><td>50000</td><td>8,586,035.7 &mu;s</td><td>395,244.29 &mu;s</td><td>61,164.49 &mu;s</td><td>135.92</td><td>3.93</td><td>84000.0000</td><td>2000.0000</td><td>1000.0000</td><td>1370644.17 KB</td><td>27.56</td>
+</tr><tr><td>LiteDB_Read_ById</td><td>50000</td><td>8,631,106.8 &mu;s</td><td>821,421.91 &mu;s</td><td>213,320.66 &mu;s</td><td>136.64</td><td>4.92</td><td>199000.0000</td><td>22000.0000</td><td>2000.0000</td><td>3244793.5 KB</td><td>65.24</td>
+</tr><tr><td>LiteDB_Update_Documents</td><td>50000</td><td>11,454,424.4 &mu;s</td><td>781,697.20 &mu;s</td><td>203,004.28 &mu;s</td><td>181.33</td><td>5.88</td><td>171000.0000</td><td>26000.0000</td><td>2000.0000</td><td>2788709.23 KB</td><td>56.07</td>
+</tr><tr><td>LiteDB_Delete_Documents</td><td>50000</td><td>17,665,182.3 &mu;s</td><td>557,723.00 &mu;s</td><td>144,838.89 &mu;s</td><td>279.66</td><td>8.12</td><td>157000.0000</td><td>20000.0000</td><td>1000.0000</td><td>2567119.48 KB</td><td>51.61</td>
+</tr><tr><td>LiteDB_Mixed_Workload</td><td>50000</td><td>6,512,006.2 &mu;s</td><td>123,293.34 &mu;s</td><td>19,079.78 &mu;s</td><td>103.09</td><td>2.92</td><td>90000.0000</td><td>2000.0000</td><td>1000.0000</td><td>1480429.46 KB</td><td>29.76</td>
+</tr><tr><td>LiteDB_Scan_All_Documents</td><td>50000</td><td>8,204,957.7 &mu;s</td><td>1,080,222.05 &mu;s</td><td>280,530.24 &mu;s</td><td>129.89</td><td>5.45</td><td>89000.0000</td><td>5000.0000</td><td>2000.0000</td><td>1461587.37 KB</td><td>29.39</td>
+</tr><tr><td>LiteDB_Scan_With_Filter</td><td>50000</td><td>8,319,474.5 &mu;s</td><td>2,714,894.40 &mu;s</td><td>420,132.91 &mu;s</td><td>131.70</td><td>6.98</td><td>89000.0000</td><td>3000.0000</td><td>1000.0000</td><td>1463353.7 KB</td><td>29.42</td>
+</tr></tbody></table>
+</body>
+</html>

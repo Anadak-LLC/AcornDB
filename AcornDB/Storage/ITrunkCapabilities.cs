@@ -74,14 +74,7 @@ namespace AcornDB.Storage
                     SupportsAsync = false,
                     TrunkType = "MemoryTrunk"
                 },
-                AzureTrunk<T> => new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = true,
-                    SupportsAsync = true,
-                    TrunkType = "AzureTrunk"
-                },
+                // NOTE: AzureTrunk moved to AcornDB.Persistence.Cloud package
                 _ => new TrunkCapabilities
                 {
                     SupportsHistory = false,

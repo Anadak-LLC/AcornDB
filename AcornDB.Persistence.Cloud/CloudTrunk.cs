@@ -1,6 +1,12 @@
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.IO;
+using System.IO.Compression;
 using System.Linq;
+using System.Runtime.CompilerServices;
+using System.Text;
+using System.Threading;
 using System.Threading.Tasks;
 using AcornDB.Storage;
 using Newtonsoft.Json;
@@ -8,15 +14,40 @@ using Newtonsoft.Json;
 namespace AcornDB.Persistence.Cloud
 {
     /// <summary>
-    /// Cloud-backed trunk that works with any ICloudStorageProvider (S3, Azure Blob, etc.)
-    /// Stores nuts as JSON files in cloud storage
+    /// High-performance cloud-backed trunk with async-first API, parallel operations,
+    /// compression, and optional local caching.
+    /// Works with any ICloudStorageProvider (S3, Azure Blob, etc.)
     /// </summary>
     /// <typeparam name="T">Payload type</typeparam>
-    public class CloudTrunk<T> : ITrunk<T>
+    public class CloudTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly ICloudStorageProvider _cloudStorage;
         private readonly ISerializer _serializer;
         private readonly string _prefix;
+        private readonly bool _enableCompression;
+        private readonly bool _enableLocalCache;
+        private readonly int _batchSize;
+        private readonly int _parallelDownloads;
+
+        // Batching support
+        private readonly List<PendingWrite> _writeBuffer = new();
+        private readonly SemaphoreSlim _writeLock = new(1, 1);
+        private readonly Timer? _flushTimer;
+
+        // Optional local cache
+        private readonly ConcurrentDictionary<string, Nut<T>>? _localCache;
+
+        private bool _disposed = false;
+
+        private struct PendingWrite
+        {
+            public string Id;
+            public Nut<T> Nut;
+        }
+
+        private const int DEFAULT_BATCH_SIZE = 50;
+        private const int DEFAULT_PARALLEL_DOWNLOADS = 10;
+        private const int FLUSH_INTERVAL_MS = 500;
 
         /// <summary>
         /// Create a cloud trunk with the specified storage provider
@@ -24,61 +55,135 @@ namespace AcornDB.Persistence.Cloud
         /// <param name="cloudStorage">Cloud storage provider (S3, Azure, etc.)</param>
         /// <param name="prefix">Optional prefix for all keys (like a folder path)</param>
         /// <param name="serializer">Custom serializer (defaults to Newtonsoft.Json)</param>
+        /// <param name="enableCompression">Enable GZip compression (70-90% size reduction)</param>
+        /// <param name="enableLocalCache">Enable in-memory caching of frequently accessed nuts</param>
+        /// <param name="batchSize">Number of writes to buffer before auto-flush (default: 50)</param>
+        /// <param name="parallelDownloads">Maximum parallel downloads for bulk operations (default: 10)</param>
         public CloudTrunk(
             ICloudStorageProvider cloudStorage,
             string? prefix = null,
-            ISerializer? serializer = null)
+            ISerializer? serializer = null,
+            bool enableCompression = true,
+            bool enableLocalCache = true,
+            int batchSize = DEFAULT_BATCH_SIZE,
+            int parallelDownloads = DEFAULT_PARALLEL_DOWNLOADS)
         {
             _cloudStorage = cloudStorage ?? throw new ArgumentNullException(nameof(cloudStorage));
             _serializer = serializer ?? new NewtonsoftJsonSerializer();
             _prefix = prefix ?? $"acorndb_{typeof(T).Name}";
+            _enableCompression = enableCompression;
+            _enableLocalCache = enableLocalCache;
+            _batchSize = batchSize;
+            _parallelDownloads = parallelDownloads;
+
+            if (_enableLocalCache)
+            {
+                _localCache = new ConcurrentDictionary<string, Nut<T>>();
+            }
+
+            // Auto-flush timer for write batching
+            _flushTimer = new Timer(_ =>
+            {
+                try { FlushAsync().Wait(); }
+                catch { /* Swallow timer exceptions */ }
+            }, null, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS);
 
             var info = _cloudStorage.GetInfo();
             Console.WriteLine($"☁️ CloudTrunk initialized:");
             Console.WriteLine($"   Provider: {info.ProviderName}");
             Console.WriteLine($"   Bucket: {info.BucketName}");
             Console.WriteLine($"   Prefix: {_prefix}");
+            Console.WriteLine($"   Compression: {(_enableCompression ? "Enabled" : "Disabled")}");
+            Console.WriteLine($"   Local Cache: {(_enableLocalCache ? "Enabled" : "Disabled")}");
+            Console.WriteLine($"   Batch Size: {_batchSize}");
         }
 
+        // Synchronous methods - use sparingly, prefer async versions
         public void Save(string id, Nut<T> nut)
         {
-            // Use async bridge pattern
-            Task.Run(async () => await SaveAsync(id, nut)).GetAwaiter().GetResult();
+            SaveAsync(id, nut).GetAwaiter().GetResult();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task SaveAsync(string id, Nut<T> nut)
         {
-            var key = GetKey(id);
-            var json = _serializer.Serialize(nut);
-            await _cloudStorage.UploadAsync(key, json);
-            Console.WriteLine($"   ☁️ Uploaded {id} to cloud");
+            // Update local cache immediately
+            if (_enableLocalCache)
+            {
+                _localCache![id] = nut;
+            }
+
+            // Add to write buffer for batching
+            bool shouldFlush = false;
+            lock (_writeBuffer)
+            {
+                _writeBuffer.Add(new PendingWrite { Id = id, Nut = nut });
+
+                // Check if buffer is full
+                if (_writeBuffer.Count >= _batchSize)
+                {
+                    shouldFlush = true;
+                }
+            }
+
+            // Flush outside the lock
+            if (shouldFlush)
+            {
+                await FlushAsync();
+            }
         }
 
         public Nut<T>? Load(string id)
         {
-            // Use async bridge pattern
-            return Task.Run(async () => await LoadAsync(id)).GetAwaiter().GetResult();
+            return LoadAsync(id).GetAwaiter().GetResult();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task<Nut<T>?> LoadAsync(string id)
         {
-            var key = GetKey(id);
-            var json = await _cloudStorage.DownloadAsync(key);
+            // Check local cache first
+            if (_enableLocalCache && _localCache!.TryGetValue(id, out var cached))
+            {
+                return cached;
+            }
 
-            if (json == null)
+            var key = GetKey(id);
+            var data = await _cloudStorage.DownloadAsync(key);
+
+            if (data == null)
                 return null;
 
-            return _serializer.Deserialize<Nut<T>>(json);
+            // Decompress if enabled
+            if (_enableCompression)
+            {
+                data = Decompress(data);
+            }
+
+            var nut = _serializer.Deserialize<Nut<T>>(data);
+
+            // Update cache
+            if (_enableLocalCache && nut != null)
+            {
+                _localCache![id] = nut;
+            }
+
+            return nut;
         }
 
         public void Delete(string id)
         {
-            // Use async bridge pattern
-            Task.Run(async () => await DeleteAsync(id)).GetAwaiter().GetResult();
+            DeleteAsync(id).GetAwaiter().GetResult();
         }
 
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task DeleteAsync(string id)
         {
+            // Remove from cache
+            if (_enableLocalCache)
+            {
+                _localCache!.TryRemove(id, out _);
+            }
+
             var key = GetKey(id);
             await _cloudStorage.DeleteAsync(key);
             Console.WriteLine($"   ☁️ Deleted {id} from cloud");
@@ -93,27 +198,41 @@ namespace AcornDB.Persistence.Cloud
         public async Task<IEnumerable<Nut<T>>> LoadAllAsync()
         {
             var keys = await _cloudStorage.ListAsync(_prefix);
-            var nuts = new List<Nut<T>>();
+            var nuts = new ConcurrentBag<Nut<T>>();
 
-            foreach (var key in keys)
+            // Parallel downloads for better performance
+            var keyGroups = keys.Chunk(_parallelDownloads);
+
+            foreach (var keyGroup in keyGroups)
             {
-                try
+                var downloadTasks = keyGroup.Select(async key =>
                 {
-                    var json = await _cloudStorage.DownloadAsync(key);
-                    if (json != null)
+                    try
                     {
-                        var nut = _serializer.Deserialize<Nut<T>>(json);
-                        if (nut != null)
-                            nuts.Add(nut);
+                        var data = await _cloudStorage.DownloadAsync(key);
+                        if (data != null)
+                        {
+                            // Decompress if enabled
+                            if (_enableCompression)
+                            {
+                                data = Decompress(data);
+                            }
+
+                            var nut = _serializer.Deserialize<Nut<T>>(data);
+                            if (nut != null)
+                                nuts.Add(nut);
+                        }
                     }
-                }
-                catch (Exception ex)
-                {
-                    Console.WriteLine($"   ⚠ Failed to load {key}: {ex.Message}");
-                }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"   ⚠ Failed to load {key}: {ex.Message}");
+                    }
+                });
+
+                await Task.WhenAll(downloadTasks);
             }
 
-            return nuts;
+            return nuts.ToList();
         }
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
@@ -138,12 +257,27 @@ namespace AcornDB.Persistence.Cloud
 
         public async Task ImportChangesAsync(IEnumerable<Nut<T>> changes)
         {
-            foreach (var nut in changes)
+            var changesList = changes.ToList();
+
+            // Add all to write buffer
+            foreach (var nut in changesList)
             {
-                await SaveAsync(nut.Id, nut);
+                // Update local cache
+                if (_enableLocalCache)
+                {
+                    _localCache![nut.Id] = nut;
+                }
+
+                lock (_writeBuffer)
+                {
+                    _writeBuffer.Add(new PendingWrite { Id = nut.Id, Nut = nut });
+                }
             }
 
-            Console.WriteLine($"   ☁️ Imported {changes.Count()} nuts to cloud");
+            // Flush everything
+            await FlushAsync();
+
+            Console.WriteLine($"   ☁️ Imported {changesList.Count} nuts to cloud");
         }
 
         public ITrunkCapabilities GetCapabilities()
@@ -188,6 +322,99 @@ namespace AcornDB.Persistence.Cloud
             // Sanitize ID for cloud storage key
             var sanitized = string.Join("_", id.Split(Path.GetInvalidFileNameChars()));
             return $"{_prefix}/{sanitized}.json";
+        }
+
+        /// <summary>
+        /// Flush pending writes to cloud storage
+        /// </summary>
+        private async Task FlushAsync()
+        {
+            List<PendingWrite> toWrite;
+
+            lock (_writeBuffer)
+            {
+                if (_writeBuffer.Count == 0) return;
+                toWrite = new List<PendingWrite>(_writeBuffer);
+                _writeBuffer.Clear();
+            }
+
+            await _writeLock.WaitAsync();
+            try
+            {
+                // Upload all buffered writes in parallel
+                var uploadTasks = toWrite.Select(async write =>
+                {
+                    try
+                    {
+                        var key = GetKey(write.Id);
+                        var data = _serializer.Serialize(write.Nut);
+
+                        // Compress if enabled
+                        if (_enableCompression)
+                        {
+                            data = Compress(data);
+                        }
+
+                        await _cloudStorage.UploadAsync(key, data);
+                    }
+                    catch (Exception ex)
+                    {
+                        Console.WriteLine($"   ⚠ Failed to upload {write.Id}: {ex.Message}");
+                    }
+                });
+
+                await Task.WhenAll(uploadTasks);
+                Console.WriteLine($"   ☁️ Flushed {toWrite.Count} nuts to cloud");
+            }
+            finally
+            {
+                _writeLock.Release();
+            }
+        }
+
+        /// <summary>
+        /// Compress string data using GZip (70-90% size reduction)
+        /// Returns Base64-encoded compressed data
+        /// </summary>
+        private string Compress(string data)
+        {
+            var bytes = Encoding.UTF8.GetBytes(data);
+            using var output = new MemoryStream();
+            using (var gzip = new GZipStream(output, CompressionLevel.Optimal))
+            {
+                gzip.Write(bytes, 0, bytes.Length);
+            }
+            return Convert.ToBase64String(output.ToArray());
+        }
+
+        /// <summary>
+        /// Decompress Base64-encoded GZip data to string
+        /// </summary>
+        private string Decompress(string data)
+        {
+            var bytes = Convert.FromBase64String(data);
+            using var input = new MemoryStream(bytes);
+            using var gzip = new GZipStream(input, CompressionMode.Decompress);
+            using var output = new MemoryStream();
+            gzip.CopyTo(output);
+            return Encoding.UTF8.GetString(output.ToArray());
+        }
+
+        /// <summary>
+        /// Dispose and flush any pending writes
+        /// </summary>
+        public void Dispose()
+        {
+            if (_disposed) return;
+
+            _flushTimer?.Dispose();
+
+            // Flush any pending writes
+            try { FlushAsync().Wait(); } catch { }
+
+            _writeLock?.Dispose();
+
+            _disposed = true;
         }
     }
 }
