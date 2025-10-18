@@ -26,6 +26,15 @@ namespace AcornDB.Storage
         private const int BUFFER_THRESHOLD = 100; // Flush after 100 log entries
         private const int FLUSH_INTERVAL_MS = 200; // Flush every 200ms
 
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = true,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = false,
+            TrunkType = "DocumentStoreTrunk"
+        };
+
         public DocumentStoreTrunk(string? customPath = null)
         {
             var typeName = typeof(T).Name;

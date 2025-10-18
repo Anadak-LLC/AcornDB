@@ -74,10 +74,8 @@ namespace AcornDB.Storage
             _innerTrunk.ImportChanges(compressed);
         }
 
-        public ITrunkCapabilities GetCapabilities()
-        {
-            return _innerTrunk.GetCapabilities();
-        }
+        // Delegate to inner trunk's capabilities
+        public ITrunkCapabilities Capabilities => _innerTrunk.Capabilities;
 
         private Nut<CompressedNut> CompressNut(Nut<T> nut)
         {

@@ -1,4 +1,3 @@
-using System.Buffers;
 using System.Runtime.CompilerServices;
 using System.Text;
 using Newtonsoft.Json;
@@ -14,6 +13,15 @@ namespace AcornDB.Storage
     {
         private readonly string _folderPath;
         private readonly JsonSerializerSettings _jsonSettings;
+
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = false,
+            TrunkType = "FileTrunk"
+        };
 
         public FileTrunk(string? customPath = null)
         {
@@ -57,20 +65,11 @@ namespace AcornDB.Storage
             var file = GetFilePath(id);
             if (!File.Exists(file)) return null;
 
-            // Use buffered FileStream with ArrayPool for better performance
-            using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan))
+            // Use StreamReader with BOM detection for better compatibility
+            using (var reader = new StreamReader(file, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, 4096))
             {
-                var buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
-                try
-                {
-                    var bytesRead = stream.Read(buffer, 0, (int)stream.Length);
-                    var json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                    return JsonConvert.DeserializeObject<Nut<T>>(json, _jsonSettings);
-                }
-                finally
-                {
-                    ArrayPool<byte>.Shared.Return(buffer);
-                }
+                var json = reader.ReadToEnd();
+                return JsonConvert.DeserializeObject<Nut<T>>(json, _jsonSettings);
             }
         }
 
@@ -91,21 +90,12 @@ namespace AcornDB.Storage
 
             foreach (var file in files)
             {
-                // Use optimized buffered I/O
-                using (var stream = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.Read, 4096, FileOptions.SequentialScan))
+                // Use StreamReader with BOM detection for better compatibility
+                using (var reader = new StreamReader(file, Encoding.UTF8, detectEncodingFromByteOrderMarks: true, 4096))
                 {
-                    var buffer = ArrayPool<byte>.Shared.Rent((int)stream.Length);
-                    try
-                    {
-                        var bytesRead = stream.Read(buffer, 0, (int)stream.Length);
-                        var json = Encoding.UTF8.GetString(buffer, 0, bytesRead);
-                        var nut = JsonConvert.DeserializeObject<Nut<T>>(json, _jsonSettings);
-                        if (nut != null) list.Add(nut);
-                    }
-                    finally
-                    {
-                        ArrayPool<byte>.Shared.Return(buffer);
-                    }
+                    var json = reader.ReadToEnd();
+                    var nut = JsonConvert.DeserializeObject<Nut<T>>(json, _jsonSettings);
+                    if (nut != null) list.Add(nut);
                 }
             }
             return list;

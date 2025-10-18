@@ -30,7 +30,7 @@ namespace AcornDB.Storage
     /// - Read-heavy workloads with multiple replicas
     /// - Reducing database load in high-traffic scenarios
     /// </summary>
-    public class NearFarTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class NearFarTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly ITrunk<T> _nearCache;
         private readonly ITrunk<T> _farCache;
@@ -232,45 +232,24 @@ namespace AcornDB.Storage
 
         private string GetTrunkType(ITrunk<T> trunk)
         {
-            var caps = trunk.GetCapabilities();
+            var caps = trunk.Capabilities;
             return caps.TrunkType;
         }
 
-        // ITrunkCapabilities implementation
-        public bool SupportsHistory
+        // ITrunkCapabilities implementation - forward to near cache (primary read cache) with custom TrunkType
+        public ITrunkCapabilities Capabilities
         {
             get
             {
-                var backingCaps = _backingStore.GetCapabilities();
-                return backingCaps.SupportsHistory;
-            }
-        }
-
-        public bool SupportsSync => true;
-
-        public bool IsDurable
-        {
-            get
-            {
-                var backingCaps = _backingStore.GetCapabilities();
-                return backingCaps.IsDurable;
-            }
-        }
-
-        public bool SupportsAsync
-        {
-            get
-            {
-                var backingCaps = _backingStore.GetCapabilities();
-                return backingCaps.SupportsAsync;
-            }
-        }
-
-        public string TrunkType
-        {
-            get
-            {
-                return $"NearFarTrunk({GetTrunkType(_nearCache)}+{GetTrunkType(_farCache)}+{GetTrunkType(_backingStore)})";
+                var nearCaps = _nearCache.Capabilities;
+                return new TrunkCapabilities
+                {
+                    SupportsHistory = nearCaps.SupportsHistory,
+                    SupportsSync = true,
+                    IsDurable = nearCaps.IsDurable,
+                    SupportsAsync = nearCaps.SupportsAsync,
+                    TrunkType = $"NearFarTrunk({GetTrunkType(_nearCache)}+{GetTrunkType(_farCache)}+{GetTrunkType(_backingStore)})"
+                };
             }
         }
 

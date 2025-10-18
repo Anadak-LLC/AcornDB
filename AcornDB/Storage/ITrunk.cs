@@ -14,4 +14,7 @@ public interface ITrunk<T>
     // Optional: Sync/Export support
     IEnumerable<Nut<T>> ExportChanges();
     void ImportChanges(IEnumerable<Nut<T>> incoming);
+
+    // Capabilities metadata
+    ITrunkCapabilities Capabilities { get; }
 }

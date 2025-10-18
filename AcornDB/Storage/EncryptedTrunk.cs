@@ -71,11 +71,8 @@ namespace AcornDB.Storage
             _innerTrunk.ImportChanges(encrypted);
         }
 
-        public ITrunkCapabilities GetCapabilities()
-        {
-            // Delegate to inner trunk's capabilities
-            return _innerTrunk.GetCapabilities();
-        }
+        // Delegate to inner trunk's capabilities
+        public ITrunkCapabilities Capabilities => _innerTrunk.Capabilities;
 
         private Nut<EncryptedNut> EncryptNut(Nut<T> nut)
         {

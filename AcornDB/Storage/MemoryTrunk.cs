@@ -12,6 +12,15 @@ namespace AcornDB.Storage
         // ConcurrentDictionary enables lock-free reads and thread-safe writes
         private readonly ConcurrentDictionary<string, Nut<T>> _storage = new();
 
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = false,
+            SupportsAsync = false,
+            TrunkType = "MemoryTrunk"
+        };
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Save(string id, Nut<T> nut)
         {

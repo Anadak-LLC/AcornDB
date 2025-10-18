@@ -202,17 +202,15 @@ namespace AcornDB.Git
             Console.WriteLine($"   ✓ Imported {changes.Count()} nuts");
         }
 
-        public ITrunkCapabilities GetCapabilities()
+        // ITrunkCapabilities implementation
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
-            return new TrunkCapabilities
-            {
-                TrunkType = "GitHubTrunk",
-                SupportsHistory = true,
-                SupportsSync = true,
-                IsDurable = true,
-                SupportsAsync = false
-            };
-        }
+            SupportsHistory = true,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = false,
+            TrunkType = "GitHubTrunk"
+        };
 
         /// <summary>
         /// Manually push to remote

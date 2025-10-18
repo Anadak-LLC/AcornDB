@@ -21,7 +21,7 @@ namespace AcornDB.Storage
     /// - Reduce latency for frequently accessed data
     /// - Reduce load on slow backing stores (S3, databases)
     /// </summary>
-    public class CachedTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class CachedTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly ITrunk<T> _backingStore;
         private readonly MemoryTrunk<T> _cache;
@@ -39,7 +39,7 @@ namespace AcornDB.Storage
             _cache = new MemoryTrunk<T>();
             _options = options ?? CacheOptions.Default;
 
-            var backingCaps = _backingStore.GetCapabilities();
+            var backingCaps = _backingStore.Capabilities;
             Console.WriteLine($"💾 CachedTrunk initialized:");
             Console.WriteLine($"   Backing Store: {backingCaps.TrunkType}");
             Console.WriteLine($"   Cache TTL: {(_options.TimeToLive?.TotalSeconds.ToString("F0") + "s" ?? "Infinite")}");
@@ -228,46 +228,24 @@ namespace AcornDB.Storage
 
         private string GetTrunkType(ITrunk<T> trunk)
         {
-            var caps = trunk.GetCapabilities();
+            var caps = trunk.Capabilities;
             return caps.TrunkType;
         }
 
-        // ITrunkCapabilities implementation
-        public bool SupportsHistory
+        // ITrunkCapabilities implementation - forward to backing store with custom TrunkType
+        public ITrunkCapabilities Capabilities
         {
             get
             {
-                var backingCaps = _backingStore.GetCapabilities();
-                return backingCaps.SupportsHistory;
-            }
-        }
-
-        public bool SupportsSync => true;
-
-        public bool IsDurable
-        {
-            get
-            {
-                var backingCaps = _backingStore.GetCapabilities();
-                return backingCaps.IsDurable;
-            }
-        }
-
-        public bool SupportsAsync
-        {
-            get
-            {
-                var backingCaps = _backingStore.GetCapabilities();
-                return backingCaps.SupportsAsync;
-            }
-        }
-
-        public string TrunkType
-        {
-            get
-            {
-                var backingCaps = _backingStore.GetCapabilities();
-                return $"CachedTrunk({backingCaps.TrunkType})";
+                var backingCaps = _backingStore.Capabilities;
+                return new TrunkCapabilities
+                {
+                    SupportsHistory = backingCaps.SupportsHistory,
+                    SupportsSync = true,
+                    IsDurable = backingCaps.IsDurable,
+                    SupportsAsync = backingCaps.SupportsAsync,
+                    TrunkType = $"CachedTrunk({backingCaps.TrunkType})"
+                };
             }
         }
 

@@ -23,7 +23,7 @@ namespace AcornDB.Storage
     /// - Gradual degradation instead of complete failure
     /// </summary>
     /// <typeparam name="T">Type of objects stored in trunk</typeparam>
-    public class ResilientTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class ResilientTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly ITrunk<T> _primaryTrunk;
         private readonly ITrunk<T>? _fallbackTrunk;
@@ -56,12 +56,12 @@ namespace AcornDB.Storage
             _fallbackTrunk = fallbackTrunk;
             _options = options ?? ResilienceOptions.Default;
 
-            var primaryCaps = _primaryTrunk.GetCapabilities();
+            var primaryCaps = _primaryTrunk.Capabilities;
             Console.WriteLine($"🛡️ ResilientTrunk initialized:");
             Console.WriteLine($"   Primary: {primaryCaps.TrunkType}");
             if (_fallbackTrunk != null)
             {
-                var fallbackCaps = _fallbackTrunk.GetCapabilities();
+                var fallbackCaps = _fallbackTrunk.Capabilities;
                 Console.WriteLine($"   Fallback: {fallbackCaps.TrunkType}");
             }
             Console.WriteLine($"   Max Retries: {_options.MaxRetries}");
@@ -345,43 +345,21 @@ namespace AcornDB.Storage
             Console.WriteLine($"🔄 Circuit breaker manually reset to CLOSED");
         }
 
-        // ITrunkCapabilities implementation
-        public bool SupportsHistory
+        // ITrunkCapabilities implementation - forward to primary trunk with custom TrunkType
+        public ITrunkCapabilities Capabilities
         {
             get
             {
-                var primaryCaps = _primaryTrunk.GetCapabilities();
-                return primaryCaps.SupportsHistory;
-            }
-        }
-
-        public bool SupportsSync => true;
-
-        public bool IsDurable
-        {
-            get
-            {
-                var primaryCaps = _primaryTrunk.GetCapabilities();
-                return primaryCaps.IsDurable;
-            }
-        }
-
-        public bool SupportsAsync
-        {
-            get
-            {
-                var primaryCaps = _primaryTrunk.GetCapabilities();
-                return primaryCaps.SupportsAsync;
-            }
-        }
-
-        public string TrunkType
-        {
-            get
-            {
-                var primaryCaps = _primaryTrunk.GetCapabilities();
-                var fallbackInfo = _fallbackTrunk != null ? $"+Fallback({_fallbackTrunk.GetCapabilities().TrunkType})" : "";
-                return $"ResilientTrunk({primaryCaps.TrunkType}{fallbackInfo})";
+                var primaryCaps = _primaryTrunk.Capabilities;
+                var fallbackInfo = _fallbackTrunk != null ? $"+Fallback({_fallbackTrunk.Capabilities.TrunkType})" : "";
+                return new TrunkCapabilities
+                {
+                    SupportsHistory = primaryCaps.SupportsHistory,
+                    SupportsSync = true,
+                    IsDurable = primaryCaps.IsDurable,
+                    SupportsAsync = primaryCaps.SupportsAsync,
+                    TrunkType = $"ResilientTrunk({primaryCaps.TrunkType}{fallbackInfo})"
+                };
             }
         }
 

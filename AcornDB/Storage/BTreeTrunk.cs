@@ -451,5 +451,15 @@ namespace AcornDB.Storage
 
             _disposed = true;
         }
+
+        // ITrunkCapabilities implementation
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = false,
+            TrunkType = "BTreeTrunk"
+        };
     }
 }

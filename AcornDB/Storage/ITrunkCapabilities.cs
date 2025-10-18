@@ -38,52 +38,11 @@ namespace AcornDB.Storage
     public static class TrunkCapabilitiesExtensions
     {
         /// <summary>
-        /// Get capabilities for a trunk (returns default if not explicitly implemented)
+        /// Get capabilities for a trunk (backward compatibility helper)
         /// </summary>
         public static ITrunkCapabilities GetCapabilities<T>(this ITrunk<T> trunk)
         {
-            if (trunk is ITrunkCapabilities caps)
-            {
-                return caps;
-            }
-
-            // Return inferred capabilities based on trunk type
-            return trunk switch
-            {
-                DocumentStoreTrunk<T> => new TrunkCapabilities
-                {
-                    SupportsHistory = true,
-                    SupportsSync = true,
-                    IsDurable = true,
-                    SupportsAsync = false,
-                    TrunkType = "DocumentStoreTrunk"
-                },
-                FileTrunk<T> => new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = true,
-                    SupportsAsync = false,
-                    TrunkType = "FileTrunk"
-                },
-                MemoryTrunk<T> => new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = false,
-                    SupportsAsync = false,
-                    TrunkType = "MemoryTrunk"
-                },
-                // NOTE: AzureTrunk moved to AcornDB.Persistence.Cloud package
-                _ => new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = false,
-                    SupportsAsync = false,
-                    TrunkType = trunk.GetType().Name
-                }
-            };
+            return trunk.Capabilities;
         }
 
         /// <summary>
@@ -91,7 +50,7 @@ namespace AcornDB.Storage
         /// </summary>
         public static bool CanGetHistory<T>(this ITrunk<T> trunk)
         {
-            return trunk.GetCapabilities().SupportsHistory;
+            return trunk.Capabilities.SupportsHistory;
         }
 
         /// <summary>
@@ -99,7 +58,7 @@ namespace AcornDB.Storage
         /// </summary>
         public static bool CanSync<T>(this ITrunk<T> trunk)
         {
-            return trunk.GetCapabilities().SupportsSync;
+            return trunk.Capabilities.SupportsSync;
         }
     }
 
