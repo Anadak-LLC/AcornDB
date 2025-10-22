@@ -11,12 +11,6 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornDB.Demo", "AcornDB.Dem
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornDB.Test", "AcornDB.Test\AcornDB.Test.csproj", "{F29C8317-87EF-449D-82ED-90EF5578150F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornSyncServer", "AcornSyncServer\AcornSyncServer.csproj", "{A7B8C9D0-1E2F-3A4B-5C6D-7E8F9A0B1C2D}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SyncDemo", "SyncDemo\SyncDemo.csproj", "{B8C9D0E1-2F3A-4B5C-6D7E-8F9A0B1C2D3E}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornVisualizer", "AcornVisualizer\AcornVisualizer.csproj", "{C9D0E1F2-3A4B-5C6D-7E8F-9A0B1C2D3E4F}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornDB.Persistence.Cloud", "AcornDB.Persistence.Cloud\AcornDB.Persistence.Cloud.csproj", "{01DDE0C8-23B6-A6D2-6741-B8D7C1C5B014}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AcornDB.Persistence.RDBMS", "AcornDB.Persistence.RDBMS\AcornDB.Persistence.RDBMS.csproj", "{C50CF170-95CB-9E89-BF4D-6921EE60EDFC}"

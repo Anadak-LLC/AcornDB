@@ -253,6 +253,11 @@ namespace AcornDB.Storage
             }
         }
 
+        // IRoot interface members - forward to backing store
+        public IReadOnlyList<IRoot> Roots => _backingStore.Roots;
+        public void AddRoot(IRoot root) => _backingStore.AddRoot(root);
+        public bool RemoveRoot(string name) => _backingStore.RemoveRoot(name);
+
         public void Dispose()
         {
             if (_disposed) return;

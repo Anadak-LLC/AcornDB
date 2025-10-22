@@ -28,7 +28,7 @@ namespace AcornDB.Persistence.Cloud
     /// - DynamoDB Streams support for change tracking/sync
     /// - Even distribution across partitions when using multiple types
     /// </summary>
-    public class DynamoDbTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class DynamoDbTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly AmazonDynamoDBClient _client;
         private readonly string _tableName;
@@ -294,6 +294,15 @@ namespace AcornDB.Persistence.Cloud
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
 
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = true,
+            TrunkType = "DynamoDbTrunk"
+        };
+
         public async Task ImportChangesAsync(IEnumerable<Nut<T>> incoming)
         {
             var incomingList = incoming.ToList();
@@ -445,5 +454,10 @@ namespace AcornDB.Persistence.Cloud
             _writeLock?.Dispose();
             _client?.Dispose();
         }
+
+        // IRoot support - stub implementation (to be fully implemented later)
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
+        public bool RemoveRoot(string name) => false;
     }
 }

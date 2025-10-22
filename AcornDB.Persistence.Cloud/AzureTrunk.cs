@@ -80,6 +80,14 @@ namespace AcornDB.Persistence.Cloud
         public IReadOnlyList<Nut<T>> GetHistory(string id) => _cloudTrunk.GetHistory(id);
         public IEnumerable<Nut<T>> ExportChanges() => _cloudTrunk.ExportChanges();
         public void ImportChanges(IEnumerable<Nut<T>> incoming) => _cloudTrunk.ImportChanges(incoming);
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = true,
+            TrunkType = "AzureTrunk"
+        };
 
         // Async variants
         public Task SaveAsync(string id, Nut<T> shell) => _cloudTrunk.SaveAsync(id, shell);
@@ -89,5 +97,10 @@ namespace AcornDB.Persistence.Cloud
         public Task ImportChangesAsync(IEnumerable<Nut<T>> incoming) => _cloudTrunk.ImportChangesAsync(incoming);
 
         public void Dispose() => _cloudTrunk?.Dispose();
+
+        // IRoot support - stub implementation (to be fully implemented later)
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
+        public bool RemoveRoot(string name) => false;
     }
 }

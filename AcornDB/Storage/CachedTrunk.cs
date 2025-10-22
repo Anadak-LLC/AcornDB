@@ -232,6 +232,19 @@ namespace AcornDB.Storage
             return caps.TrunkType;
         }
 
+        // Root processors - forward to backing store
+        public IReadOnlyList<IRoot> Roots => _backingStore.Roots;
+
+        public void AddRoot(IRoot root)
+        {
+            _backingStore.AddRoot(root);
+        }
+
+        public bool RemoveRoot(string name)
+        {
+            return _backingStore.RemoveRoot(name);
+        }
+
         // ITrunkCapabilities implementation - forward to backing store with custom TrunkType
         public ITrunkCapabilities Capabilities
         {

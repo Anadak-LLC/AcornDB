@@ -11,6 +11,7 @@ namespace AcornDB.Storage
     /// Encrypted wrapper for any ITrunk implementation
     /// Encrypts payloads before storage, decrypts on retrieval
     /// </summary>
+    [Obsolete("EncryptedTrunk is obsolete. Use IRoot pattern instead.")]
     public class EncryptedTrunk<T> : ITrunk<T>
     {
         private readonly ITrunk<EncryptedNut> _innerTrunk;
@@ -73,6 +74,11 @@ namespace AcornDB.Storage
 
         // Delegate to inner trunk's capabilities
         public ITrunkCapabilities Capabilities => _innerTrunk.Capabilities;
+
+        // IRoot interface members - obsolete trunk pattern
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) => throw new NotSupportedException("EncryptedTrunk is obsolete. Use IRoot pattern instead.");
+        public bool RemoveRoot(string name) => false;
 
         private Nut<EncryptedNut> EncryptNut(Nut<T> nut)
         {

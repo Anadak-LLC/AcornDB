@@ -20,7 +20,7 @@ namespace AcornDB.Persistence.DataLake
     /// - Automatic data aging/archival
     /// - Query federation across tiers
     /// </summary>
-    public class TieredTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class TieredTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly ITrunk<T> _hotTrunk;
         private readonly ITrunk<T> _coldTrunk;
@@ -151,6 +151,15 @@ namespace AcornDB.Persistence.DataLake
             _hotTrunk.ImportChanges(incoming);
         }
 
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = false,
+            TrunkType = "TieredTrunk"
+        };
+
         /// <summary>
         /// Manually trigger data tiering (move old data from hot to cold)
         /// </summary>
@@ -272,6 +281,11 @@ namespace AcornDB.Persistence.DataLake
             if (_coldTrunk is IDisposable coldDisposable)
                 coldDisposable.Dispose();
         }
+
+        // IRoot support - stub implementation (to be fully implemented later)
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
+        public bool RemoveRoot(string name) => false;
     }
 
     /// <summary>

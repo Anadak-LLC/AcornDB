@@ -197,6 +197,15 @@ namespace AcornDB.Persistence.Cloud
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
 
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = true,
+            TrunkType = "AzureTableTrunk"
+        };
+
         public async Task ImportChangesAsync(IEnumerable<Nut<T>> incoming)
         {
             var incomingList = incoming.ToList();
@@ -304,5 +313,10 @@ namespace AcornDB.Persistence.Cloud
             _flushTimer?.Dispose();
             _writeLock?.Dispose();
         }
+
+        // IRoot support - stub implementation (to be fully implemented later)
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
+        public bool RemoveRoot(string name) => false;
     }
 }

@@ -10,7 +10,11 @@ namespace AcornDB.Storage
     /// <summary>
     /// Compressed wrapper for any ITrunk implementation
     /// Compresses payloads before storage, decompresses on retrieval
+    ///
+    /// OBSOLETE: Use CompressionRoot with ITrunk.AddRoot() instead.
+    /// This wrapper approach is deprecated in favor of the IRoot pipeline pattern.
     /// </summary>
+    [Obsolete("Use CompressionRoot with trunk.AddRoot() instead. Example: trunk.AddRoot(new CompressionRoot(compressionProvider))")]
     public class CompressedTrunk<T> : ITrunk<T>
     {
         private readonly ITrunk<CompressedNut> _innerTrunk;
@@ -76,6 +80,11 @@ namespace AcornDB.Storage
 
         // Delegate to inner trunk's capabilities
         public ITrunkCapabilities Capabilities => _innerTrunk.Capabilities;
+
+        // Root processors - not supported on wrapper trunks
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) => throw new NotSupportedException("CompressedTrunk is obsolete. Use CompressionRoot with a modern trunk instead.");
+        public bool RemoveRoot(string name) => false;
 
         private Nut<CompressedNut> CompressNut(Nut<T> nut)
         {

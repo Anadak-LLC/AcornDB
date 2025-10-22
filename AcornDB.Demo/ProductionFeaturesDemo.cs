@@ -376,6 +376,14 @@ internal class UnreliableTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
     public IReadOnlyList<Nut<T>> GetHistory(string id) => _innerTrunk.GetHistory(id);
     public IEnumerable<Nut<T>> ExportChanges() => _innerTrunk.ExportChanges();
     public void ImportChanges(IEnumerable<Nut<T>> incoming) => _innerTrunk.ImportChanges(incoming);
+    public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+    {
+        SupportsHistory = false,
+        SupportsSync = true,
+        IsDurable = false,
+        SupportsAsync = false,
+        TrunkType = "UnreliableTrunk (Demo)"
+    };
 
     // ITrunkCapabilities
     public bool SupportsHistory => false;
@@ -388,4 +396,9 @@ internal class UnreliableTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
     {
         // MemoryTrunk doesn't implement IDisposable, so nothing to dispose
     }
+
+    // IRoot support - stub implementation (to be fully implemented later)
+    public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+    public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
+    public bool RemoveRoot(string name) => false;
 }

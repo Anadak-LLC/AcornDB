@@ -16,7 +16,7 @@ namespace AcornDB.Persistence.RDBMS
     /// Maps Tree&lt;T&gt; to a PostgreSQL table with native JSON support.
     /// OPTIMIZED with write batching, async support, and connection pooling.
     /// </summary>
-    public class PostgreSqlTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class PostgreSqlTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly string _connectionString;
         private readonly string _tableName;
@@ -28,6 +28,7 @@ namespace AcornDB.Persistence.RDBMS
         private readonly SemaphoreSlim _writeLock = new(1, 1);
         private readonly Timer _flushTimer;
         private readonly int _batchSize;
+        private ITrunk<T> _trunkImplementation;
 
         private struct PendingWrite
         {
@@ -225,6 +226,15 @@ namespace AcornDB.Persistence.RDBMS
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
 
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = true,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = true,
+            TrunkType = "PostgreSqlTrunk"
+        };
+
         public async Task ImportChangesAsync(IEnumerable<Nut<T>> incoming)
         {
             var incomingList = incoming.ToList();
@@ -381,5 +391,10 @@ namespace AcornDB.Persistence.RDBMS
             _flushTimer?.Dispose();
             _writeLock?.Dispose();
         }
+
+        // IRoot support - stub implementation (to be fully implemented later)
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
+        public bool RemoveRoot(string name) => false;
     }
 }

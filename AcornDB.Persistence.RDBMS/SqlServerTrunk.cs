@@ -17,7 +17,7 @@ namespace AcornDB.Persistence.RDBMS
     /// Maps Tree&lt;T&gt; to a SQL Server table with JSON support.
     /// OPTIMIZED with write batching, async support, and connection pooling.
     /// </summary>
-    public class SqlServerTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class SqlServerTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly string _connectionString;
         private readonly string _tableName;
@@ -215,6 +215,15 @@ namespace AcornDB.Persistence.RDBMS
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
 
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = true,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = true,
+            TrunkType = "SqlServerTrunk"
+        };
+
         public async Task ImportChangesAsync(IEnumerable<Nut<T>> incoming)
         {
             var incomingList = incoming.ToList();
@@ -381,5 +390,10 @@ namespace AcornDB.Persistence.RDBMS
             _flushTimer?.Dispose();
             _writeLock?.Dispose();
         }
+
+        // IRoot support - stub implementation (to be fully implemented later)
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
+        public bool RemoveRoot(string name) => false;
     }
 }

@@ -478,7 +478,7 @@ public static class ResilientCacheApp
     }
 
     // Simulated unreliable trunk for demo purposes
-    private class UnreliableTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    private class UnreliableTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly MemoryTrunk<T> _inner = new();
         private readonly double _failureRate;
@@ -522,8 +522,20 @@ public static class ResilientCacheApp
         }
 
         public IReadOnlyList<Nut<T>> GetHistory(string id) => _inner.GetHistory(id);
+
+        public IReadOnlyList<IRoot> Roots => _inner.Roots;
+        public void AddRoot(IRoot root) => _inner.AddRoot(root);
+        public bool RemoveRoot(string name) => _inner.RemoveRoot(name);
         public IEnumerable<Nut<T>> ExportChanges() => _inner.ExportChanges();
         public void ImportChanges(IEnumerable<Nut<T>> incoming) => _inner.ImportChanges(incoming);
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = false,
+            SupportsAsync = false,
+            TrunkType = "UnreliableTrunk (Demo)"
+        };
 
         public bool SupportsHistory => false;
         public bool SupportsSync => true;

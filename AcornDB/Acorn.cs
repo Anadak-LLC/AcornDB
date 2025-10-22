@@ -245,15 +245,19 @@ namespace AcornDB
         private ITrunk<T> BuildEncryptedTrunk()
         {
             var encryption = _encryptionProvider ?? CreateEncryptionProvider();
-            var innerTrunk = CreateFileTrunk<EncryptedNut>(_storagePath);
-            return new EncryptedTrunk<T>(innerTrunk, encryption);
+            var trunk = CreateFileTrunk<T>(_storagePath);
+
+            // Use new IRoot pattern instead of wrapper
+            return trunk.WithEncryption(encryption);
         }
 
         private ITrunk<T> BuildCompressedTrunk()
         {
             var compression = _compressionProvider ?? new GzipCompressionProvider(_compressionLevel);
-            var innerTrunk = CreateFileTrunk<CompressedNut>(_storagePath);
-            return new CompressedTrunk<T>(innerTrunk, compression);
+            var trunk = CreateFileTrunk<T>(_storagePath);
+
+            // Use new IRoot pattern instead of wrapper
+            return trunk.WithCompression(compression);
         }
 
         private ITrunk<T> BuildEncryptedAndCompressedTrunk()
@@ -262,12 +266,13 @@ namespace AcornDB
             var encryption = _encryptionProvider ?? CreateEncryptionProvider();
             var compression = _compressionProvider ?? new GzipCompressionProvider(_compressionLevel);
 
-            // Create base trunk
-            var baseTrunk = CreateFileTrunk<CompressedNut>(_storagePath);
+            // Create base trunk and use IRoot pattern
+            var trunk = CreateFileTrunk<T>(_storagePath);
 
-            // Wrap: base -> compression -> encryption
-            var compressedTrunk = new CompressedTrunk<EncryptedNut>(baseTrunk, compression);
-            return new EncryptedTrunk<T>(compressedTrunk, encryption);
+            // Chain roots: Compression (100) → Encryption (200)
+            return trunk
+                .WithCompression(compression)
+                .WithEncryption(encryption);
         }
 
         private ITrunk<T> BuildGitTrunk()

@@ -31,7 +31,7 @@ namespace AcornDB.Persistence.DataLake
     /// - Cold storage with columnar compression
     /// - Interoperability with Spark, Athena, Synapse Analytics
     /// </summary>
-    public class ParquetTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class ParquetTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly string _basePath;
         private readonly ICloudStorageProvider? _cloudStorage;
@@ -189,6 +189,15 @@ namespace AcornDB.Persistence.DataLake
         {
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
+
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = false,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = true,
+            TrunkType = "ParquetTrunk"
+        };
 
         public async Task ImportChangesAsync(IEnumerable<Nut<T>> incoming)
         {
@@ -456,5 +465,10 @@ namespace AcornDB.Persistence.DataLake
             if (_disposed) return;
             _disposed = true;
         }
+
+        // IRoot support - stub implementation (to be fully implemented later)
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
+        public bool RemoveRoot(string name) => false;
     }
 }

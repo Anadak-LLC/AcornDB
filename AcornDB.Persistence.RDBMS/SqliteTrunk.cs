@@ -4,11 +4,13 @@ using System.Collections.Generic;
 using System.Data;
 using System.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.Data.Sqlite;
 using Newtonsoft.Json;
 using AcornDB;
+using AcornDB.Policy;
 using AcornDB.Storage;
 
 namespace AcornDB.Persistence.RDBMS
@@ -17,8 +19,13 @@ namespace AcornDB.Persistence.RDBMS
     /// High-performance SQLite-backed trunk with connection pooling, WAL mode, batching, and async support.
     /// Maps Tree&lt;T&gt; to a SQLite table with columns: id, json_data, timestamp, version, expires_at.
     /// Each tree type gets its own table named: acorn_{TypeName}
+    /// Supports extensible IRoot processors for compression, encryption, policy enforcement, etc.
+    ///
+    /// Storage Pipeline:
+    /// Write: Nut<T> → Serialize to JSON → Root Chain (ascending) → byte[] → Store in database
+    /// Read: Read from database → byte[] → Root Chain (descending) → Deserialize → Nut<T>
     /// </summary>
-    public class SqliteTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+    public class SqliteTrunk<T> : ITrunk<T>, IDisposable
     {
         private readonly string _connectionString;
         private readonly string _tableName;
@@ -27,6 +34,9 @@ namespace AcornDB.Persistence.RDBMS
         private readonly SemaphoreSlim _writeLock = new(1, 1);
         private readonly Timer? _flushTimer;
         private bool _disposed;
+        private readonly List<IRoot> _roots = new();
+        private readonly object _rootsLock = new();
+        private readonly ISerializer _serializer;
 
         private struct PendingWrite
         {
@@ -42,10 +52,12 @@ namespace AcornDB.Persistence.RDBMS
         /// </summary>
         /// <param name="databasePath">Path to SQLite database file (will be created if doesn't exist)</param>
         /// <param name="tableName">Optional custom table name. Default: acorn_{TypeName}</param>
-        public SqliteTrunk(string databasePath, string? tableName = null)
+        /// <param name="serializer">Optional custom serializer. Default: NewtonsoftJsonSerializer</param>
+        public SqliteTrunk(string databasePath, string? tableName = null, ISerializer? serializer = null)
         {
             var typeName = typeof(T).Name;
             _tableName = tableName ?? $"acorn_{typeName}";
+            _serializer = serializer ?? new NewtonsoftJsonSerializer();
 
             // Connection string with pooling and optimization
             _connectionString = $"Data Source={databasePath};Cache=Shared;Mode=ReadWriteCreate;Pooling=True";
@@ -64,6 +76,52 @@ namespace AcornDB.Persistence.RDBMS
             Console.WriteLine($"   Table: {_tableName}");
             Console.WriteLine($"   WAL Mode: Enabled");
             Console.WriteLine($"   Batch Size: {BATCH_SIZE}");
+        }
+
+        /// <summary>
+        /// Get all registered root processors
+        /// </summary>
+        public IReadOnlyList<IRoot> Roots
+        {
+            get
+            {
+                lock (_rootsLock)
+                {
+                    return _roots.ToList();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Add a root processor to the processing chain
+        /// </summary>
+        public void AddRoot(IRoot root)
+        {
+            if (root == null) throw new ArgumentNullException(nameof(root));
+
+            lock (_rootsLock)
+            {
+                _roots.Add(root);
+                // Sort by sequence to ensure correct execution order
+                _roots.Sort((a, b) => a.Sequence.CompareTo(b.Sequence));
+            }
+        }
+
+        /// <summary>
+        /// Remove a root processor from the processing chain
+        /// </summary>
+        public bool RemoveRoot(string name)
+        {
+            lock (_rootsLock)
+            {
+                var root = _roots.FirstOrDefault(r => r.Name == name);
+                if (root != null)
+                {
+                    _roots.Remove(root);
+                    return true;
+                }
+                return false;
+            }
         }
 
         private void EnsureDatabase()
@@ -155,8 +213,48 @@ namespace AcornDB.Persistence.RDBMS
             using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                var json = reader.GetString(0);
-                return JsonConvert.DeserializeObject<Nut<T>>(json);
+                var dataStr = reader.GetString(0);
+
+                // Step 1: Decode from base64 or use as plain JSON
+                byte[] storedBytes;
+                try
+                {
+                    storedBytes = Convert.FromBase64String(dataStr);
+                }
+                catch
+                {
+                    // Fallback for backward compatibility with plain JSON
+                    storedBytes = Encoding.UTF8.GetBytes(dataStr);
+                }
+
+                // Step 2: Process through root chain in descending sequence order (reverse)
+                var context = new RootProcessingContext
+                {
+                    PolicyContext = new PolicyContext { Operation = "Read" },
+                    DocumentId = id
+                };
+
+                var processedBytes = storedBytes;
+                lock (_rootsLock)
+                {
+                    // Reverse iteration for read path
+                    for (int i = _roots.Count - 1; i >= 0; i--)
+                    {
+                        processedBytes = _roots[i].OnCrack(processedBytes, context);
+                    }
+                }
+
+                // Step 3: Deserialize bytes to Nut<T>
+                try
+                {
+                    var json = Encoding.UTF8.GetString(processedBytes);
+                    return _serializer.Deserialize<Nut<T>>(json);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
+                    return null;
+                }
             }
 
             return null;
@@ -224,6 +322,15 @@ namespace AcornDB.Persistence.RDBMS
         {
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
+
+        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        {
+            SupportsHistory = true,
+            SupportsSync = true,
+            IsDurable = true,
+            SupportsAsync = true,
+            TrunkType = "SqliteTrunk"
+        };
 
         public async Task ImportChangesAsync(IEnumerable<Nut<T>> incoming)
         {
@@ -352,12 +459,33 @@ namespace AcornDB.Persistence.RDBMS
 
                 foreach (var write in toWrite)
                 {
-                    var json = JsonConvert.SerializeObject(write.Nut);
+                    // Step 1: Serialize Nut<T> to JSON
+                    var json = _serializer.Serialize(write.Nut);
+                    var bytes = Encoding.UTF8.GetBytes(json);
+
+                    // Step 2: Process through root chain in ascending sequence order
+                    var context = new RootProcessingContext
+                    {
+                        PolicyContext = new PolicyContext { Operation = "Write" },
+                        DocumentId = write.Id
+                    };
+
+                    var processedBytes = bytes;
+                    lock (_rootsLock)
+                    {
+                        foreach (var root in _roots)
+                        {
+                            processedBytes = root.OnStash(processedBytes, context);
+                        }
+                    }
+
+                    // Step 3: Convert to base64 for storage
+                    var dataStr = Convert.ToBase64String(processedBytes);
                     var timestampStr = write.Nut.Timestamp.ToString("O");
                     var expiresAtStr = write.Nut.ExpiresAt?.ToString("O");
 
                     cmd.Parameters["@id"].Value = write.Id;
-                    cmd.Parameters["@json"].Value = json;
+                    cmd.Parameters["@json"].Value = dataStr;
                     cmd.Parameters["@timestamp"].Value = timestampStr;
                     cmd.Parameters["@version"].Value = write.Nut.Version;
                     cmd.Parameters["@expiresAt"].Value = expiresAtStr ?? (object)DBNull.Value;

@@ -212,6 +212,11 @@ namespace AcornDB.Git
             TrunkType = "GitHubTrunk"
         };
 
+        // IRoot interface members - stub implementation
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) { }
+        public bool RemoveRoot(string name) => false;
+
         /// <summary>
         /// Manually push to remote
         /// </summary>

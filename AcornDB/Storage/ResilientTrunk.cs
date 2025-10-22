@@ -56,16 +56,25 @@ namespace AcornDB.Storage
             _fallbackTrunk = fallbackTrunk;
             _options = options ?? ResilienceOptions.Default;
 
-            var primaryCaps = _primaryTrunk.Capabilities;
-            Console.WriteLine($"🛡️ ResilientTrunk initialized:");
-            Console.WriteLine($"   Primary: {primaryCaps.TrunkType}");
-            if (_fallbackTrunk != null)
+            // Safely access capabilities with null check
+            try
             {
-                var fallbackCaps = _fallbackTrunk.Capabilities;
-                Console.WriteLine($"   Fallback: {fallbackCaps.TrunkType}");
+                var primaryCaps = _primaryTrunk.Capabilities;
+                Console.WriteLine($"🛡️ ResilientTrunk initialized:");
+                Console.WriteLine($"   Primary: {primaryCaps?.TrunkType ?? "Unknown"}");
+                if (_fallbackTrunk != null)
+                {
+                    var fallbackCaps = _fallbackTrunk.Capabilities;
+                    Console.WriteLine($"   Fallback: {fallbackCaps?.TrunkType ?? "Unknown"}");
+                }
+                Console.WriteLine($"   Max Retries: {_options.MaxRetries}");
+                Console.WriteLine($"   Circuit Breaker: {(_options.EnableCircuitBreaker ? "Enabled" : "Disabled")}");
             }
-            Console.WriteLine($"   Max Retries: {_options.MaxRetries}");
-            Console.WriteLine($"   Circuit Breaker: {(_options.EnableCircuitBreaker ? "Enabled" : "Disabled")}");
+            catch (Exception ex)
+            {
+                // If capabilities check fails, just log and continue
+                Console.WriteLine($"🛡️ ResilientTrunk initialized (capabilities unavailable: {ex.Message})");
+            }
         }
 
         public void Save(string id, Nut<T> nut)
@@ -350,18 +359,51 @@ namespace AcornDB.Storage
         {
             get
             {
-                var primaryCaps = _primaryTrunk.Capabilities;
-                var fallbackInfo = _fallbackTrunk != null ? $"+Fallback({_fallbackTrunk.Capabilities.TrunkType})" : "";
-                return new TrunkCapabilities
+                try
                 {
-                    SupportsHistory = primaryCaps.SupportsHistory,
-                    SupportsSync = true,
-                    IsDurable = primaryCaps.IsDurable,
-                    SupportsAsync = primaryCaps.SupportsAsync,
-                    TrunkType = $"ResilientTrunk({primaryCaps.TrunkType}{fallbackInfo})"
-                };
+                    var primaryCaps = _primaryTrunk.Capabilities;
+                    var fallbackInfo = "";
+
+                    if (_fallbackTrunk != null)
+                    {
+                        try
+                        {
+                            fallbackInfo = $"+Fallback({_fallbackTrunk.Capabilities?.TrunkType ?? "Unknown"})";
+                        }
+                        catch
+                        {
+                            fallbackInfo = "+Fallback(Unknown)";
+                        }
+                    }
+
+                    return new TrunkCapabilities
+                    {
+                        SupportsHistory = primaryCaps?.SupportsHistory ?? false,
+                        SupportsSync = true,
+                        IsDurable = primaryCaps?.IsDurable ?? false,
+                        SupportsAsync = primaryCaps?.SupportsAsync ?? false,
+                        TrunkType = $"ResilientTrunk({primaryCaps?.TrunkType ?? "Unknown"}{fallbackInfo})"
+                    };
+                }
+                catch (Exception)
+                {
+                    // Fallback if primary capabilities fail
+                    return new TrunkCapabilities
+                    {
+                        SupportsHistory = false,
+                        SupportsSync = true,
+                        IsDurable = false,
+                        SupportsAsync = false,
+                        TrunkType = "ResilientTrunk(Unknown)"
+                    };
+                }
             }
         }
+
+        // IRoot interface members - forward to primary trunk
+        public IReadOnlyList<IRoot> Roots => _primaryTrunk.Roots;
+        public void AddRoot(IRoot root) => _primaryTrunk.AddRoot(root);
+        public bool RemoveRoot(string name) => _primaryTrunk.RemoveRoot(name);
 
         public void Dispose()
         {

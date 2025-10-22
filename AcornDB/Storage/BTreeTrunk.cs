@@ -10,6 +10,7 @@ using System.Runtime.InteropServices;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AcornDB.Policy;
 using Newtonsoft.Json;
 
 namespace AcornDB.Storage
@@ -17,6 +18,11 @@ namespace AcornDB.Storage
     /// <summary>
     /// High-performance BTree trunk using memory-mapped files, binary serialization,
     /// write batching, and lock-free reads. Designed to outperform LiteDB.
+    /// Supports extensible IRoot processors for compression, encryption, policy enforcement, etc.
+    ///
+    /// Storage Pipeline:
+    /// Write: Nut<T> → Serialize to binary → Root Chain (ascending) → byte[] → Write to MMF
+    /// Read: Read MMF → byte[] → Root Chain (descending) → Deserialize from binary → Nut<T>
     /// </summary>
     public class BTreeTrunk<T> : ITrunk<T>, IDisposable
     {
@@ -30,6 +36,10 @@ namespace AcornDB.Storage
         private readonly Timer _flushTimer;
         private bool _disposed = false;
         private FileStream? _fileStream;
+        private readonly List<IRoot> _roots = new();
+        private readonly object _rootsLock = new();
+        private readonly ISerializer _serializer;
+        private bool _indexLoaded = false;
 
         private const int INITIAL_FILE_SIZE = 64 * 1024 * 1024; // 64MB initial
         private const int BUFFER_THRESHOLD = 256; // Flush after 256 writes
@@ -55,7 +65,7 @@ namespace AcornDB.Storage
         // Binary format header: [Magic:4][Version:4][Timestamp:8][PayloadLen:4][Id][Payload]
         private const int HEADER_SIZE = 20;
 
-        public BTreeTrunk(string? customPath = null)
+        public BTreeTrunk(string? customPath = null, ISerializer? serializer = null)
         {
             var typeName = typeof(T).Name;
             var folderPath = customPath ?? Path.Combine(Directory.GetCurrentDirectory(), "data", typeName);
@@ -63,9 +73,11 @@ namespace AcornDB.Storage
 
             _filePath = Path.Combine(folderPath, "btree_v2.db");
             _index = new ConcurrentDictionary<string, NutEntry>();
+            _serializer = serializer ?? new NewtonsoftJsonSerializer();
 
             InitializeMemoryMappedFile();
-            LoadIndex();
+            // Note: Do NOT load index in constructor if roots might be needed
+            // LoadIndex will be called automatically after adding roots or on first access
 
             // Auto-flush timer for write batching
             _flushTimer = new Timer(_ =>
@@ -73,6 +85,59 @@ namespace AcornDB.Storage
                 try { FlushAsync().Wait(); }
                 catch { /* Swallow timer exceptions */ }
             }, null, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS);
+        }
+
+        /// <summary>
+        /// Get all registered root processors
+        /// </summary>
+        public IReadOnlyList<IRoot> Roots
+        {
+            get
+            {
+                lock (_rootsLock)
+                {
+                    return _roots.ToList();
+                }
+            }
+        }
+
+        /// <summary>
+        /// Add a root processor to the processing chain
+        /// </summary>
+        public void AddRoot(IRoot root)
+        {
+            if (root == null) throw new ArgumentNullException(nameof(root));
+
+            lock (_rootsLock)
+            {
+                _roots.Add(root);
+                // Sort by sequence to ensure correct execution order
+                _roots.Sort((a, b) => a.Sequence.CompareTo(b.Sequence));
+
+                // If index hasn't been loaded yet and we just added the first root, load it now
+                if (!_indexLoaded)
+                {
+                    LoadIndex();
+                    _indexLoaded = true;
+                }
+            }
+        }
+
+        /// <summary>
+        /// Remove a root processor from the processing chain
+        /// </summary>
+        public bool RemoveRoot(string name)
+        {
+            lock (_rootsLock)
+            {
+                var root = _roots.FirstOrDefault(r => r.Name == name);
+                if (root != null)
+                {
+                    _roots.Remove(root);
+                    return true;
+                }
+                return false;
+            }
         }
 
         private void InitializeMemoryMappedFile()
@@ -171,16 +236,32 @@ namespace AcornDB.Storage
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Save(string id, Nut<T> nut)
         {
-            // Serialize to binary format (custom for speed)
+            // Step 1: Serialize Nut<T> to binary format
             var data = SerializeBinary(id, nut);
 
-            // Add to write buffer
+            // Step 2: Process through root chain in ascending sequence order
+            var context = new RootProcessingContext
+            {
+                PolicyContext = new PolicyContext { Operation = "Write" },
+                DocumentId = id
+            };
+
+            var processedData = data;
+            lock (_rootsLock)
+            {
+                foreach (var root in _roots)
+                {
+                    processedData = root.OnStash(processedData, context);
+                }
+            }
+
+            // Step 3: Add to write buffer
             lock (_writeBuffer)
             {
                 _writeBuffer.Add(new PendingWrite
                 {
                     Id = id,
-                    Data = data,
+                    Data = processedData,
                     Timestamp = nut.Timestamp,
                     Version = nut.Version
                 });
@@ -234,10 +315,11 @@ namespace AcornDB.Storage
             _accessor!.WriteArray(offset, write.Data, 0, write.Data.Length);
 
             // Update index (lock-free with ConcurrentDictionary)
+            // Store the entire processed data (including header, id, and transformed payload)
             _index[write.Id] = new NutEntry
             {
-                Offset = offset + HEADER_SIZE + Encoding.UTF8.GetByteCount(write.Id) + 1,
-                Length = write.Data.Length - HEADER_SIZE - Encoding.UTF8.GetByteCount(write.Id) - 1,
+                Offset = offset,
+                Length = write.Data.Length,
                 Timestamp = write.Timestamp,
                 Version = write.Version
             };
@@ -283,22 +365,70 @@ namespace AcornDB.Storage
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Nut<T>? Load(string id)
         {
-            // Lock-free read from index
+            // Ensure index is loaded (only matters if no roots were added)
+            if (!_indexLoaded)
+            {
+                lock (_rootsLock)
+                {
+                    if (!_indexLoaded)
+                    {
+                        LoadIndex();
+                        _indexLoaded = true;
+                    }
+                }
+            }
+
+            // Step 1: Lock-free read from index
             if (!_index.TryGetValue(id, out var entry))
                 return null;
 
-            // Use ArrayPool to reduce allocations
+            // Step 2: Read entire stored byte array from memory-mapped file (includes header+id+payload)
             var buffer = ArrayPool<byte>.Shared.Rent(entry.Length);
+            byte[] storedBytes;
             try
             {
                 // Fast read from memory-mapped file
                 _accessor!.ReadArray(entry.Offset, buffer, 0, entry.Length);
-                return DeserializeBinary(buffer.AsSpan(0, entry.Length), id, entry);
+                storedBytes = buffer.AsSpan(0, entry.Length).ToArray();
             }
             finally
             {
                 ArrayPool<byte>.Shared.Return(buffer);
             }
+
+            // Step 3: Process through root chain in descending sequence order (reverse)
+            var context = new RootProcessingContext
+            {
+                PolicyContext = new PolicyContext { Operation = "Read" },
+                DocumentId = id
+            };
+
+            var processedBytes = storedBytes;
+            lock (_rootsLock)
+            {
+                // Reverse iteration for read path
+                for (int i = _roots.Count - 1; i >= 0; i--)
+                {
+                    processedBytes = _roots[i].OnCrack(processedBytes, context);
+                }
+            }
+
+            // Step 4: Parse header and extract payload from processed bytes
+            // Header format: [Magic:4][Version:4][Timestamp:8][PayloadLen:4][Id][Payload]
+            int pos = HEADER_SIZE;
+
+            // Skip ID (null-terminated)
+            while (pos < processedBytes.Length && processedBytes[pos] != 0)
+            {
+                pos++;
+            }
+            pos++; // Skip null terminator
+
+            // Extract payload
+            var payloadBytes = processedBytes.AsSpan(pos);
+
+            // Step 5: Deserialize from binary format
+            return DeserializeBinary(payloadBytes, id, entry);
         }
 
         // Custom binary serialization - much faster than JSON for metadata
@@ -451,15 +581,15 @@ namespace AcornDB.Storage
 
             _disposed = true;
         }
-
-        // ITrunkCapabilities implementation
+        
         public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
             SupportsHistory = false,
             SupportsSync = true,
             IsDurable = true,
             SupportsAsync = false,
-            TrunkType = "BTreeTrunk"
+            TrunkType = "BTreeTrunk",
+            
         };
     }
 }
