@@ -1,4 +1,5 @@
-﻿using AcornDB.Sync;
+﻿using AcornDB.Metrics;
+using AcornDB.Sync;
 
 namespace AcornDB.Models
 {
