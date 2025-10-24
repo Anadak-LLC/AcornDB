@@ -412,7 +412,7 @@ AcornDB is **source-available** software provided by [Anadak LLC](https://www.an
 
 - Free for personal, educational, and non-commercial use under the  
   **[PolyForm Noncommercial License 1.0.0](./LICENSE)**  
-- Commercial use requires a separate license from Anadak LLC. The cost of which will be proportionate to the degree of good you're doing.
+- Commercial use requires a separate license from Anadak LLC. The cost of which will be inversely proportionate to the degree of good you're doing.
   Contact **[licensing@anadakcorp.com](mailto:licensing@anadakcorp.com)** for details.
 
 © 2025 Anadak LLC. All rights reserved.
