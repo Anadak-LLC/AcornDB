@@ -234,7 +234,7 @@ namespace AcornDB.Storage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             // Step 1: Serialize Nut<T> to binary format
             var data = SerializeBinary(id, nut);
@@ -273,6 +273,9 @@ namespace AcornDB.Storage
                 }
             }
         }
+
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
 
         private async Task FlushAsync()
         {
@@ -363,7 +366,7 @@ namespace AcornDB.Storage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
             // Ensure index is loaded (only matters if no roots were added)
             if (!_indexLoaded)
@@ -431,6 +434,9 @@ namespace AcornDB.Storage
             return DeserializeBinary(payloadBytes, id, entry);
         }
 
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
         // Custom binary serialization - much faster than JSON for metadata
         private byte[] SerializeBinary(string id, Nut<T> nut)
         {
@@ -476,25 +482,31 @@ namespace AcornDB.Storage
             };
         }
 
-        public void Delete(string id)
+        public void Toss(string id)
         {
             // Logical delete - just remove from index
             _index.TryRemove(id, out _);
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             var results = new List<Nut<T>>(_index.Count);
 
             foreach (var kvp in _index)
             {
-                var nut = Load(kvp.Key);
+                var nut = Crack(kvp.Key);
                 if (nut != null)
                     results.Add(nut);
             }
 
             return results;
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
@@ -503,14 +515,14 @@ namespace AcornDB.Storage
 
         public IEnumerable<Nut<T>> ExportChanges()
         {
-            return LoadAll();
+            return CrackAll();
         }
 
         public void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             foreach (var nut in incoming)
             {
-                Save(nut.Id, nut);
+                Stash(nut.Id, nut);
             }
 
             // Force flush
@@ -533,7 +545,7 @@ namespace AcornDB.Storage
                     // Copy all active entries
                     foreach (var kvp in _index)
                     {
-                        var nut = Load(kvp.Key);
+                        var nut = Crack(kvp.Key);
                         if (nut != null)
                         {
                             var data = SerializeBinary(kvp.Key, nut);

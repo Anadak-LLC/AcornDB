@@ -7,6 +7,7 @@ using AcornDB.Compression;
 using AcornDB.Cache;
 using AcornDB.Conflict;
 using AcornDB.Git;
+using AcornDB.Indexing;
 
 namespace AcornDB
 {
@@ -35,6 +36,9 @@ namespace AcornDB
         private string? _gitAuthorEmail;
         private bool _gitAutoPush;
         private IGitProvider? _gitProvider;
+
+        // Index configuration
+        private readonly List<IIndex> _indexes = new List<IIndex>();
 
         /// <summary>
         /// Configure encryption with a password
@@ -178,6 +182,19 @@ namespace AcornDB
         }
 
         /// <summary>
+        /// Internal method called by IndexExtensions to register an index.
+        /// </summary>
+        internal void AddIndex(IIndex index)
+        {
+            _indexes.Add(index);
+        }
+
+        /// <summary>
+        /// Get all registered indexes (for Tree initialization).
+        /// </summary>
+        internal IReadOnlyList<IIndex> GetIndexes() => _indexes.AsReadOnly();
+
+        /// <summary>
         /// Sprout the configured tree!
         /// </summary>
         public Tree<T> Sprout()
@@ -201,8 +218,16 @@ namespace AcornDB
             // Create conflict judge if not provided
             var conflictJudge = _conflictJudge ?? new TimestampJudge<T>();
 
-            // Create and return the tree
-            return new Tree<T>(trunk, cacheStrategy, conflictJudge);
+            // Create the tree
+            var tree = new Tree<T>(trunk, cacheStrategy, conflictJudge);
+
+            // Register indexes with the tree
+            foreach (var index in _indexes)
+            {
+                tree.AddIndex(index);
+            }
+
+            return tree;
         }
 
         private ITrunk<T> BuildTrunk()

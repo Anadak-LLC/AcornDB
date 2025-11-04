@@ -27,6 +27,27 @@ namespace AcornDB.Storage
         bool SupportsAsync { get; }
 
         /// <summary>
+        /// Whether this trunk supports native secondary indexes.
+        /// When true, the trunk can create and maintain its own indexes (e.g., SQL CREATE INDEX).
+        /// When false, managed indexes via ManagedIndexRoot will be used.
+        /// </summary>
+        bool SupportsNativeIndexes { get; }
+
+        /// <summary>
+        /// Whether this trunk supports native full-text search.
+        /// When true, the trunk can perform FTS operations natively (e.g., SQLite FTS5, PostgreSQL tsvector).
+        /// When false, managed text indexing will be used.
+        /// </summary>
+        bool SupportsFullTextSearch { get; }
+
+        /// <summary>
+        /// Whether this trunk supports native computed/expression indexes.
+        /// When true, the trunk can create indexes on expressions (e.g., PostgreSQL expression indexes).
+        /// When false, computed indexes will be materialized in managed index.
+        /// </summary>
+        bool SupportsComputedIndexes { get; }
+
+        /// <summary>
         /// Human-readable name of the trunk type
         /// </summary>
         string TrunkType { get; }
@@ -71,6 +92,9 @@ namespace AcornDB.Storage
         public bool SupportsSync { get; init; }
         public bool IsDurable { get; init; }
         public bool SupportsAsync { get; init; }
+        public bool SupportsNativeIndexes { get; init; }
+        public bool SupportsFullTextSearch { get; init; }
+        public bool SupportsComputedIndexes { get; init; }
         public string TrunkType { get; init; } = "Unknown";
     }
 }

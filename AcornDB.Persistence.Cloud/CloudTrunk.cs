@@ -99,13 +99,16 @@ namespace AcornDB.Persistence.Cloud
         }
 
         // Synchronous methods - use sparingly, prefer async versions
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
-            SaveAsync(id, nut).GetAwaiter().GetResult();
+            StashAsync(id, nut).GetAwaiter().GetResult();
         }
 
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task SaveAsync(string id, Nut<T> nut)
+        public async Task StashAsync(string id, Nut<T> nut)
         {
             // Update local cache immediately
             if (_enableLocalCache)
@@ -133,13 +136,19 @@ namespace AcornDB.Persistence.Cloud
             }
         }
 
-        public Nut<T>? Load(string id)
+        [Obsolete("Use StashAsync() instead. This method will be removed in a future version.")]
+        public async Task SaveAsync(string id, Nut<T> nut) => await StashAsync(id, nut);
+
+        public Nut<T>? Crack(string id)
         {
-            return LoadAsync(id).GetAwaiter().GetResult();
+            return CrackAsync(id).GetAwaiter().GetResult();
         }
 
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<Nut<T>?> LoadAsync(string id)
+        public async Task<Nut<T>?> CrackAsync(string id)
         {
             // Check local cache first
             if (_enableLocalCache && _localCache!.TryGetValue(id, out var cached))
@@ -170,13 +179,19 @@ namespace AcornDB.Persistence.Cloud
             return nut;
         }
 
-        public void Delete(string id)
+        [Obsolete("Use CrackAsync() instead. This method will be removed in a future version.")]
+        public async Task<Nut<T>?> LoadAsync(string id) => await CrackAsync(id);
+
+        public void Toss(string id)
         {
-            DeleteAsync(id).GetAwaiter().GetResult();
+            TossAsync(id).GetAwaiter().GetResult();
         }
 
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task DeleteAsync(string id)
+        public async Task TossAsync(string id)
         {
             // Remove from cache
             if (_enableLocalCache)
@@ -189,13 +204,19 @@ namespace AcornDB.Persistence.Cloud
             Console.WriteLine($"   ☁️ Deleted {id} from cloud");
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use TossAsync() instead. This method will be removed in a future version.")]
+        public async Task DeleteAsync(string id) => await TossAsync(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             // Use async bridge pattern
-            return Task.Run(async () => await LoadAllAsync()).GetAwaiter().GetResult();
+            return Task.Run(async () => await CrackAllAsync()).GetAwaiter().GetResult();
         }
 
-        public async Task<IEnumerable<Nut<T>>> LoadAllAsync()
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
+
+        public async Task<IEnumerable<Nut<T>>> CrackAllAsync()
         {
             var keys = await _cloudStorage.ListAsync(_prefix);
             var nuts = new ConcurrentBag<Nut<T>>();
@@ -235,6 +256,9 @@ namespace AcornDB.Persistence.Cloud
             return nuts.ToList();
         }
 
+        [Obsolete("Use CrackAllAsync() instead. This method will be removed in a future version.")]
+        public async Task<IEnumerable<Nut<T>>> LoadAllAsync() => await CrackAllAsync();
+
         public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             // Cloud storage doesn't natively support versioning in this implementation
@@ -246,7 +270,7 @@ namespace AcornDB.Persistence.Cloud
 
         public IEnumerable<Nut<T>> ExportChanges()
         {
-            return LoadAll();
+            return CrackAll();
         }
 
         public void ImportChanges(IEnumerable<Nut<T>> changes)

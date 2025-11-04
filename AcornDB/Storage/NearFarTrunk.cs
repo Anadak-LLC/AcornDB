@@ -64,84 +64,96 @@ namespace AcornDB.Storage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             // Write to backing store first (write-through)
-            _backingStore.Save(id, nut);
+            _backingStore.Stash(id, nut);
 
             if (_options.WriteStrategy == CacheWriteStrategy.WriteThrough)
             {
                 // Update caches immediately
-                _farCache.Save(id, nut);
-                _nearCache.Save(id, nut);
+                _farCache.Stash(id, nut);
+                _nearCache.Stash(id, nut);
             }
             else if (_options.WriteStrategy == CacheWriteStrategy.Invalidate)
             {
                 // Invalidate caches (safest for consistency)
-                try { _nearCache.Delete(id); } catch { /* Ignore */ }
-                try { _farCache.Delete(id); } catch { /* Ignore */ }
+                try { _nearCache.Toss(id); } catch { /* Ignore */ }
+                try { _farCache.Toss(id); } catch { /* Ignore */ }
             }
             // WriteAround: Don't touch caches
         }
 
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
             Nut<T>? nut = null;
 
             // 1. Try near cache (fastest)
-            nut = _nearCache.Load(id);
+            nut = _nearCache.Crack(id);
             if (nut != null)
             {
                 return nut; // Near cache hit
             }
 
             // 2. Try far cache (shared, faster than backing store)
-            nut = _farCache.Load(id);
+            nut = _farCache.Crack(id);
             if (nut != null)
             {
                 // Populate near cache
                 if (_options.PopulateNearOnFarHit)
                 {
-                    _nearCache.Save(id, nut);
+                    _nearCache.Stash(id, nut);
                 }
                 return nut; // Far cache hit
             }
 
             // 3. Load from backing store (slowest)
-            nut = _backingStore.Load(id);
+            nut = _backingStore.Crack(id);
             if (nut != null)
             {
                 // Populate caches
                 if (_options.PopulateFarOnBackingHit)
                 {
-                    _farCache.Save(id, nut);
+                    _farCache.Stash(id, nut);
                 }
                 if (_options.PopulateNearOnBackingHit)
                 {
-                    _nearCache.Save(id, nut);
+                    _nearCache.Stash(id, nut);
                 }
             }
 
             return nut;
         }
 
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Delete(string id)
+        public void Toss(string id)
         {
             // Delete from backing store
-            _backingStore.Delete(id);
+            _backingStore.Toss(id);
 
             // Invalidate caches
-            try { _nearCache.Delete(id); } catch { /* Ignore */ }
-            try { _farCache.Delete(id); } catch { /* Ignore */ }
+            try { _nearCache.Toss(id); } catch { /* Ignore */ }
+            try { _farCache.Toss(id); } catch { /* Ignore */ }
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             // Always load from backing store for consistency
-            return _backingStore.LoadAll();
+            return _backingStore.CrackAll();
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
@@ -193,10 +205,10 @@ namespace AcornDB.Storage
         {
             try
             {
-                var allIds = cache.LoadAll().Select(n => n.Id).ToList();
+                var allIds = cache.CrackAll().Select(n => n.Id).ToList();
                 foreach (var id in allIds)
                 {
-                    cache.Delete(id);
+                    cache.Toss(id);
                 }
             }
             catch
@@ -222,7 +234,7 @@ namespace AcornDB.Storage
         {
             try
             {
-                return trunk.LoadAll().Count();
+                return trunk.CrackAll().Count();
             }
             catch
             {

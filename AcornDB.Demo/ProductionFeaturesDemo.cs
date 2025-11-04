@@ -349,29 +349,41 @@ internal class UnreliableTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
         }
     }
 
-    public void Save(string id, Nut<T> nut)
+    public void Stash(string id, Nut<T> nut)
     {
-        SimulateFailure("Save");
-        _innerTrunk.Save(id, nut);
+        SimulateFailure("Stash");
+        _innerTrunk.Stash(id, nut);
     }
 
-    public Nut<T>? Load(string id)
+    [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+    public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
+    public Nut<T>? Crack(string id)
     {
-        SimulateFailure("Load");
-        return _innerTrunk.Load(id);
+        SimulateFailure("Crack");
+        return _innerTrunk.Crack(id);
     }
 
-    public void Delete(string id)
+    [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+    public Nut<T>? Load(string id) => Crack(id);
+
+    public void Toss(string id)
     {
-        SimulateFailure("Delete");
-        _innerTrunk.Delete(id);
+        SimulateFailure("Toss");
+        _innerTrunk.Toss(id);
     }
 
-    public IEnumerable<Nut<T>> LoadAll()
+    [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+    public void Delete(string id) => Toss(id);
+
+    public IEnumerable<Nut<T>> CrackAll()
     {
-        SimulateFailure("LoadAll");
-        return _innerTrunk.LoadAll();
+        SimulateFailure("CrackAll");
+        return _innerTrunk.CrackAll();
     }
+
+    [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+    public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
     public IReadOnlyList<Nut<T>> GetHistory(string id) => _innerTrunk.GetHistory(id);
     public IEnumerable<Nut<T>> ExportChanges() => _innerTrunk.ExportChanges();
@@ -382,6 +394,9 @@ internal class UnreliableTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
         SupportsSync = true,
         IsDurable = false,
         SupportsAsync = false,
+        SupportsNativeIndexes = false,
+        SupportsFullTextSearch = false,
+        SupportsComputedIndexes = false,
         TrunkType = "UnreliableTrunk (Demo)"
     };
 
@@ -390,6 +405,9 @@ internal class UnreliableTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
     public bool SupportsSync => true;
     public bool IsDurable => false;
     public bool SupportsAsync => false;
+    public bool SupportsNativeIndexes => false;
+    public bool SupportsFullTextSearch => false;
+    public bool SupportsComputedIndexes => false;
     public string TrunkType => "UnreliableTrunk (Demo)";
 
     public void Dispose()

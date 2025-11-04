@@ -65,45 +65,66 @@ namespace AcornDB.Persistence.DataLake
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             // Always write to hot tier for fast writes
-            _hotTrunk.Save(id, nut);
+            _hotTrunk.Stash(id, nut);
+        }
+
+        [Obsolete("Use Stash instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Save(string id, Nut<T> nut)
+        {
+            Stash(id, nut);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
             // Try hot tier first (cache pattern)
-            var nut = _hotTrunk.Load(id);
+            var nut = _hotTrunk.Crack(id);
             if (nut != null)
                 return nut;
 
             // Fallback to cold tier
-            nut = _coldTrunk.Load(id);
+            nut = _coldTrunk.Crack(id);
 
             // Optional: Promote to hot tier on access
             if (nut != null && _options.PromoteOnRead)
             {
-                _hotTrunk.Save(id, nut);
+                _hotTrunk.Stash(id, nut);
             }
 
             return nut;
         }
 
+        [Obsolete("Use Crack instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Nut<T>? Load(string id)
+        {
+            return Crack(id);
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Toss(string id)
+        {
+            // Delete from both tiers
+            _hotTrunk.Toss(id);
+            _coldTrunk.Toss(id);
+        }
+
+        [Obsolete("Use Toss instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Delete(string id)
         {
-            // Delete from both tiers
-            _hotTrunk.Delete(id);
-            _coldTrunk.Delete(id);
+            Toss(id);
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        public IEnumerable<Nut<T>> CrackAll()
         {
             // Query federation: combine both tiers
-            var hotNuts = _hotTrunk.LoadAll().ToDictionary(n => n.Id);
-            var coldNuts = _coldTrunk.LoadAll().ToDictionary(n => n.Id);
+            var hotNuts = _hotTrunk.CrackAll().ToDictionary(n => n.Id);
+            var coldNuts = _coldTrunk.CrackAll().ToDictionary(n => n.Id);
 
             // Merge (hot takes precedence for duplicates)
             foreach (var kvp in coldNuts)
@@ -115,6 +136,12 @@ namespace AcornDB.Persistence.DataLake
             }
 
             return hotNuts.Values;
+        }
+
+        [Obsolete("Use CrackAll instead")]
+        public IEnumerable<Nut<T>> LoadAll()
+        {
+            return CrackAll();
         }
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
@@ -142,7 +169,7 @@ namespace AcornDB.Persistence.DataLake
 
         public IEnumerable<Nut<T>> ExportChanges()
         {
-            return LoadAll();
+            return CrackAll();
         }
 
         public void ImportChanges(IEnumerable<Nut<T>> incoming)
@@ -165,7 +192,7 @@ namespace AcornDB.Persistence.DataLake
         /// </summary>
         public void TierData()
         {
-            var nuts = _hotTrunk.LoadAll().ToList();
+            var nuts = _hotTrunk.CrackAll().ToList();
             var oldNuts = new List<Nut<T>>();
 
             foreach (var nut in nuts)
@@ -190,7 +217,7 @@ namespace AcornDB.Persistence.DataLake
             // Remove from hot tier
             foreach (var nut in oldNuts)
             {
-                _hotTrunk.Delete(nut.Id);
+                _hotTrunk.Toss(nut.Id);
             }
 
             Console.WriteLine($"   ✅ Tiered {oldNuts.Count} nuts to cold storage");

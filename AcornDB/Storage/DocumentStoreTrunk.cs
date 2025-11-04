@@ -121,7 +121,7 @@ namespace AcornDB.Storage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> shell)
+        public void Stash(string id, Nut<T> shell)
         {
             // Store previous version in history
             if (_current.TryGetValue(id, out var previous))
@@ -140,7 +140,7 @@ namespace AcornDB.Storage
             // Create log entry
             var logEntry = new ChangeLogEntry<T>
             {
-                Action = "Save",
+                Action = "Stash",
                 Id = id,
                 Shell = shell,
                 Timestamp = DateTime.UtcNow
@@ -150,8 +150,11 @@ namespace AcornDB.Storage
             QueueLogEntry(logEntry);
         }
 
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> shell) => Stash(id, shell);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
             // Ensure log is loaded (only matters if no roots were added)
             if (!_logLoaded)
@@ -170,8 +173,11 @@ namespace AcornDB.Storage
             return _current.TryGetValue(id, out var shell) ? shell : null;
         }
 
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Delete(string id)
+        public void Toss(string id)
         {
             if (_current.TryRemove(id, out var shell))
             {
@@ -185,7 +191,7 @@ namespace AcornDB.Storage
                 // Log deletion
                 var logEntry = new ChangeLogEntry<T>
                 {
-                    Action = "Delete",
+                    Action = "Toss",
                     Id = id,
                     Shell = null,
                     Timestamp = DateTime.UtcNow
@@ -194,7 +200,10 @@ namespace AcornDB.Storage
             }
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             // Ensure log is loaded (only matters if no roots were added)
             if (!_logLoaded)
@@ -220,6 +229,9 @@ namespace AcornDB.Storage
                 : new List<Nut<T>>().AsReadOnly();
         }
 
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
+
         public IEnumerable<Nut<T>> ExportChanges()
         {
             return _current.Values.ToList();
@@ -229,7 +241,7 @@ namespace AcornDB.Storage
         {
             foreach (var shell in incoming)
             {
-                Save(shell.Id, shell);
+                Stash(shell.Id, shell);
             }
         }
 
@@ -343,7 +355,8 @@ namespace AcornDB.Storage
                     if (entry == null)
                         continue;
 
-                    if (entry.Action == "Save" && entry.Shell != null)
+                    // Support both old and new action names during migration
+                    if ((entry.Action == "Stash" || entry.Action == "Save") && entry.Shell != null)
                     {
                         // Store previous in history
                         if (_current.TryGetValue(entry.Id, out var previous))
@@ -356,7 +369,7 @@ namespace AcornDB.Storage
                         }
                         _current[entry.Id] = entry.Shell;
                     }
-                    else if (entry.Action == "Delete")
+                    else if (entry.Action == "Toss" || entry.Action == "Delete")
                     {
                         if (_current.TryRemove(entry.Id, out var shell))
                         {

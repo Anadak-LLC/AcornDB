@@ -73,10 +73,22 @@ namespace AcornDB.Persistence.Cloud
         }
 
         // Delegate all operations to CloudTrunk (with optimizations!)
-        public void Save(string id, Nut<T> shell) => _cloudTrunk.Save(id, shell);
-        public Nut<T>? Load(string id) => _cloudTrunk.Load(id);
-        public void Delete(string id) => _cloudTrunk.Delete(id);
-        public IEnumerable<Nut<T>> LoadAll() => _cloudTrunk.LoadAll();
+        public void Stash(string id, Nut<T> shell) => _cloudTrunk.Stash(id, shell);
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> shell) => Stash(id, shell);
+
+        public Nut<T>? Crack(string id) => _cloudTrunk.Crack(id);
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
+        public void Toss(string id) => _cloudTrunk.Toss(id);
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll() => _cloudTrunk.CrackAll();
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
+
         public IReadOnlyList<Nut<T>> GetHistory(string id) => _cloudTrunk.GetHistory(id);
         public IEnumerable<Nut<T>> ExportChanges() => _cloudTrunk.ExportChanges();
         public void ImportChanges(IEnumerable<Nut<T>> incoming) => _cloudTrunk.ImportChanges(incoming);
@@ -90,10 +102,22 @@ namespace AcornDB.Persistence.Cloud
         };
 
         // Async variants
-        public Task SaveAsync(string id, Nut<T> shell) => _cloudTrunk.SaveAsync(id, shell);
-        public Task<Nut<T>?> LoadAsync(string id) => _cloudTrunk.LoadAsync(id);
-        public Task DeleteAsync(string id) => _cloudTrunk.DeleteAsync(id);
-        public Task<IEnumerable<Nut<T>>> LoadAllAsync() => _cloudTrunk.LoadAllAsync();
+        public Task StashAsync(string id, Nut<T> shell) => _cloudTrunk.StashAsync(id, shell);
+        [Obsolete("Use StashAsync() instead. This method will be removed in a future version.")]
+        public Task SaveAsync(string id, Nut<T> shell) => StashAsync(id, shell);
+
+        public Task<Nut<T>?> CrackAsync(string id) => _cloudTrunk.CrackAsync(id);
+        [Obsolete("Use CrackAsync() instead. This method will be removed in a future version.")]
+        public Task<Nut<T>?> LoadAsync(string id) => CrackAsync(id);
+
+        public Task TossAsync(string id) => _cloudTrunk.TossAsync(id);
+        [Obsolete("Use TossAsync() instead. This method will be removed in a future version.")]
+        public Task DeleteAsync(string id) => TossAsync(id);
+
+        public Task<IEnumerable<Nut<T>>> CrackAllAsync() => _cloudTrunk.CrackAllAsync();
+        [Obsolete("Use CrackAllAsync() instead. This method will be removed in a future version.")]
+        public Task<IEnumerable<Nut<T>>> LoadAllAsync() => CrackAllAsync();
+
         public Task ImportChangesAsync(IEnumerable<Nut<T>> incoming) => _cloudTrunk.ImportChangesAsync(incoming);
 
         public void Dispose() => _cloudTrunk?.Dispose();

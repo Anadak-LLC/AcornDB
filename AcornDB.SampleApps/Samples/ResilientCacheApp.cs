@@ -497,29 +497,41 @@ public static class ResilientCacheApp
             }
         }
 
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             SimulateFailure();
-            _inner.Save(id, nut);
+            _inner.Stash(id, nut);
         }
 
-        public Nut<T>? Load(string id)
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
+        public Nut<T>? Crack(string id)
         {
             SimulateFailure();
-            return _inner.Load(id);
+            return _inner.Crack(id);
         }
 
-        public void Delete(string id)
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
+        public void Toss(string id)
         {
             SimulateFailure();
-            _inner.Delete(id);
+            _inner.Toss(id);
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             SimulateFailure();
-            return _inner.LoadAll();
+            return _inner.CrackAll();
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public IReadOnlyList<Nut<T>> GetHistory(string id) => _inner.GetHistory(id);
 
@@ -534,6 +546,9 @@ public static class ResilientCacheApp
             SupportsSync = true,
             IsDurable = false,
             SupportsAsync = false,
+            SupportsNativeIndexes = false,
+            SupportsFullTextSearch = false,
+            SupportsComputedIndexes = false,
             TrunkType = "UnreliableTrunk (Demo)"
         };
 
@@ -541,6 +556,9 @@ public static class ResilientCacheApp
         public bool SupportsSync => true;
         public bool IsDurable => false;
         public bool SupportsAsync => false;
+        public bool SupportsNativeIndexes => false;
+        public bool SupportsFullTextSearch => false;
+        public bool SupportsComputedIndexes => false;
         public string TrunkType => "UnreliableTrunk (Demo)";
 
         public void Dispose() { }

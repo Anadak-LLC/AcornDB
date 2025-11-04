@@ -49,7 +49,7 @@ namespace AcornDB.Persistence.DataLake
             ParquetOptions? options = null)
         {
             var parquetTrunk = new ParquetTrunk<T>(path, options);
-            var nuts = await parquetTrunk.LoadAllAsync();
+            var nuts = await parquetTrunk.CrackAllAsync();
             targetTrunk.ImportChanges(nuts);
         }
 
@@ -63,7 +63,7 @@ namespace AcornDB.Persistence.DataLake
             ParquetOptions? options = null)
         {
             var parquetTrunk = new ParquetTrunk<T>(path, cloudStorage, options);
-            var nuts = await parquetTrunk.LoadAllAsync();
+            var nuts = await parquetTrunk.CrackAllAsync();
             targetTrunk.ImportChanges(nuts);
         }
 

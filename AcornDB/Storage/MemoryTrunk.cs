@@ -84,7 +84,7 @@ namespace AcornDB.Storage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             // Step 1: Serialize Nut<T> to JSON then bytes
             var json = _serializer.Serialize(nut);
@@ -110,8 +110,11 @@ namespace AcornDB.Storage
             _storage[id] = processedBytes;
         }
 
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
             // Step 1: Retrieve byte array from storage
             if (!_storage.TryGetValue(id, out var storedBytes))
@@ -148,23 +151,32 @@ namespace AcornDB.Storage
             }
         }
 
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Delete(string id)
+        public void Toss(string id)
         {
             // Lock-free removal
             _storage.TryRemove(id, out _);
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
-            // Load all nuts by passing each through the Load pipeline
+            // Load all nuts by passing each through the Crack pipeline
             foreach (var id in _storage.Keys)
             {
-                var nut = Load(id);
+                var nut = Crack(id);
                 if (nut != null)
                     yield return nut;
             }
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         // Optional features - not supported by MemoryTrunk
         public IReadOnlyList<Nut<T>> GetHistory(string id)
@@ -174,14 +186,14 @@ namespace AcornDB.Storage
 
         public IEnumerable<Nut<T>> ExportChanges()
         {
-            return LoadAll();
+            return CrackAll();
         }
 
         public void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             foreach (var nut in incoming)
             {
-                Save(nut.Id, nut);
+                Stash(nut.Id, nut);
             }
         }
 

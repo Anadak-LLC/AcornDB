@@ -47,31 +47,34 @@ namespace AcornDB.Storage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             // Write-through: backing store first, then cache
-            _backingStore.Save(id, nut);
+            _backingStore.Stash(id, nut);
 
             // Update cache
             if (ShouldCache(nut))
             {
-                _cache.Save(id, nut);
+                _cache.Stash(id, nut);
                 EvictIfNeeded();
             }
         }
 
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
             // Try cache first
-            var nut = _cache.Load(id);
+            var nut = _cache.Crack(id);
 
             if (nut != null)
             {
                 // Check TTL
                 if (IsExpired(nut))
                 {
-                    _cache.Delete(id);
+                    _cache.Toss(id);
                     nut = null;
                 }
                 else
@@ -81,32 +84,38 @@ namespace AcornDB.Storage
             }
 
             // Cache miss - load from backing store
-            nut = _backingStore.Load(id);
+            nut = _backingStore.Crack(id);
 
             // Populate cache
             if (nut != null && ShouldCache(nut))
             {
-                _cache.Save(id, nut);
+                _cache.Stash(id, nut);
                 EvictIfNeeded();
             }
 
             return nut;
         }
 
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Delete(string id)
+        public void Toss(string id)
         {
             // Delete from backing store
-            _backingStore.Delete(id);
+            _backingStore.Toss(id);
 
             // Invalidate cache
-            _cache.Delete(id);
+            _cache.Toss(id);
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             // Always load from backing store for consistency
-            var nuts = _backingStore.LoadAll().ToList();
+            var nuts = _backingStore.CrackAll().ToList();
 
             // Optionally warm cache
             if (_options.WarmCacheOnLoadAll)
@@ -115,7 +124,7 @@ namespace AcornDB.Storage
                 {
                     if (ShouldCache(nut))
                     {
-                        _cache.Save(nut.Id, nut);
+                        _cache.Stash(nut.Id, nut);
                     }
                 }
                 EvictIfNeeded();
@@ -123,6 +132,9 @@ namespace AcornDB.Storage
 
             return nuts;
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
@@ -153,10 +165,10 @@ namespace AcornDB.Storage
         /// </summary>
         public void ClearCache()
         {
-            var allIds = _cache.LoadAll().Select(n => n.Id).ToList();
+            var allIds = _cache.CrackAll().Select(n => n.Id).ToList();
             foreach (var id in allIds)
             {
-                _cache.Delete(id);
+                _cache.Toss(id);
             }
         }
 
@@ -165,7 +177,7 @@ namespace AcornDB.Storage
         /// </summary>
         public CacheStats GetCacheStats()
         {
-            var cached = _cache.LoadAll().ToList();
+            var cached = _cache.CrackAll().ToList();
             var expired = cached.Count(IsExpired);
 
             return new CacheStats
@@ -201,17 +213,17 @@ namespace AcornDB.Storage
             if (!_options.MaxCacheSize.HasValue)
                 return;
 
-            var cached = _cache.LoadAll().ToList();
+            var cached = _cache.CrackAll().ToList();
 
             // Remove expired first
             var expired = cached.Where(IsExpired).ToList();
             foreach (var nut in expired)
             {
-                _cache.Delete(nut.Id);
+                _cache.Toss(nut.Id);
             }
 
             // Check size again
-            cached = _cache.LoadAll().ToList();
+            cached = _cache.CrackAll().ToList();
             if (cached.Count <= _options.MaxCacheSize.Value)
                 return;
 
@@ -222,7 +234,7 @@ namespace AcornDB.Storage
 
             foreach (var nut in toEvict)
             {
-                _cache.Delete(nut.Id);
+                _cache.Toss(nut.Id);
             }
         }
 

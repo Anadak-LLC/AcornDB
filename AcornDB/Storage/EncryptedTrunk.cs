@@ -25,30 +25,42 @@ namespace AcornDB.Storage
             _serializer = serializer ?? new NewtonsoftJsonSerializer();
         }
 
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             var encrypted = EncryptNut(nut);
-            _innerTrunk.Save(id, encrypted);
+            _innerTrunk.Stash(id, encrypted);
         }
 
-        public Nut<T>? Load(string id)
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
+        public Nut<T>? Crack(string id)
         {
-            var encrypted = _innerTrunk.Load(id);
+            var encrypted = _innerTrunk.Crack(id);
             if (encrypted == null) return null;
             return DecryptNut(encrypted);
         }
 
-        public void Delete(string id)
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
+        public void Toss(string id)
         {
-            _innerTrunk.Delete(id);
+            _innerTrunk.Toss(id);
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
-            return _innerTrunk.LoadAll()
+            return _innerTrunk.CrackAll()
                 .Select(DecryptNut)
                 .Where(n => n != null)!;
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
         {

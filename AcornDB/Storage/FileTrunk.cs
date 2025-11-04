@@ -102,7 +102,7 @@ namespace AcornDB.Storage
             return Path.Combine(_folderPath, id + ".json");
         }
 
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             // Step 1: Serialize Nut<T> to JSON then bytes
             var json = _serializer.Serialize(nut);
@@ -133,8 +133,11 @@ namespace AcornDB.Storage
             }
         }
 
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
             // Step 1: Read byte array from file
             var file = GetFilePath(id);
@@ -178,8 +181,11 @@ namespace AcornDB.Storage
             }
         }
 
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Delete(string id)
+        public void Toss(string id)
         {
             var file = GetFilePath(id);
             if (File.Exists(file))
@@ -188,7 +194,10 @@ namespace AcornDB.Storage
             }
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             // Load all nuts by passing each through the Load pipeline
             var files = Directory.GetFiles(_folderPath, "*.json");
@@ -197,7 +206,7 @@ namespace AcornDB.Storage
             foreach (var file in files)
             {
                 var id = Path.GetFileNameWithoutExtension(file);
-                var nut = Load(id);
+                var nut = Crack(id);
                 if (nut != null)
                 {
                     list.Add(nut);
@@ -205,6 +214,9 @@ namespace AcornDB.Storage
             }
             return list;
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         // Optional features - not supported by FileTrunk
         public IReadOnlyList<Nut<T>> GetHistory(string id)
@@ -215,14 +227,14 @@ namespace AcornDB.Storage
         public IEnumerable<Nut<T>> ExportChanges()
         {
             // Simple implementation: export all current data
-            return LoadAll();
+            return CrackAll();
         }
 
         public void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             foreach (var nut in incoming)
             {
-                Save(nut.Id, nut);
+                Stash(nut.Id, nut);
             }
         }
     }

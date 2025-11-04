@@ -77,41 +77,53 @@ namespace AcornDB.Storage
             }
         }
 
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             ExecuteWithResilience(
-                () => _primaryTrunk.Save(id, nut),
-                () => _fallbackTrunk?.Save(id, nut),
-                "Save"
+                () => _primaryTrunk.Stash(id, nut),
+                () => _fallbackTrunk?.Stash(id, nut),
+                "Stash"
             );
         }
 
-        public Nut<T>? Load(string id)
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
+        public Nut<T>? Crack(string id)
         {
             return ExecuteWithResilience(
-                () => _primaryTrunk.Load(id),
-                () => _fallbackTrunk?.Load(id),
-                "Load"
+                () => _primaryTrunk.Crack(id),
+                () => _fallbackTrunk?.Crack(id),
+                "Crack"
             );
         }
 
-        public void Delete(string id)
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
+        public void Toss(string id)
         {
             ExecuteWithResilience(
-                () => _primaryTrunk.Delete(id),
-                () => _fallbackTrunk?.Delete(id),
-                "Delete"
+                () => _primaryTrunk.Toss(id),
+                () => _fallbackTrunk?.Toss(id),
+                "Toss"
             );
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             return ExecuteWithResilience(
-                () => _primaryTrunk.LoadAll(),
-                () => _fallbackTrunk?.LoadAll() ?? Enumerable.Empty<Nut<T>>(),
-                "LoadAll"
+                () => _primaryTrunk.CrackAll(),
+                () => _fallbackTrunk?.CrackAll() ?? Enumerable.Empty<Nut<T>>(),
+                "CrackAll"
             );
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
         {

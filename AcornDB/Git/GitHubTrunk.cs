@@ -51,7 +51,7 @@ namespace AcornDB.Git
             Console.WriteLine($"   Auto-push: {_autoPush}");
         }
 
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             var fileName = GetFileName(id);
             var fullPath = Path.Combine(_git.RepositoryPath, fileName);
@@ -83,7 +83,10 @@ namespace AcornDB.Git
             }
         }
 
-        public Nut<T>? Load(string id)
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
+        public Nut<T>? Crack(string id)
         {
             var fileName = GetFileName(id);
 
@@ -97,7 +100,10 @@ namespace AcornDB.Git
             return _serializer.Deserialize<Nut<T>>(json);
         }
 
-        public void Delete(string id)
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
+        public void Toss(string id)
         {
             var fileName = GetFileName(id);
 
@@ -125,7 +131,10 @@ namespace AcornDB.Git
             }
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
             var nuts = new List<Nut<T>>();
 
@@ -152,6 +161,9 @@ namespace AcornDB.Git
 
             return nuts;
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
@@ -188,7 +200,7 @@ namespace AcornDB.Git
         public IEnumerable<Nut<T>> ExportChanges()
         {
             // Export all current nuts (snapshot)
-            return LoadAll();
+            return CrackAll();
         }
 
         public void ImportChanges(IEnumerable<Nut<T>> changes)
@@ -196,7 +208,7 @@ namespace AcornDB.Git
             // Import each nut as a commit
             foreach (var nut in changes)
             {
-                Save(nut.Id, nut);
+                Stash(nut.Id, nut);
             }
 
             Console.WriteLine($"   ✓ Imported {changes.Count()} nuts");

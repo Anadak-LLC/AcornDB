@@ -86,13 +86,20 @@ namespace AcornDB.Persistence.Cloud
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Stash(string id, Nut<T> nut)
+        {
+            StashAsync(id, nut).GetAwaiter().GetResult();
+        }
+
+        [Obsolete("Use Stash instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Save(string id, Nut<T> nut)
         {
-            SaveAsync(id, nut).GetAwaiter().GetResult();
+            Stash(id, nut);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task SaveAsync(string id, Nut<T> nut)
+        public async Task StashAsync(string id, Nut<T> nut)
         {
             bool shouldFlush = false;
             lock (_writeBuffer)
@@ -111,13 +118,20 @@ namespace AcornDB.Persistence.Cloud
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Nut<T>? Crack(string id)
+        {
+            return CrackAsync(id).GetAwaiter().GetResult();
+        }
+
+        [Obsolete("Use Crack instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public Nut<T>? Load(string id)
         {
-            return LoadAsync(id).GetAwaiter().GetResult();
+            return Crack(id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<Nut<T>?> LoadAsync(string id)
+        public async Task<Nut<T>?> CrackAsync(string id)
         {
             try
             {
@@ -135,13 +149,20 @@ namespace AcornDB.Persistence.Cloud
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Toss(string id)
+        {
+            TossAsync(id).GetAwaiter().GetResult();
+        }
+
+        [Obsolete("Use Toss instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public void Delete(string id)
         {
-            DeleteAsync(id).GetAwaiter().GetResult();
+            Toss(id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task DeleteAsync(string id)
+        public async Task TossAsync(string id)
         {
             await _writeLock.WaitAsync();
             try
@@ -159,13 +180,20 @@ namespace AcornDB.Persistence.Cloud
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public IEnumerable<Nut<T>> CrackAll()
+        {
+            return CrackAllAsync().GetAwaiter().GetResult();
+        }
+
+        [Obsolete("Use CrackAll instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public IEnumerable<Nut<T>> LoadAll()
         {
-            return LoadAllAsync().GetAwaiter().GetResult();
+            return CrackAll();
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<IEnumerable<Nut<T>>> LoadAllAsync()
+        public async Task<IEnumerable<Nut<T>>> CrackAllAsync()
         {
             var nuts = new List<Nut<T>>();
 
@@ -189,7 +217,7 @@ namespace AcornDB.Persistence.Cloud
 
         public IEnumerable<Nut<T>> ExportChanges()
         {
-            return LoadAll();
+            return CrackAll();
         }
 
         public void ImportChanges(IEnumerable<Nut<T>> incoming)
@@ -203,6 +231,9 @@ namespace AcornDB.Persistence.Cloud
             SupportsSync = true,
             IsDurable = true,
             SupportsAsync = true,
+            SupportsNativeIndexes = false,
+            SupportsFullTextSearch = false,
+            SupportsComputedIndexes = false,
             TrunkType = "AzureTableTrunk"
         };
 
@@ -300,6 +331,9 @@ namespace AcornDB.Persistence.Cloud
         public bool SupportsSync => true;
         public bool IsDurable => true;
         public bool SupportsAsync => true;
+        public bool SupportsNativeIndexes => false;
+        public bool SupportsFullTextSearch => false;
+        public bool SupportsComputedIndexes => false;
         public string TrunkType => "AzureTableTrunk";
 
         public void Dispose()

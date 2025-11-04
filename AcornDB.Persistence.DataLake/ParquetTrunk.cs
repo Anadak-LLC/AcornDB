@@ -81,12 +81,19 @@ namespace AcornDB.Persistence.DataLake
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
-            SaveAsync(id, nut).GetAwaiter().GetResult();
+            StashAsync(id, nut).GetAwaiter().GetResult();
         }
 
-        public async Task SaveAsync(string id, Nut<T> nut)
+        [Obsolete("Use Stash instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Save(string id, Nut<T> nut)
+        {
+            Stash(id, nut);
+        }
+
+        public async Task StashAsync(string id, Nut<T> nut)
         {
             // Parquet is optimized for batch writes (columnar format)
             // Single-item writes are inefficient - buffer and flush periodically
@@ -109,26 +116,40 @@ namespace AcornDB.Persistence.DataLake
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
-            return LoadAsync(id).GetAwaiter().GetResult();
+            return CrackAsync(id).GetAwaiter().GetResult();
         }
 
-        public async Task<Nut<T>?> LoadAsync(string id)
+        [Obsolete("Use Crack instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public Nut<T>? Load(string id)
+        {
+            return Crack(id);
+        }
+
+        public async Task<Nut<T>?> CrackAsync(string id)
         {
             // Parquet doesn't support indexed lookups - need to scan files
             // For production: maintain a separate index (Hive metastore, Delta Lake, etc.)
-            var allNuts = await LoadAllAsync();
+            var allNuts = await CrackAllAsync();
             return allNuts.FirstOrDefault(n => n.Id == id);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Delete(string id)
+        public void Toss(string id)
         {
-            DeleteAsync(id).GetAwaiter().GetResult();
+            TossAsync(id).GetAwaiter().GetResult();
         }
 
-        public async Task DeleteAsync(string id)
+        [Obsolete("Use Toss instead")]
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        public void Delete(string id)
+        {
+            Toss(id);
+        }
+
+        public async Task TossAsync(string id)
         {
             // Parquet is immutable - need to read, filter, and rewrite
             // Expensive operation - consider using Delta Lake format for ACID deletes
@@ -154,12 +175,18 @@ namespace AcornDB.Persistence.DataLake
             }
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        public IEnumerable<Nut<T>> CrackAll()
         {
-            return LoadAllAsync().GetAwaiter().GetResult();
+            return CrackAllAsync().GetAwaiter().GetResult();
         }
 
-        public async Task<IEnumerable<Nut<T>>> LoadAllAsync()
+        [Obsolete("Use CrackAll instead")]
+        public IEnumerable<Nut<T>> LoadAll()
+        {
+            return CrackAll();
+        }
+
+        public async Task<IEnumerable<Nut<T>>> CrackAllAsync()
         {
             var files = await ListParquetFilesAsync();
             var allNuts = new List<Nut<T>>();
@@ -182,7 +209,7 @@ namespace AcornDB.Persistence.DataLake
 
         public IEnumerable<Nut<T>> ExportChanges()
         {
-            return LoadAll();
+            return CrackAll();
         }
 
         public void ImportChanges(IEnumerable<Nut<T>> incoming)

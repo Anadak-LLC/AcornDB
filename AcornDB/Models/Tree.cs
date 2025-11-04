@@ -50,6 +50,11 @@ namespace AcornDB
             return _cache.Values.ToList();
         }
 
+        /// <summary>
+        /// Alias for NutShells() - get all nuts in the tree
+        /// </summary>
+        public IEnumerable<Nut<T>> GetAllNuts() => NutShells();
+
         public IEnumerable<T> Nuts => _cache.Values.Select(nut => nut.Payload);
 
         public Tree(ITrunk<T>? trunk = null, Cache.ICacheStrategy<T>? cacheStrategy = null, IConflictJudge<T>? conflictJudge = null)
@@ -58,6 +63,7 @@ namespace AcornDB
             _cacheStrategy = cacheStrategy ?? new Cache.LRUCacheStrategy<T>(maxSize: 10_000); // defaults to LRU with 10k limit
             _conflictJudge = conflictJudge ?? new TimestampJudge<T>(); // defaults to last-write-wins
             InitializeIdExtractor();
+            InitializeIdentityIndex(); // Create implicit identity index
             LoadFromTrunk();
             StartExpirationTimer(); // Start TTL enforcement
         }
@@ -95,6 +101,9 @@ namespace AcornDB
 
             // Raise reactive event
             OnStashEvent?.Invoke(id, item, nut);
+
+            // Update indexes
+            UpdateIndexesOnStash(id, item);
 
             // Create and propagate leaf to branches (new leaf-based system)
             var leaf = CreateLeaf(Sync.LeafType.Stash, id, nut);
@@ -137,6 +146,9 @@ namespace AcornDB
 
             // Raise reactive event
             OnTossEvent?.Invoke(id);
+
+            // Update indexes
+            UpdateIndexesOnToss(id);
 
             // Notify subscribers if item existed
             if (item != null)

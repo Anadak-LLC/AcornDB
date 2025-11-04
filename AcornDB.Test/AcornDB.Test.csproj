@@ -18,6 +18,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\AcornDB\AcornDB.csproj" />
+    <ProjectReference Include="..\AcornDB.Persistence.RDBMS\AcornDB.Persistence.RDBMS.csproj" />
   </ItemGroup>
 
   <ItemGroup>

@@ -26,6 +26,7 @@ namespace AcornDB.Persistence.RDBMS
     /// Read: Read from database → byte[] → Root Chain (descending) → Deserialize → Nut<T>
     /// </summary>
     public class SqliteTrunk<T> : ITrunk<T>, IDisposable
+        where T : class
     {
         private readonly string _connectionString;
         private readonly string _tableName;
@@ -143,6 +144,7 @@ namespace AcornDB.Persistence.RDBMS
                 CREATE TABLE IF NOT EXISTS {_tableName} (
                     id TEXT PRIMARY KEY NOT NULL,
                     json_data TEXT NOT NULL,
+                    payload_json TEXT NOT NULL,
                     timestamp TEXT NOT NULL,
                     version INTEGER NOT NULL,
                     expires_at TEXT NULL
@@ -166,13 +168,16 @@ namespace AcornDB.Persistence.RDBMS
             cmd.ExecuteNonQuery();
         }
 
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
-            SaveAsync(id, nut).GetAwaiter().GetResult();
+            StashAsync(id, nut).GetAwaiter().GetResult();
         }
 
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task SaveAsync(string id, Nut<T> nut)
+        public async Task StashAsync(string id, Nut<T> nut)
         {
             // Add to write buffer for batching
             bool shouldFlush = false;
@@ -194,13 +199,16 @@ namespace AcornDB.Persistence.RDBMS
             }
         }
 
-        public Nut<T>? Load(string id)
+        public Nut<T>? Crack(string id)
         {
-            return LoadAsync(id).GetAwaiter().GetResult();
+            return CrackAsync(id).GetAwaiter().GetResult();
         }
 
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task<Nut<T>?> LoadAsync(string id)
+        public async Task<Nut<T>?> CrackAsync(string id)
         {
             using var conn = new SqliteConnection(_connectionString);
             await conn.OpenAsync();
@@ -260,13 +268,16 @@ namespace AcornDB.Persistence.RDBMS
             return null;
         }
 
-        public void Delete(string id)
+        public void Toss(string id)
         {
-            DeleteAsync(id).GetAwaiter().GetResult();
+            TossAsync(id).GetAwaiter().GetResult();
         }
 
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task DeleteAsync(string id)
+        public async Task TossAsync(string id)
         {
             using var conn = new SqliteConnection(_connectionString);
             await conn.OpenAsync();
@@ -279,12 +290,15 @@ namespace AcornDB.Persistence.RDBMS
             await cmd.ExecuteNonQueryAsync();
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        public IEnumerable<Nut<T>> CrackAll()
         {
-            return LoadAllAsync().GetAwaiter().GetResult();
+            return CrackAllAsync().GetAwaiter().GetResult();
         }
 
-        public async Task<IEnumerable<Nut<T>>> LoadAllAsync()
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
+
+        public async Task<IEnumerable<Nut<T>>> CrackAllAsync()
         {
             using var conn = new SqliteConnection(_connectionString);
             await conn.OpenAsync();
@@ -329,6 +343,9 @@ namespace AcornDB.Persistence.RDBMS
             SupportsSync = true,
             IsDurable = true,
             SupportsAsync = true,
+            SupportsNativeIndexes = true,
+            SupportsFullTextSearch = false,  // TODO: Add FTS5 support
+            SupportsComputedIndexes = true,  // SQLite supports expression indexes
             TrunkType = "SqliteTrunk"
         };
 
@@ -417,6 +434,14 @@ namespace AcornDB.Persistence.RDBMS
         }
 
         /// <summary>
+        /// Flush pending writes to database immediately (synchronous)
+        /// </summary>
+        public void Flush()
+        {
+            FlushAsync().GetAwaiter().GetResult();
+        }
+
+        /// <summary>
         /// Flush pending writes to database using a transaction
         /// </summary>
         private async Task FlushAsync()
@@ -440,10 +465,11 @@ namespace AcornDB.Persistence.RDBMS
                 using var transaction = conn.BeginTransaction();
 
                 var sql = $@"
-                    INSERT INTO {_tableName} (id, json_data, timestamp, version, expires_at)
-                    VALUES (@id, @json, @timestamp, @version, @expiresAt)
+                    INSERT INTO {_tableName} (id, json_data, payload_json, timestamp, version, expires_at)
+                    VALUES (@id, @json, @payloadJson, @timestamp, @version, @expiresAt)
                     ON CONFLICT(id) DO UPDATE SET
                         json_data = @json,
+                        payload_json = @payloadJson,
                         timestamp = @timestamp,
                         version = @version,
                         expires_at = @expiresAt";
@@ -453,6 +479,7 @@ namespace AcornDB.Persistence.RDBMS
                 // Add parameters once, reuse for all writes
                 cmd.Parameters.Add("@id", SqliteType.Text);
                 cmd.Parameters.Add("@json", SqliteType.Text);
+                cmd.Parameters.Add("@payloadJson", SqliteType.Text);
                 cmd.Parameters.Add("@timestamp", SqliteType.Text);
                 cmd.Parameters.Add("@version", SqliteType.Integer);
                 cmd.Parameters.Add("@expiresAt", SqliteType.Text);
@@ -484,8 +511,12 @@ namespace AcornDB.Persistence.RDBMS
                     var timestampStr = write.Nut.Timestamp.ToString("O");
                     var expiresAtStr = write.Nut.ExpiresAt?.ToString("O");
 
+                    // Step 4: Serialize just the Payload as JSON for native indexing
+                    var payloadJson = _serializer.Serialize(write.Nut.Payload);
+
                     cmd.Parameters["@id"].Value = write.Id;
                     cmd.Parameters["@json"].Value = dataStr;
+                    cmd.Parameters["@payloadJson"].Value = payloadJson;
                     cmd.Parameters["@timestamp"].Value = timestampStr;
                     cmd.Parameters["@version"].Value = write.Nut.Version;
                     cmd.Parameters["@expiresAt"].Value = expiresAtStr ?? (object)DBNull.Value;
@@ -500,6 +531,75 @@ namespace AcornDB.Persistence.RDBMS
             {
                 _writeLock.Release();
             }
+        }
+
+        // Native Index Support
+
+        /// <summary>
+        /// Create a native SQLite index for a property.
+        /// This uses CREATE INDEX with json_extract() for efficient database-level indexing.
+        /// </summary>
+        /// <typeparam name="TProperty">Type of the indexed property</typeparam>
+        /// <param name="name">Index name (e.g., "IX_User_Email")</param>
+        /// <param name="propertySelector">Expression selecting the property to index</param>
+        /// <param name="isUnique">Whether this is a unique index</param>
+        /// <returns>The created native index</returns>
+        public SqliteNativeIndex<T, TProperty> CreateNativeIndex<TProperty>(
+            string name,
+            System.Linq.Expressions.Expression<Func<T, TProperty>> propertySelector,
+            bool isUnique = false)
+        {
+            var index = new SqliteNativeIndex<T, TProperty>(
+                _connectionString,
+                _tableName,
+                name,
+                propertySelector,
+                isUnique);
+
+            index.CreateInDatabase();
+            return index;
+        }
+
+        /// <summary>
+        /// Drop a native SQLite index by name.
+        /// </summary>
+        public void DropNativeIndex(string indexName)
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = $"DROP INDEX IF EXISTS {indexName}";
+            command.ExecuteNonQuery();
+
+            Console.WriteLine($"✓ Dropped SQLite index: {indexName}");
+        }
+
+        /// <summary>
+        /// List all indexes on this table.
+        /// </summary>
+        public List<string> ListNativeIndexes()
+        {
+            using var connection = new SqliteConnection(_connectionString);
+            connection.Open();
+
+            using var command = connection.CreateCommand();
+            command.CommandText = $@"
+                SELECT name
+                FROM sqlite_master
+                WHERE type='index'
+                  AND tbl_name=@tableName
+                  AND name NOT LIKE 'sqlite_%'";
+            command.Parameters.AddWithValue("@tableName", _tableName);
+
+            var indexes = new List<string>();
+            using var reader = command.ExecuteReader();
+            while (reader.Read())
+            {
+                indexes.Add(reader.GetString(0));
+            }
+
+            return indexes;
         }
 
         // ITrunkCapabilities implementation
