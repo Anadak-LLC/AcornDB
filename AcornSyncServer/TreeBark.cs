@@ -1,4 +1,5 @@
 using AcornDB.Models;
+using AcornDB.Logging;
 using Microsoft.AspNetCore.Mvc;
 
 namespace AcornDB.Sync
@@ -23,7 +24,7 @@ namespace AcornDB.Sync
         /// </summary>
         public void Start()
         {
-            Console.WriteLine($"🌰 TreeBark starting on port {_port}...");
+            AcornLog.Info($"🌰 TreeBark starting on port {_port}...");
             // Implementation in Program.cs
         }
 
@@ -33,7 +34,7 @@ namespace AcornDB.Sync
         public void RegisterTree<T>(Tree<T> tree)
         {
             _grove.Plant(tree);
-            Console.WriteLine($"🌳 TreeBark registered Tree<{typeof(T).Name}>");
+            AcornLog.Info($"🌳 TreeBark registered Tree<{typeof(T).Name}>");
         }
     }
 

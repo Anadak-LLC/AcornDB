@@ -1,4 +1,5 @@
 using AcornDB;
+using AcornDB.Logging;
 using AcornDB.Models;
 using AcornDB.Storage;
 
@@ -14,11 +15,11 @@ var grove = app.Services.GetRequiredService<Grove>();
 
 // Plant a User tree with DocumentStoreTrunk for full versioning
 grove.Plant(new Tree<User>(new DocumentStoreTrunk<User>("data/server/users")));
-Console.WriteLine("🌳 Planted Tree<User> with DocumentStoreTrunk");
+AcornLog.Info("🌳 Planted Tree<User> with DocumentStoreTrunk");
 
 // Plant a Product tree for demo purposes
 grove.Plant(new Tree<Product>(new DocumentStoreTrunk<Product>("data/server/products")));
-Console.WriteLine("🌳 Planted Tree<Product> with DocumentStoreTrunk\n");
+AcornLog.Info("🌳 Planted Tree<Product> with DocumentStoreTrunk\n");
 
 // TreeBark API endpoints
 var bark = app.MapGroup("/bark");
@@ -104,8 +105,8 @@ app.MapGet("/", () => new
     }
 });
 
-Console.WriteLine("🌰 TreeBark Sync Server starting...");
-Console.WriteLine($"🌐 Listening on: {builder.Configuration["ASPNETCORE_URLS"] ?? "http://localhost:5000"}");
+AcornLog.Info("🌰 TreeBark Sync Server starting...");
+AcornLog.Info($"🌐 Listening on: {builder.Configuration["ASPNETCORE_URLS"] ?? "http://localhost:5000"}");
 
 app.Run();
 

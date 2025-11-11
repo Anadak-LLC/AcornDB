@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 using AcornDB.Indexing;
+using AcornDB.Logging;
 
 namespace AcornDB
 {
@@ -142,7 +143,7 @@ namespace AcornDB
                     catch (Exception ex)
                     {
                         // Log other index update failures but don't break the stash operation
-                        Console.WriteLine($"⚠️ Failed to update index '{index.Name}' during stash: {ex.Message}");
+                        AcornLog.Error($"⚠️ Failed to update index '{index.Name}' during stash: {ex.Message}");
                     }
                 }
             }
@@ -165,7 +166,7 @@ namespace AcornDB
                     catch (Exception ex)
                     {
                         // Log index update failure but don't break the toss operation
-                        Console.WriteLine($"⚠️ Failed to update index '{index.Name}' during toss: {ex.Message}");
+                        AcornLog.Error($"⚠️ Failed to update index '{index.Name}' during toss: {ex.Message}");
                     }
                 }
             }
@@ -189,7 +190,7 @@ namespace AcornDB
                     }
                     catch (Exception ex)
                     {
-                        Console.WriteLine($"⚠️ Failed to rebuild index '{index.Name}': {ex.Message}");
+                        AcornLog.Error($"⚠️ Failed to rebuild index '{index.Name}': {ex.Message}");
                     }
                 }
             }

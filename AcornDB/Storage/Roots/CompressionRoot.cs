@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using AcornDB.Compression;
 
 namespace AcornDB.Storage.Roots
@@ -57,7 +58,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                Console.WriteLine($"⚠️ Compression failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Info($"⚠️ Compression failed for document '{context.DocumentId}': {ex.Message}");
                 throw new InvalidOperationException($"Failed to compress data", ex);
             }
         }
@@ -80,7 +81,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                Console.WriteLine($"⚠️ Decompression failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Info($"⚠️ Decompression failed for document '{context.DocumentId}': {ex.Message}");
                 throw new InvalidOperationException($"Failed to decompress data", ex);
             }
         }

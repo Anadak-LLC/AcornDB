@@ -19,10 +19,10 @@ namespace AcornDB.Persistence.DataLake
         public static async Task ExportToParquet<T>(
             this ITrunk<T> sourceTrunk,
             string path,
-            ParquetOptions? options = null)
+            ParquetOptions? options = null) where T : class
         {
             var parquetTrunk = new ParquetTrunk<T>(path, options);
-            var nuts = sourceTrunk.LoadAll();
+            var nuts = sourceTrunk.CrackAll();
             await parquetTrunk.ImportChangesAsync(nuts);
         }
 
@@ -33,10 +33,10 @@ namespace AcornDB.Persistence.DataLake
             this ITrunk<T> sourceTrunk,
             string path,
             ICloudStorageProvider cloudStorage,
-            ParquetOptions? options = null)
+            ParquetOptions? options = null) where T : class
         {
             var parquetTrunk = new ParquetTrunk<T>(path, cloudStorage, options);
-            var nuts = sourceTrunk.LoadAll();
+            var nuts = sourceTrunk.CrackAll();
             await parquetTrunk.ImportChangesAsync(nuts);
         }
 
@@ -46,7 +46,7 @@ namespace AcornDB.Persistence.DataLake
         public static async Task ImportFromParquet<T>(
             this ITrunk<T> targetTrunk,
             string path,
-            ParquetOptions? options = null)
+            ParquetOptions? options = null) where T : class
         {
             var parquetTrunk = new ParquetTrunk<T>(path, options);
             var nuts = await parquetTrunk.CrackAllAsync();
@@ -60,7 +60,7 @@ namespace AcornDB.Persistence.DataLake
             this ITrunk<T> targetTrunk,
             string path,
             ICloudStorageProvider cloudStorage,
-            ParquetOptions? options = null)
+            ParquetOptions? options = null) where T : class
         {
             var parquetTrunk = new ParquetTrunk<T>(path, cloudStorage, options);
             var nuts = await parquetTrunk.CrackAllAsync();

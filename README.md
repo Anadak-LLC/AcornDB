@@ -230,6 +230,32 @@ grove.Oversee<User>(branch); // Auto-syncs to remote server
 | **📊 AcornDB.Canopy** | Web UI for browsing groves and nuts |
 | **📜 Full History** | `GetHistory(id)` for version history (Git & DocumentStore trunks) |
 
+### ⚠️ Not Yet Implemented
+
+The following features are advertised in the API but not yet fully implemented:
+
+| Feature | Status | Planned Version | Details |
+|---------|--------|----------------|---------|
+| **Advanced Indexes** | API exists, throws `NotImplementedException` | v0.6.0 | See [IndexExtensions.cs](/AcornDB/Extensions/IndexExtensions.cs) marked `[Experimental]` |
+| └─ Composite Indexes | `WithCompositeIndex()` | v0.6.0 (Phase 4.1) | Index on multiple properties |
+| └─ Computed Indexes | `WithComputedIndex()` | v0.6.0 (Phase 4.2) | Index on computed expressions |
+| └─ Full-Text Search | `WithTextIndex()` | v0.6.0 (Phase 4.3-4.4) | Text search with tokenization |
+| └─ Time-Series Indexes | `WithTimeSeries()` | v0.6.0 (Phase 4.5) | Time-bucketing for temporal queries |
+| └─ TTL Optimization | `WithTtl()` | v0.6.0 (Phase 4.6) | Automatic cleanup with indexes |
+| **IRoot Support** | Partial implementation | v0.5.1 | 4 trunk types need migration to `TrunkBase<T>` |
+| └─ DynamoDbTrunk | Stub implementation | v0.5.1 | IRoot pipeline not functional |
+| └─ AzureTableTrunk | Stub implementation | v0.5.1 | IRoot pipeline not functional |
+| └─ ParquetTrunk | Stub implementation | v0.5.1 | IRoot pipeline not functional |
+| └─ TieredTrunk | Stub implementation | v0.5.1 | IRoot pipeline not functional |
+| **Network Sync** | Stub (console only) | v0.7.0+ | See [AcornSyncServer/NOT_IMPLEMENTED.md](/AcornSyncServer/NOT_IMPLEMENTED.md) |
+| └─ SyncEngine | Logs but doesn't sync | v0.7.0+ | Network transport not implemented |
+| └─ Hardwood Server | Basic structure only | v0.7.0+ | REST endpoints not implemented |
+| └─ Canopy Real-Time | SignalR stubs | v0.7.0+ | See [Canopy/NOT_IMPLEMENTED.md](/Canopy/NOT_IMPLEMENTED.md) |
+
+**Note:** Only scalar indexes via `WithIndex()` are production-ready. All other index methods will throw `NotImplementedException` with a clear message indicating when they'll be available.
+
+For more details, see [ARCHITECTURE_REVIEW_2025.md](/ARCHITECTURE_REVIEW_2025.md).
+
 ### ⚡ Performance
 
 AcornDB is **fast**. Really fast.

@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Data;
@@ -56,11 +57,11 @@ namespace AcornDB.Persistence.RDBMS
 
             EnsureDatabase();
 
-            Console.WriteLine($"💾 SqliteTrunk initialized:");
-            Console.WriteLine($"   Database: {databasePath}");
-            Console.WriteLine($"   Table: {_tableName}");
-            Console.WriteLine($"   WAL Mode: Enabled");
-            Console.WriteLine($"   Batch Size: {BATCH_SIZE}");
+            AcornLog.Info($"💾 SqliteTrunk initialized:");
+            AcornLog.Info($"   Database: {databasePath}");
+            AcornLog.Info($"   Table: {_tableName}");
+            AcornLog.Info($"   WAL Mode: Enabled");
+            AcornLog.Info($"   Batch Size: {BATCH_SIZE}");
         }
 
         private void EnsureDatabase()
@@ -164,7 +165,7 @@ namespace AcornDB.Persistence.RDBMS
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
+                    AcornLog.Info($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
                     return null;
                 }
             }
@@ -260,7 +261,7 @@ namespace AcornDB.Persistence.RDBMS
             // Force flush
             await FlushBatchAsync();
 
-            Console.WriteLine($"   💾 Imported {changesList.Count} nuts to SQLite");
+            AcornLog.Info($"   💾 Imported {changesList.Count} nuts to SQLite");
         }
 
         /// <summary>
@@ -369,7 +370,7 @@ namespace AcornDB.Persistence.RDBMS
                 }
 
                 await transaction.CommitAsync();
-                Console.WriteLine($"   💾 Flushed {batch.Count} nuts to SQLite");
+                AcornLog.Info($"   💾 Flushed {batch.Count} nuts to SQLite");
             }
             catch
             {
@@ -458,7 +459,7 @@ namespace AcornDB.Persistence.RDBMS
             command.CommandText = $"DROP INDEX IF EXISTS {indexName}";
             command.ExecuteNonQuery();
 
-            Console.WriteLine($"✓ Dropped SQLite index: {indexName}");
+            AcornLog.Info($"✓ Dropped SQLite index: {indexName}");
         }
 
         /// <summary>

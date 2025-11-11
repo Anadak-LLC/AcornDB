@@ -17,18 +17,18 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>AcornDB.Persistence.DataLake</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB.Persistence.DataLake</Product>
-    <Description>🌰 Data Lake persistence for AcornDB - Apache Parquet integration with partitioning support for S3, Azure Data Lake, and local file systems. Enables bidirectional data lake interoperability with columnar storage formats.</Description>
-    <PackageTags>acorndb;datalake;parquet;analytics;columnar;s3;azure;data-lake;storage;persistence;database</PackageTags>
+    <Description>🌰 Data Lake persistence for AcornDB - Apache Parquet and TieredTrunk with full IRoot pipeline support. Enables compression, encryption, policy enforcement on columnar storage with hot/cold tiering capabilities.</Description>
+    <PackageTags>acorndb;datalake;parquet;analytics;columnar;s3;azure;data-lake;storage;persistence;database;tiered</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
     <Copyright>Copyright © 2025 Anadak LLC</Copyright>
-    <PackageReleaseNotes>v0.1.0: Initial release with Apache Parquet support and data lake partitioning</PackageReleaseNotes>
+    <PackageReleaseNotes>v0.5.0: ParquetTrunk and TieredTrunk migrated to TrunkBase with full IRoot support, unified architecture, hot/cold storage optimization.</PackageReleaseNotes>
 
     <!-- Build Settings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

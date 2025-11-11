@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -60,20 +61,20 @@ namespace AcornDB.Storage
             try
             {
                 var primaryCaps = _primaryTrunk.Capabilities;
-                Console.WriteLine($"🛡️ ResilientTrunk initialized:");
-                Console.WriteLine($"   Primary: {primaryCaps?.TrunkType ?? "Unknown"}");
+                AcornLog.Info($"🛡️ ResilientTrunk initialized:");
+                AcornLog.Info($"   Primary: {primaryCaps?.TrunkType ?? "Unknown"}");
                 if (_fallbackTrunk != null)
                 {
                     var fallbackCaps = _fallbackTrunk.Capabilities;
-                    Console.WriteLine($"   Fallback: {fallbackCaps?.TrunkType ?? "Unknown"}");
+                    AcornLog.Info($"   Fallback: {fallbackCaps?.TrunkType ?? "Unknown"}");
                 }
-                Console.WriteLine($"   Max Retries: {_options.MaxRetries}");
-                Console.WriteLine($"   Circuit Breaker: {(_options.EnableCircuitBreaker ? "Enabled" : "Disabled")}");
+                AcornLog.Info($"   Max Retries: {_options.MaxRetries}");
+                AcornLog.Info($"   Circuit Breaker: {(_options.EnableCircuitBreaker ? "Enabled" : "Disabled")}");
             }
             catch (Exception ex)
             {
                 // If capabilities check fails, just log and continue
-                Console.WriteLine($"🛡️ ResilientTrunk initialized (capabilities unavailable: {ex.Message})");
+                AcornLog.Info($"🛡️ ResilientTrunk initialized (capabilities unavailable: {ex.Message})");
             }
         }
 
@@ -182,14 +183,14 @@ namespace AcornDB.Storage
                 if (DateTime.UtcNow - _circuitOpenedAt >= _options.CircuitBreakerTimeout)
                 {
                     _circuitState = CircuitBreakerState.HalfOpen;
-                    Console.WriteLine($"🔄 Circuit breaker transitioning to Half-Open state");
+                    AcornLog.Info($"🔄 Circuit breaker transitioning to Half-Open state");
                 }
                 else
                 {
                     // Circuit is open, use fallback immediately
                     if (fallbackOperation != null)
                     {
-                        Console.WriteLine($"⚡ Circuit OPEN - using fallback for {operationName}");
+                        AcornLog.Info($"⚡ Circuit OPEN - using fallback for {operationName}");
                         _totalFallbacks++;
                         return fallbackOperation();
                     }
@@ -210,7 +211,7 @@ namespace AcornDB.Storage
                     {
                         _circuitState = CircuitBreakerState.Closed;
                         _failureCount = 0;
-                        Console.WriteLine($"✅ Circuit breaker CLOSED after successful operation");
+                        AcornLog.Info($"✅ Circuit breaker CLOSED after successful operation");
                     }
 
                     return result;
@@ -232,7 +233,7 @@ namespace AcornDB.Storage
                     {
                         _totalRetries++;
                         var delay = CalculateRetryDelay(attempt);
-                        Console.WriteLine($"⚠️ {operationName} failed (attempt {attempt + 1}/{_options.MaxRetries + 1}), retrying in {delay}ms: {ex.Message}");
+                        AcornLog.Info($"⚠️ {operationName} failed (attempt {attempt + 1}/{_options.MaxRetries + 1}), retrying in {delay}ms: {ex.Message}");
                         System.Threading.Thread.Sleep(delay);
                     }
                 }
@@ -247,7 +248,7 @@ namespace AcornDB.Storage
                     _circuitState = CircuitBreakerState.Open;
                     _circuitOpenedAt = DateTime.UtcNow;
                     _circuitBreakerTrips++;
-                    Console.WriteLine($"🔴 Circuit breaker OPENED after {_failureCount} failures");
+                    AcornLog.Info($"🔴 Circuit breaker OPENED after {_failureCount} failures");
                 }
             }
 
@@ -256,13 +257,13 @@ namespace AcornDB.Storage
             {
                 try
                 {
-                    Console.WriteLine($"🔄 Primary trunk failed, using fallback for {operationName}");
+                    AcornLog.Info($"🔄 Primary trunk failed, using fallback for {operationName}");
                     _totalFallbacks++;
                     return fallbackOperation();
                 }
                 catch (Exception fallbackEx)
                 {
-                    Console.WriteLine($"❌ Fallback trunk also failed for {operationName}: {fallbackEx.Message}");
+                    AcornLog.Info($"❌ Fallback trunk also failed for {operationName}: {fallbackEx.Message}");
                     throw new AggregateException(
                         $"Both primary and fallback trunks failed for {operationName}",
                         lastException!,
@@ -363,7 +364,7 @@ namespace AcornDB.Storage
             _circuitState = CircuitBreakerState.Closed;
             _failureCount = 0;
             _circuitOpenedAt = DateTime.MinValue;
-            Console.WriteLine($"🔄 Circuit breaker manually reset to CLOSED");
+            AcornLog.Info($"🔄 Circuit breaker manually reset to CLOSED");
         }
 
         // ITrunkCapabilities implementation - forward to primary trunk with custom TrunkType

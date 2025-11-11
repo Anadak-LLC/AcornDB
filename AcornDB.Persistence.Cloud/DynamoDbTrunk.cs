@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -15,6 +16,7 @@ namespace AcornDB.Persistence.Cloud
     /// <summary>
     /// AWS DynamoDB trunk implementation.
     /// OPTIMIZED with batch operations, write buffering, and intelligent hash/sort keys.
+    /// Extends TrunkBase to support IRoot pipeline (compression, encryption, policy enforcement).
     ///
     /// Hash/Sort Key Strategy:
     /// - Hash Key (Partition Key) = TypeName (e.g., "User", "Product") - enables efficient batch operations
@@ -28,24 +30,11 @@ namespace AcornDB.Persistence.Cloud
     /// - DynamoDB Streams support for change tracking/sync
     /// - Even distribution across partitions when using multiple types
     /// </summary>
-    public class DynamoDbTrunk<T> : ITrunk<T>, IDisposable
+    public class DynamoDbTrunk<T> : TrunkBase<T> where T : class
     {
         private readonly AmazonDynamoDBClient _client;
         private readonly string _tableName;
         private readonly string _partitionKey;
-        private bool _disposed;
-
-        // Write batching infrastructure
-        private readonly List<PendingWrite> _writeBuffer = new();
-        private readonly SemaphoreSlim _writeLock = new(1, 1);
-        private readonly Timer _flushTimer;
-        private readonly int _batchSize;
-
-        private struct PendingWrite
-        {
-            public string Id;
-            public Nut<T> Nut;
-        }
 
         /// <summary>
         /// Create DynamoDB trunk
@@ -54,16 +43,18 @@ namespace AcornDB.Persistence.Cloud
         /// <param name="tableName">DynamoDB table name. Default: Acorns{TypeName}</param>
         /// <param name="createTableIfNotExists">Whether to create the table if it doesn't exist</param>
         /// <param name="batchSize">Write batch size (default: 25, max allowed by DynamoDB)</param>
+        /// <param name="serializer">Custom serializer (defaults to Newtonsoft.Json)</param>
         public DynamoDbTrunk(
             AmazonDynamoDBClient client,
             string? tableName = null,
             bool createTableIfNotExists = true,
-            int batchSize = 25)
+            int batchSize = 25,
+            ISerializer? serializer = null)
+            : base(serializer, enableBatching: true, batchThreshold: Math.Min(batchSize, 25), flushIntervalMs: 200)
         {
             _client = client ?? throw new ArgumentNullException(nameof(client));
             var typeName = typeof(T).Name;
             _partitionKey = typeName; // Each type gets its own partition
-            _batchSize = Math.Min(batchSize, 25); // DynamoDB batch limit
 
             _tableName = tableName ?? $"Acorns{typeName}";
 
@@ -71,9 +62,6 @@ namespace AcornDB.Persistence.Cloud
             {
                 EnsureTableExists().GetAwaiter().GetResult();
             }
-
-            // Auto-flush every 200ms
-            _flushTimer = new Timer(_ => FlushAsync().GetAwaiter().GetResult(), null, 200, 200);
         }
 
         /// <summary>
@@ -83,12 +71,14 @@ namespace AcornDB.Persistence.Cloud
         /// <param name="tableName">DynamoDB table name. Default: Acorns{TypeName}</param>
         /// <param name="createTableIfNotExists">Whether to create the table if it doesn't exist</param>
         /// <param name="batchSize">Write batch size (default: 25)</param>
+        /// <param name="serializer">Custom serializer (defaults to Newtonsoft.Json)</param>
         public DynamoDbTrunk(
             Amazon.RegionEndpoint region,
             string? tableName = null,
             bool createTableIfNotExists = true,
-            int batchSize = 25)
-            : this(new AmazonDynamoDBClient(region), tableName, createTableIfNotExists, batchSize)
+            int batchSize = 25,
+            ISerializer? serializer = null)
+            : this(new AmazonDynamoDBClient(region), tableName, createTableIfNotExists, batchSize, serializer)
         {
         }
 
@@ -154,9 +144,10 @@ namespace AcornDB.Persistence.Cloud
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Stash(string id, Nut<T> nut)
+        public override void Stash(string id, Nut<T> nut)
         {
-            StashAsync(id, nut).GetAwaiter().GetResult();
+            // Use TrunkBase batching infrastructure
+            StashWithBatchingAsync(id, nut).GetAwaiter().GetResult();
         }
 
         [Obsolete("Use Stash instead")]
@@ -167,26 +158,7 @@ namespace AcornDB.Persistence.Cloud
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public async Task StashAsync(string id, Nut<T> nut)
-        {
-            bool shouldFlush = false;
-            lock (_writeBuffer)
-            {
-                _writeBuffer.Add(new PendingWrite { Id = id, Nut = nut });
-                if (_writeBuffer.Count >= _batchSize)
-                {
-                    shouldFlush = true;
-                }
-            }
-
-            if (shouldFlush)
-            {
-                await FlushAsync();
-            }
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Crack(string id)
+        public override Nut<T>? Crack(string id)
         {
             return CrackAsync(id).GetAwaiter().GetResult();
         }
@@ -222,7 +194,7 @@ namespace AcornDB.Persistence.Cloud
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Toss(string id)
+        public override void Toss(string id)
         {
             TossAsync(id).GetAwaiter().GetResult();
         }
@@ -237,29 +209,21 @@ namespace AcornDB.Persistence.Cloud
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task TossAsync(string id)
         {
-            await _writeLock.WaitAsync();
-            try
+            var request = new DeleteItemRequest
             {
-                var request = new DeleteItemRequest
+                TableName = _tableName,
+                Key = new Dictionary<string, AttributeValue>
                 {
-                    TableName = _tableName,
-                    Key = new Dictionary<string, AttributeValue>
-                    {
-                        { "TypeName", new AttributeValue { S = _partitionKey } },
-                        { "Id", new AttributeValue { S = id } }
-                    }
-                };
+                    { "TypeName", new AttributeValue { S = _partitionKey } },
+                    { "Id", new AttributeValue { S = id } }
+                }
+            };
 
-                await _client.DeleteItemAsync(request);
-            }
-            finally
-            {
-                _writeLock.Release();
-            }
+            await _client.DeleteItemAsync(request);
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public IEnumerable<Nut<T>> CrackAll()
+        public override IEnumerable<Nut<T>> CrackAll()
         {
             return CrackAllAsync().GetAwaiter().GetResult();
         }
@@ -307,22 +271,22 @@ namespace AcornDB.Persistence.Cloud
             return nuts;
         }
 
-        public IReadOnlyList<Nut<T>> GetHistory(string id)
+        public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             throw new NotSupportedException("DynamoDbTrunk does not support history. Use DocumentStoreTrunk for versioning.");
         }
 
-        public IEnumerable<Nut<T>> ExportChanges()
+        public override IEnumerable<Nut<T>> ExportChanges()
         {
             return CrackAll();
         }
 
-        public void ImportChanges(IEnumerable<Nut<T>> incoming)
+        public override void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
 
-        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        public override ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
             SupportsHistory = false,
             SupportsSync = true,
@@ -336,110 +300,110 @@ namespace AcornDB.Persistence.Cloud
             var incomingList = incoming.ToList();
             if (!incomingList.Any()) return;
 
-            await _writeLock.WaitAsync();
-            try
-            {
-                // DynamoDB BatchWriteItem supports up to 25 items per request
-                var batches = incomingList.Chunk(25);
+            // DynamoDB BatchWriteItem supports up to 25 items per request
+            var batches = incomingList.Chunk(25);
 
-                foreach (var batch in batches)
+            foreach (var batch in batches)
+            {
+                var writeRequests = batch.Select(nut => new WriteRequest
                 {
-                    var writeRequests = batch.Select(nut => new WriteRequest
+                    PutRequest = new PutRequest
                     {
-                        PutRequest = new PutRequest
-                        {
-                            Item = CreateItem(nut.Id, nut)
-                        }
-                    }).ToList();
-
-                    var request = new BatchWriteItemRequest
-                    {
-                        RequestItems = new Dictionary<string, List<WriteRequest>>
-                        {
-                            { _tableName, writeRequests }
-                        }
-                    };
-
-                    // Handle unprocessed items (with exponential backoff)
-                    var response = await _client.BatchWriteItemAsync(request);
-                    int retryCount = 0;
-
-                    while (response.UnprocessedItems.Count > 0 && retryCount < 5)
-                    {
-                        await Task.Delay((int)Math.Pow(2, retryCount) * 100); // Exponential backoff
-                        response = await _client.BatchWriteItemAsync(new BatchWriteItemRequest
-                        {
-                            RequestItems = response.UnprocessedItems
-                        });
-                        retryCount++;
+                        Item = CreateItem(nut.Id, nut)
                     }
-                }
+                }).ToList();
 
-                Console.WriteLine($"   💾 Imported {incomingList.Count} nuts to DynamoDB");
+                var request = new BatchWriteItemRequest
+                {
+                    RequestItems = new Dictionary<string, List<WriteRequest>>
+                    {
+                        { _tableName, writeRequests }
+                    }
+                };
+
+                // Handle unprocessed items (with exponential backoff)
+                var response = await _client.BatchWriteItemAsync(request);
+                int retryCount = 0;
+
+                while (response.UnprocessedItems.Count > 0 && retryCount < 5)
+                {
+                    await Task.Delay((int)Math.Pow(2, retryCount) * 100); // Exponential backoff
+                    response = await _client.BatchWriteItemAsync(new BatchWriteItemRequest
+                    {
+                        RequestItems = response.UnprocessedItems
+                    });
+                    retryCount++;
+                }
             }
-            finally
-            {
-                _writeLock.Release();
-            }
+
+            AcornLog.Info($"   💾 Imported {incomingList.Count} nuts to DynamoDB");
         }
 
-        private async Task FlushAsync()
+        /// <summary>
+        /// Write batch to DynamoDB storage (called by TrunkBase batching infrastructure)
+        /// </summary>
+        protected override async Task WriteBatchToStorageAsync(List<PendingWrite> batch)
         {
-            List<PendingWrite> toWrite;
-            lock (_writeBuffer)
-            {
-                if (_writeBuffer.Count == 0) return;
-                toWrite = new List<PendingWrite>(_writeBuffer);
-                _writeBuffer.Clear();
-            }
+            // Batch operations - up to 25 items per request
+            var batches = batch.Chunk(25);
 
-            await _writeLock.WaitAsync();
-            try
+            foreach (var batchChunk in batches)
             {
-                // Batch operations - up to 25 items per request
-                var batches = toWrite.Chunk(25);
-
-                foreach (var batch in batches)
+                var writeRequests = batchChunk.Select(write => new WriteRequest
                 {
-                    var writeRequests = batch.Select(write => new WriteRequest
+                    PutRequest = new PutRequest
                     {
-                        PutRequest = new PutRequest
-                        {
-                            Item = CreateItem(write.Id, write.Nut)
-                        }
-                    }).ToList();
-
-                    var request = new BatchWriteItemRequest
-                    {
-                        RequestItems = new Dictionary<string, List<WriteRequest>>
-                        {
-                            { _tableName, writeRequests }
-                        }
-                    };
-
-                    // Handle unprocessed items with retry
-                    var response = await _client.BatchWriteItemAsync(request);
-                    int retryCount = 0;
-
-                    while (response.UnprocessedItems.Count > 0 && retryCount < 5)
-                    {
-                        await Task.Delay((int)Math.Pow(2, retryCount) * 100);
-                        response = await _client.BatchWriteItemAsync(new BatchWriteItemRequest
-                        {
-                            RequestItems = response.UnprocessedItems
-                        });
-                        retryCount++;
+                        Item = CreateItemFromProcessedData(write.Id, write.ProcessedData, write.Timestamp, write.Version)
                     }
-                }
+                }).ToList();
 
-                Console.WriteLine($"   💾 Flushed {toWrite.Count} nuts to DynamoDB");
+                var request = new BatchWriteItemRequest
+                {
+                    RequestItems = new Dictionary<string, List<WriteRequest>>
+                    {
+                        { _tableName, writeRequests }
+                    }
+                };
+
+                // Handle unprocessed items with retry
+                var response = await _client.BatchWriteItemAsync(request);
+                int retryCount = 0;
+
+                while (response.UnprocessedItems.Count > 0 && retryCount < 5)
+                {
+                    await Task.Delay((int)Math.Pow(2, retryCount) * 100);
+                    response = await _client.BatchWriteItemAsync(new BatchWriteItemRequest
+                    {
+                        RequestItems = response.UnprocessedItems
+                    });
+                    retryCount++;
+                }
             }
-            finally
-            {
-                _writeLock.Release();
-            }
+
+            AcornLog.Info($"   💾 Flushed {batch.Count} nuts to DynamoDB");
         }
 
+        /// <summary>
+        /// Create DynamoDB item from IRoot-processed data (used by TrunkBase batching)
+        /// </summary>
+        private Dictionary<string, AttributeValue> CreateItemFromProcessedData(string id, byte[] processedData, DateTime timestamp, int version)
+        {
+            // ProcessedData is already through IRoot pipeline (compressed, encrypted, etc.)
+            var item = new Dictionary<string, AttributeValue>
+            {
+                { "TypeName", new AttributeValue { S = _partitionKey } },
+                { "Id", new AttributeValue { S = id } },
+                { "JsonData", new AttributeValue { S = System.Text.Encoding.UTF8.GetString(processedData) } },
+                { "Version", new AttributeValue { N = version.ToString() } },
+                { "Timestamp", new AttributeValue { N = new DateTimeOffset(timestamp).ToUnixTimeSeconds().ToString() } }
+            };
+
+            return item;
+        }
+
+        /// <summary>
+        /// Create DynamoDB item from Nut (used by non-batched operations like ImportChanges)
+        /// </summary>
         private Dictionary<string, AttributeValue> CreateItem(string id, Nut<T> nut)
         {
             var item = new Dictionary<string, AttributeValue>
@@ -470,22 +434,15 @@ namespace AcornDB.Persistence.Cloud
         public bool SupportsAsync => true;
         public string TrunkType => "DynamoDbTrunk";
 
-        public void Dispose()
+        public new void Dispose()
         {
             if (_disposed) return;
             _disposed = true;
 
-            // Flush pending writes before disposal
-            FlushAsync().GetAwaiter().GetResult();
+            // Flush pending writes before disposal (handled by base class)
+            base.Dispose();
 
-            _flushTimer?.Dispose();
-            _writeLock?.Dispose();
             _client?.Dispose();
         }
-
-        // IRoot support - stub implementation (to be fully implemented later)
-        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
-        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
-        public bool RemoveRoot(string name) => false;
     }
 }

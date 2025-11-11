@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Linq.Expressions;
@@ -130,7 +131,7 @@ namespace AcornDB.Persistence.RDBMS
                 _isCreated = true;
                 State = IndexState.Ready;
 
-                Console.WriteLine($"✓ Created SQLite index: {Name}");
+                AcornLog.Info($"✓ Created SQLite index: {Name}");
             }
             catch (Exception ex)
             {
@@ -153,7 +154,7 @@ namespace AcornDB.Persistence.RDBMS
                 _isCreated = false;
                 State = IndexState.Building;
 
-                Console.WriteLine($"✓ Dropped SQLite index: {Name}");
+                AcornLog.Info($"✓ Dropped SQLite index: {Name}");
             }
             catch (Exception ex)
             {
@@ -213,7 +214,7 @@ namespace AcornDB.Persistence.RDBMS
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in SQLite index lookup: {ex.Message}");
+                AcornLog.Info($"Error in SQLite index lookup: {ex.Message}");
                 return Enumerable.Empty<string>();
             }
         }
@@ -252,7 +253,7 @@ namespace AcornDB.Persistence.RDBMS
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in SQLite index range query: {ex.Message}");
+                AcornLog.Info($"Error in SQLite index range query: {ex.Message}");
                 return Enumerable.Empty<string>();
             }
         }
@@ -288,7 +289,7 @@ namespace AcornDB.Persistence.RDBMS
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"Error in SQLite index sorted query: {ex.Message}");
+                AcornLog.Info($"Error in SQLite index sorted query: {ex.Message}");
                 return Enumerable.Empty<string>();
             }
         }

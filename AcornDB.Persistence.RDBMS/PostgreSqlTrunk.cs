@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -246,7 +247,7 @@ namespace AcornDB.Persistence.RDBMS
             // Force flush
             await FlushBatchAsync();
 
-            Console.WriteLine($"   💾 Imported {incomingList.Count} nuts to PostgreSQL");
+            AcornLog.Info($"   💾 Imported {incomingList.Count} nuts to PostgreSQL");
         }
 
         protected override async Task WriteToStorageAsync(string id, byte[] processedBytes, DateTime timestamp, int version)
@@ -273,7 +274,7 @@ namespace AcornDB.Persistence.RDBMS
                 }
 
                 await transaction.CommitAsync();
-                Console.WriteLine($"   💾 Flushed {batch.Count} nuts to PostgreSQL");
+                AcornLog.Info($"   💾 Flushed {batch.Count} nuts to PostgreSQL");
             }
             catch
             {

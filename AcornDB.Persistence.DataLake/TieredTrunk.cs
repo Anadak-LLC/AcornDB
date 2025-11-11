@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -13,6 +14,8 @@ namespace AcornDB.Persistence.DataLake
     /// Tiered storage trunk implementing hot/cold data architecture.
     /// Hot tier: Fast OLTP storage (BTree, Memory, SQL)
     /// Cold tier: Columnar analytics storage (Parquet, archived data)
+
+    /// Extends TrunkBase to support IRoot pipeline (compression, encryption, policy enforcement).
     ///
     /// Benefits:
     /// - Fast queries on recent data (hot tier)
@@ -20,13 +23,12 @@ namespace AcornDB.Persistence.DataLake
     /// - Automatic data aging/archival
     /// - Query federation across tiers
     /// </summary>
-    public class TieredTrunk<T> : ITrunk<T>, IDisposable
+    public class TieredTrunk<T> : TrunkBase<T> where T : class
     {
         private readonly ITrunk<T> _hotTrunk;
         private readonly ITrunk<T> _coldTrunk;
         private readonly TieringOptions<T> _options;
         private readonly Timer? _tieringTimer;
-        private bool _disposed;
 
         /// <summary>
         /// Create tiered trunk with hot and cold storage
@@ -34,10 +36,13 @@ namespace AcornDB.Persistence.DataLake
         /// <param name="hotTrunk">Hot tier (fast OLTP storage)</param>
         /// <param name="coldTrunk">Cold tier (columnar/archived storage)</param>
         /// <param name="options">Tiering options (aging strategy)</param>
+        /// <param name="serializer">Custom serializer (defaults to Newtonsoft.Json)</param>
         public TieredTrunk(
             ITrunk<T> hotTrunk,
             ITrunk<T> coldTrunk,
-            TieringOptions<T>? options = null)
+            TieringOptions<T>? options = null,
+            ISerializer? serializer = null)
+            : base(serializer, enableBatching: false)
         {
             _hotTrunk = hotTrunk ?? throw new ArgumentNullException(nameof(hotTrunk));
             _coldTrunk = coldTrunk ?? throw new ArgumentNullException(nameof(coldTrunk));
@@ -54,32 +59,25 @@ namespace AcornDB.Persistence.DataLake
                 );
             }
 
-            Console.WriteLine($"🔥❄️ TieredTrunk initialized:");
-            Console.WriteLine($"   Hot Tier: {GetTrunkType(_hotTrunk)}");
-            Console.WriteLine($"   Cold Tier: {GetTrunkType(_coldTrunk)}");
-            Console.WriteLine($"   Auto-Tiering: {(_options.AutoTiering ? "Enabled" : "Disabled")}");
+            AcornLog.Info($"🔥❄️ TieredTrunk initialized:");
+            AcornLog.Info($"   Hot Tier: {GetTrunkType(_hotTrunk)}");
+            AcornLog.Info($"   Cold Tier: {GetTrunkType(_coldTrunk)}");
+            AcornLog.Info($"   Auto-Tiering: {(_options.AutoTiering ? "Enabled" : "Disabled")}");
             if (_options.ArchiveAfter.HasValue)
             {
-                Console.WriteLine($"   Archive After: {_options.ArchiveAfter.Value.TotalDays:F0} days");
+                AcornLog.Info($"   Archive After: {_options.ArchiveAfter.Value.TotalDays:F0} days");
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Stash(string id, Nut<T> nut)
+        public override void Stash(string id, Nut<T> nut)
         {
             // Always write to hot tier for fast writes
             _hotTrunk.Stash(id, nut);
         }
 
-        [Obsolete("Use Stash instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> nut)
-        {
-            Stash(id, nut);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Crack(string id)
+        public override Nut<T>? Crack(string id)
         {
             // Try hot tier first (cache pattern)
             var nut = _hotTrunk.Crack(id);
@@ -98,29 +96,15 @@ namespace AcornDB.Persistence.DataLake
             return nut;
         }
 
-        [Obsolete("Use Crack instead")]
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
-        {
-            return Crack(id);
-        }
-
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Toss(string id)
+        public override void Toss(string id)
         {
             // Delete from both tiers
             _hotTrunk.Toss(id);
             _coldTrunk.Toss(id);
         }
 
-        [Obsolete("Use Toss instead")]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Delete(string id)
-        {
-            Toss(id);
-        }
-
-        public IEnumerable<Nut<T>> CrackAll()
+        public override IEnumerable<Nut<T>> CrackAll()
         {
             // Query federation: combine both tiers
             var hotNuts = _hotTrunk.CrackAll().ToDictionary(n => n.Id);
@@ -138,13 +122,7 @@ namespace AcornDB.Persistence.DataLake
             return hotNuts.Values;
         }
 
-        [Obsolete("Use CrackAll instead")]
-        public IEnumerable<Nut<T>> LoadAll()
-        {
-            return CrackAll();
-        }
-
-        public IReadOnlyList<Nut<T>> GetHistory(string id)
+        public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             // Try hot tier first (likely has most recent history)
             var hotCaps = _hotTrunk.GetCapabilities();
@@ -167,18 +145,18 @@ namespace AcornDB.Persistence.DataLake
             throw new NotSupportedException("Neither tier supports history.");
         }
 
-        public IEnumerable<Nut<T>> ExportChanges()
+        public override IEnumerable<Nut<T>> ExportChanges()
         {
             return CrackAll();
         }
 
-        public void ImportChanges(IEnumerable<Nut<T>> incoming)
+        public override void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             // Import to hot tier for fast writes
             _hotTrunk.ImportChanges(incoming);
         }
 
-        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        public override ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
             SupportsHistory = false,
             SupportsSync = true,
@@ -209,7 +187,7 @@ namespace AcornDB.Persistence.DataLake
                 return;
             }
 
-            Console.WriteLine($"   🔥→❄️ Tiering {oldNuts.Count} nuts from hot to cold storage...");
+            AcornLog.Info($"   🔥→❄️ Tiering {oldNuts.Count} nuts from hot to cold storage...");
 
             // Move to cold tier
             _coldTrunk.ImportChanges(oldNuts);
@@ -220,7 +198,7 @@ namespace AcornDB.Persistence.DataLake
                 _hotTrunk.Toss(nut.Id);
             }
 
-            Console.WriteLine($"   ✅ Tiered {oldNuts.Count} nuts to cold storage");
+            AcornLog.Info($"   ✅ Tiered {oldNuts.Count} nuts to cold storage");
         }
 
         /// <summary>
@@ -295,10 +273,9 @@ namespace AcornDB.Persistence.DataLake
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (_disposed) return;
-            _disposed = true;
 
             _tieringTimer?.Dispose();
 
@@ -307,12 +284,10 @@ namespace AcornDB.Persistence.DataLake
 
             if (_coldTrunk is IDisposable coldDisposable)
                 coldDisposable.Dispose();
-        }
 
-        // IRoot support - stub implementation (to be fully implemented later)
-        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
-        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
-        public bool RemoveRoot(string name) => false;
+            // Call base class disposal
+            base.Dispose();
+        }
     }
 
     /// <summary>

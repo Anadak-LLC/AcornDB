@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -176,7 +177,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Failed to decompress nut '{compressedNut.Id}': {ex.Message}");
+                AcornLog.Info($"⚠️ Failed to decompress nut '{compressedNut.Id}': {ex.Message}");
                 return null;
             }
         }

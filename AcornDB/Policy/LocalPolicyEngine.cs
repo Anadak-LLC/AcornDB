@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -236,7 +237,7 @@ namespace AcornDB.Policy
                     case "DENY":
                         throw new PolicyViolationException($"Access denied: {target}");
                     case "WARN":
-                        Console.WriteLine($"� Policy warning: {target}");
+                        AcornLog.Info($"� Policy warning: {target}");
                         break;
                 }
             }

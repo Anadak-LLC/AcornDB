@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -105,7 +106,7 @@ namespace AcornDB.Storage
                     catch (Exception ex)
                     {
                         // Log but don't throw from timer callback
-                        Console.Error.WriteLine($"⚠️ Write batch flush failed: {ex.Message}");
+                        AcornLog.Error($"⚠️ Write batch flush failed: {ex.Message}");
                     }
                 }, null, flushIntervalMs, flushIntervalMs);
             }
@@ -497,7 +498,7 @@ namespace AcornDB.Storage
                 }
                 catch (Exception ex)
                 {
-                    Console.Error.WriteLine($"⚠️ ERROR: Failed to flush write batch during disposal: {ex.Message}");
+                    AcornLog.Error($"⚠️ ERROR: Failed to flush write batch during disposal: {ex.Message}");
                     // Don't rethrow - disposal must succeed to release resources
                 }
             }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AcornDB.Logging;
 
 namespace AcornDB.Sync
 {
@@ -59,7 +60,7 @@ namespace AcornDB.Sync
                 // B → A
                 var tangleBA = new Tangle<T>(treeB, new InProcessBranch<T>(treeA), $"Tangle_{nodeB}→{nodeA}");
 
-                Console.WriteLine($"> 🕸️  Mesh link created: {nodeA} ↔ {nodeB}");
+                AcornLog.Info($"> 🕸️  Mesh link created: {nodeA} ↔ {nodeB}");
             }
         }
 
@@ -80,7 +81,7 @@ namespace AcornDB.Sync
                     }
                 }
 
-                Console.WriteLine($"> 🕸️  Full mesh created with {nodeIds.Count} nodes");
+                AcornLog.Info($"> 🕸️  Full mesh created with {nodeIds.Count} nodes");
             }
         }
 
@@ -99,7 +100,7 @@ namespace AcornDB.Sync
                     ConnectNodes(nodeIds[i], nodeIds[nextIndex]);
                 }
 
-                Console.WriteLine($"> 🔗 Ring topology created with {nodeIds.Count} nodes");
+                AcornLog.Info($"> 🔗 Ring topology created with {nodeIds.Count} nodes");
             }
         }
 
@@ -121,7 +122,7 @@ namespace AcornDB.Sync
                     }
                 }
 
-                Console.WriteLine($"> ⭐ Star topology created with hub: {hubNodeId}");
+                AcornLog.Info($"> ⭐ Star topology created with hub: {hubNodeId}");
             }
         }
 
@@ -139,7 +140,7 @@ namespace AcornDB.Sync
                 }
             }
 
-            Console.WriteLine($"> 🌊 Mesh synchronized: {_nodes.Count} nodes");
+            AcornLog.Info($"> 🌊 Mesh synchronized: {_nodes.Count} nodes");
         }
 
         /// <summary>

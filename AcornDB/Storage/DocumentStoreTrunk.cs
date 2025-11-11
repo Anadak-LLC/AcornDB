@@ -1,4 +1,5 @@
 using System.Buffers;
+using AcornDB.Logging;
 using System.Collections.Concurrent;
 using System.Runtime.CompilerServices;
 using System.Text;
@@ -314,7 +315,7 @@ namespace AcornDB.Storage
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"⚠️ Failed to deserialize log entry: {ex.Message}");
+                    AcornLog.Info($"⚠️ Failed to deserialize log entry: {ex.Message}");
                 }
             }
         }
@@ -332,7 +333,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                Console.Error.WriteLine($"⚠️ ERROR: DocumentStoreTrunk failed to flush during disposal: {ex.Message}");
+                AcornLog.Error($"⚠️ ERROR: DocumentStoreTrunk failed to flush during disposal: {ex.Message}");
                 // Don't rethrow - disposal must succeed to release resources
             }
 

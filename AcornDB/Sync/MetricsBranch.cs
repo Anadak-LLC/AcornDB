@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -220,7 +221,7 @@ namespace AcornDB.Sync
             _isDisposed = true;
 
             var summary = GetSummary();
-            Console.WriteLine($"> 📊 MetricsBranch {BranchId} disposed - {summary.TotalOperations} operations tracked");
+            AcornLog.Info($"> 📊 MetricsBranch {BranchId} disposed - {summary.TotalOperations} operations tracked");
 
             GC.SuppressFinalize(this);
         }

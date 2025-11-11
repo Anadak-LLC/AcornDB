@@ -1,16 +1,15 @@
-﻿{
-  "ChangeId": "a553e63b-3af6-4ae2-8ad8-33830837207c",
+{
+  "ChangeId": "ab9271b8-2b7f-4b04-8eb2-91fc214dc13c",
+  "OriginNodeId": null,
+  "HopCount": 0,
   "Id": "alice",
   "Payload": {
     "Name": "Alice Squirrel"
   },
-  "Timestamp": "2025-10-05T20:19:44.2695699Z",
+  "Timestamp": "2025-10-22T03:48:18.335096Z",
   "ExpiresAt": null,
   "Version": 1,
   "Value": {
-    "Name": "Alice Squirrel"
-  },
-  "Nut": {
     "Name": "Alice Squirrel"
   }
 }

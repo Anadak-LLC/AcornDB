@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 
@@ -107,7 +108,7 @@ namespace AcornDB.Sync
                 Details = $"{action} on key '{leaf.Key}' from tree {leaf.OriginTreeId} (hop {leaf.HopCount})"
             });
 
-            Console.WriteLine($"> 📝 AUDIT [{BranchId}]: {action} - {leaf.Key} from {leaf.OriginTreeId}");
+            AcornLog.Info($"> 📝 AUDIT [{BranchId}]: {action} - {leaf.Key} from {leaf.OriginTreeId}");
         }
 
         private void ThrowIfDisposed()
@@ -126,7 +127,7 @@ namespace AcornDB.Sync
                 return;
 
             _isDisposed = true;
-            Console.WriteLine($"> 📝 AuditBranch {BranchId} disposed ({_auditLog.Count} entries logged)");
+            AcornLog.Info($"> 📝 AuditBranch {BranchId} disposed ({_auditLog.Count} entries logged)");
             _auditLog.Clear();
             GC.SuppressFinalize(this);
         }

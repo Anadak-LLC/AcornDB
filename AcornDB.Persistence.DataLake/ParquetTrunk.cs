@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
@@ -17,6 +18,7 @@ namespace AcornDB.Persistence.DataLake
     /// <summary>
     /// Apache Parquet trunk implementation for data lake interoperability.
     /// Supports local files, S3, Azure Data Lake with columnar storage and partitioning.
+    /// Extends TrunkBase to support IRoot pipeline (compression, encryption, policy enforcement).
     ///
     /// Key Features:
     /// - Columnar storage format (optimized for analytics)
@@ -31,20 +33,21 @@ namespace AcornDB.Persistence.DataLake
     /// - Cold storage with columnar compression
     /// - Interoperability with Spark, Athena, Synapse Analytics
     /// </summary>
-    public class ParquetTrunk<T> : ITrunk<T>, IDisposable
+    public class ParquetTrunk<T> : TrunkBase<T> where T : class
     {
         private readonly string _basePath;
         private readonly ICloudStorageProvider? _cloudStorage;
         private readonly ParquetOptions _options;
         private readonly string _typeName;
-        private bool _disposed;
 
         /// <summary>
         /// Create Parquet trunk for local file system
         /// </summary>
         /// <param name="basePath">Base directory path for Parquet files</param>
         /// <param name="options">Parquet options (compression, partitioning, etc.)</param>
-        public ParquetTrunk(string basePath, ParquetOptions? options = null)
+        /// <param name="serializer">Custom serializer (defaults to Newtonsoft.Json)</param>
+        public ParquetTrunk(string basePath, ParquetOptions? options = null, ISerializer? serializer = null)
+            : base(serializer, enableBatching: false)
         {
             _basePath = basePath ?? throw new ArgumentNullException(nameof(basePath));
             _cloudStorage = null;
@@ -57,11 +60,11 @@ namespace AcornDB.Persistence.DataLake
                 Directory.CreateDirectory(_basePath);
             }
 
-            Console.WriteLine($"📊 ParquetTrunk initialized:");
-            Console.WriteLine($"   Type: {_typeName}");
-            Console.WriteLine($"   Path: {_basePath}");
-            Console.WriteLine($"   Compression: {_options.CompressionMethod}");
-            Console.WriteLine($"   Partitioning: {(_options.PartitionStrategy != null ? "Enabled" : "Disabled")}");
+            AcornLog.Info($"📊 ParquetTrunk initialized:");
+            AcornLog.Info($"   Type: {_typeName}");
+            AcornLog.Info($"   Path: {_basePath}");
+            AcornLog.Info($"   Compression: {_options.CompressionMethod}");
+            AcornLog.Info($"   Partitioning: {(_options.PartitionStrategy != null ? "Enabled" : "Disabled")}");
         }
 
         /// <summary>
@@ -70,27 +73,21 @@ namespace AcornDB.Persistence.DataLake
         /// <param name="basePath">Base path/prefix in cloud storage</param>
         /// <param name="cloudStorage">Cloud storage provider</param>
         /// <param name="options">Parquet options</param>
-        public ParquetTrunk(string basePath, ICloudStorageProvider cloudStorage, ParquetOptions? options = null)
-            : this(basePath, options)
+        /// <param name="serializer">Custom serializer (defaults to Newtonsoft.Json)</param>
+        public ParquetTrunk(string basePath, ICloudStorageProvider cloudStorage, ParquetOptions? options = null, ISerializer? serializer = null)
+            : this(basePath, options, serializer)
         {
             _cloudStorage = cloudStorage ?? throw new ArgumentNullException(nameof(cloudStorage));
 
             var info = _cloudStorage.GetInfo();
-            Console.WriteLine($"   Cloud Provider: {info.ProviderName}");
-            Console.WriteLine($"   Bucket: {info.BucketName}");
+            AcornLog.Info($"   Cloud Provider: {info.ProviderName}");
+            AcornLog.Info($"   Bucket: {info.BucketName}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Stash(string id, Nut<T> nut)
+        public override void Stash(string id, Nut<T> nut)
         {
             StashAsync(id, nut).GetAwaiter().GetResult();
-        }
-
-        [Obsolete("Use Stash instead")]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Save(string id, Nut<T> nut)
-        {
-            Stash(id, nut);
         }
 
         public async Task StashAsync(string id, Nut<T> nut)
@@ -116,16 +113,9 @@ namespace AcornDB.Persistence.DataLake
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Crack(string id)
+        public override Nut<T>? Crack(string id)
         {
             return CrackAsync(id).GetAwaiter().GetResult();
-        }
-
-        [Obsolete("Use Crack instead")]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Load(string id)
-        {
-            return Crack(id);
         }
 
         public async Task<Nut<T>?> CrackAsync(string id)
@@ -137,16 +127,9 @@ namespace AcornDB.Persistence.DataLake
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Toss(string id)
+        public override void Toss(string id)
         {
             TossAsync(id).GetAwaiter().GetResult();
-        }
-
-        [Obsolete("Use Toss instead")]
-        [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Delete(string id)
-        {
-            Toss(id);
         }
 
         public async Task TossAsync(string id)
@@ -175,15 +158,9 @@ namespace AcornDB.Persistence.DataLake
             }
         }
 
-        public IEnumerable<Nut<T>> CrackAll()
+        public override IEnumerable<Nut<T>> CrackAll()
         {
             return CrackAllAsync().GetAwaiter().GetResult();
-        }
-
-        [Obsolete("Use CrackAll instead")]
-        public IEnumerable<Nut<T>> LoadAll()
-        {
-            return CrackAll();
         }
 
         public async Task<IEnumerable<Nut<T>>> CrackAllAsync()
@@ -200,24 +177,24 @@ namespace AcornDB.Persistence.DataLake
             return allNuts;
         }
 
-        public IReadOnlyList<Nut<T>> GetHistory(string id)
+        public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             throw new NotSupportedException(
                 "ParquetTrunk does not support history. " +
                 "Parquet is immutable/append-only. Use Delta Lake format for time travel.");
         }
 
-        public IEnumerable<Nut<T>> ExportChanges()
+        public override IEnumerable<Nut<T>> ExportChanges()
         {
             return CrackAll();
         }
 
-        public void ImportChanges(IEnumerable<Nut<T>> incoming)
+        public override void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
 
-        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        public override ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
             SupportsHistory = false,
             SupportsSync = true,
@@ -236,7 +213,7 @@ namespace AcornDB.Persistence.DataLake
                 .GroupBy(nut => GetPartitionedPath(nut))
                 .ToList();
 
-            Console.WriteLine($"   📊 Importing {incomingList.Count} nuts across {partitionedNuts.Count} partitions");
+            AcornLog.Info($"   📊 Importing {incomingList.Count} nuts across {partitionedNuts.Count} partitions");
 
             foreach (var partition in partitionedNuts)
             {
@@ -260,7 +237,7 @@ namespace AcornDB.Persistence.DataLake
                 await WriteParquetFileAsync(filePath, nuts);
             }
 
-            Console.WriteLine($"   📊 Import complete: {incomingList.Count} nuts");
+            AcornLog.Info($"   📊 Import complete: {incomingList.Count} nuts");
         }
 
         /// <summary>
@@ -487,15 +464,12 @@ namespace AcornDB.Persistence.DataLake
         public bool SupportsAsync => true;
         public string TrunkType => "ParquetTrunk";
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (_disposed) return;
-            _disposed = true;
-        }
 
-        // IRoot support - stub implementation (to be fully implemented later)
-        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
-        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
-        public bool RemoveRoot(string name) => false;
+            // Call base class disposal
+            base.Dispose();
+        }
     }
 }

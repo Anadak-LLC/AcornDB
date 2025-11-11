@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 
@@ -109,7 +110,7 @@ namespace AcornDB.Transaction
             {
                 // Rollback on any error
                 Rollback();
-                Console.WriteLine($"⚠️ Transaction failed: {ex.Message}");
+                AcornLog.Info($"⚠️ Transaction failed: {ex.Message}");
                 return false;
             }
         }

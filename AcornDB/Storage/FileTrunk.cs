@@ -1,4 +1,5 @@
 using System.Runtime.CompilerServices;
+using AcornDB.Logging;
 using System.Text;
 using AcornDB.Policy;
 using Newtonsoft.Json;
@@ -96,7 +97,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
+                AcornLog.Info($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
                 return null;
             }
         }

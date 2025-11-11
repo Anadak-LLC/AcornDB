@@ -1,4 +1,5 @@
 using System.Collections.Concurrent;
+using AcornDB.Logging;
 using System.Runtime.CompilerServices;
 using System.Text;
 using AcornDB.Policy;
@@ -67,7 +68,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
+                AcornLog.Info($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
                 return null;
             }
         }

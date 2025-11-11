@@ -1,4 +1,5 @@
 ﻿using AcornDB.Sync;
+using AcornDB.Logging;
 
 namespace AcornDB
 {
@@ -34,7 +35,7 @@ namespace AcornDB
         {
             ThrowIfDisposed();
 
-            Console.WriteLine($"> 🔄 Tangle '{_id}': Push delete for '{key}'");
+            AcornLog.Info($"> 🔄 Tangle '{_id}': Push delete for '{key}'");
             _remoteBranch.TryDelete<T>(key);
         }
 
@@ -42,7 +43,7 @@ namespace AcornDB
         {
             ThrowIfDisposed();
 
-            Console.WriteLine($"> 🍃 Tangle '{_id}' pushing all to remote...");
+            AcornLog.Info($"> 🍃 Tangle '{_id}' pushing all to remote...");
             foreach (var shell in tree.ExportChanges())
             {
                 _remoteBranch.TryPush(shell.Id, shell);
@@ -57,7 +58,7 @@ namespace AcornDB
         {
             if (!_isDisposed)
             {
-                Console.WriteLine($"> 💔 Tangle '{_id}' broken!");
+                AcornLog.Info($"> 💔 Tangle '{_id}' broken!");
             }
             Dispose();
         }

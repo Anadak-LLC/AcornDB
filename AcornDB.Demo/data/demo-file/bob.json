@@ -1,16 +1,15 @@
-﻿{
-  "ChangeId": "83c782fb-cebe-4fd9-9d24-4c5248e690a1",
+{
+  "ChangeId": "a01e5a56-0c93-4cf6-872d-c8894e2c73d3",
+  "OriginNodeId": null,
+  "HopCount": 0,
   "Id": "bob",
   "Payload": {
     "Name": "Bob Nutcracker"
   },
-  "Timestamp": "2025-10-05T20:19:44.2797311Z",
+  "Timestamp": "2025-10-22T03:48:18.350542Z",
   "ExpiresAt": null,
   "Version": 1,
   "Value": {
-    "Name": "Bob Nutcracker"
-  },
-  "Nut": {
     "Name": "Bob Nutcracker"
   }
 }

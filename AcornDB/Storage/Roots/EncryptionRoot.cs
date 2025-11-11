@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Text;
 using AcornDB.Security;
 
@@ -65,7 +66,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                Console.WriteLine($"⚠️ Encryption failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Info($"⚠️ Encryption failed for document '{context.DocumentId}': {ex.Message}");
                 throw new InvalidOperationException($"Failed to encrypt data", ex);
             }
         }
@@ -91,7 +92,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                Console.WriteLine($"⚠️ Decryption failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Info($"⚠️ Decryption failed for document '{context.DocumentId}': {ex.Message}");
                 throw new InvalidOperationException($"Failed to decrypt data", ex);
             }
         }

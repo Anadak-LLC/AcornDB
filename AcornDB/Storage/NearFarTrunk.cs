@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -56,11 +57,11 @@ namespace AcornDB.Storage
             _backingStore = backingStore ?? throw new ArgumentNullException(nameof(backingStore));
             _options = options ?? NearFarOptions.Default;
 
-            Console.WriteLine($"🔄 NearFarTrunk initialized:");
-            Console.WriteLine($"   Near Cache: {GetTrunkType(_nearCache)} (local)");
-            Console.WriteLine($"   Far Cache: {GetTrunkType(_farCache)} (distributed)");
-            Console.WriteLine($"   Backing Store: {GetTrunkType(_backingStore)}");
-            Console.WriteLine($"   Write Strategy: {_options.WriteStrategy}");
+            AcornLog.Info($"🔄 NearFarTrunk initialized:");
+            AcornLog.Info($"   Near Cache: {GetTrunkType(_nearCache)} (local)");
+            AcornLog.Info($"   Far Cache: {GetTrunkType(_farCache)} (distributed)");
+            AcornLog.Info($"   Backing Store: {GetTrunkType(_backingStore)}");
+            AcornLog.Info($"   Write Strategy: {_options.WriteStrategy}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

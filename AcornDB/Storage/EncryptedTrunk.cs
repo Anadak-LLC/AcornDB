@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
@@ -174,7 +175,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Failed to decrypt nut '{encryptedNut.Id}': {ex.Message}");
+                AcornLog.Info($"⚠️ Failed to decrypt nut '{encryptedNut.Id}': {ex.Message}");
                 return null;
             }
         }

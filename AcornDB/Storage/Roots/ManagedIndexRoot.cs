@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using AcornDB.Indexing;
 
 namespace AcornDB.Storage.Roots
@@ -67,7 +68,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                Console.WriteLine($"⚠️ Index root processing failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Info($"⚠️ Index root processing failed for document '{context.DocumentId}': {ex.Message}");
                 // Don't throw - indexing failures shouldn't break writes
                 return data;
             }
@@ -92,7 +93,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                Console.WriteLine($"⚠️ Index root retrieval failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Info($"⚠️ Index root retrieval failed for document '{context.DocumentId}': {ex.Message}");
                 // Don't throw - indexing failures shouldn't break reads
                 return data;
             }

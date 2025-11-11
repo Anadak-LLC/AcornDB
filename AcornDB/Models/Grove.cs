@@ -1,5 +1,6 @@
 ﻿using AcornDB.Metrics;
 using AcornDB.Sync;
+using AcornDB.Logging;
 
 namespace AcornDB.Models
 {
@@ -19,7 +20,7 @@ namespace AcornDB.Models
         {
             var id = $"{typeof(T).FullName}#{_nextTreeId++}";
             _trees[id] = tree;
-            Console.WriteLine($"> 🌳 Grove planted Tree<{typeof(T).Name}> with ID '{id}'");
+            AcornLog.Info($"> 🌳 Grove planted Tree<{typeof(T).Name}> with ID '{id}'");
             return id;
         }
 
@@ -29,7 +30,7 @@ namespace AcornDB.Models
         public void Plant<T>(Tree<T> tree, string id) where T : class
         {
             _trees[id] = tree;
-            Console.WriteLine($"> 🌳 Grove planted Tree<{typeof(T).Name}> with ID '{id}'");
+            AcornLog.Info($"> 🌳 Grove planted Tree<{typeof(T).Name}> with ID '{id}'");
         }
 
         /// <summary>
@@ -75,7 +76,7 @@ namespace AcornDB.Models
 
             var tangle = new Tangle<T>(tree, branch, tangleId);
             _tangles.Add(tangle);
-            Console.WriteLine($"> 🪢 Grove entangled Tree<{typeof(T).Name}> with branch '{branch.RemoteUrl}'");
+            AcornLog.Info($"> 🪢 Grove entangled Tree<{typeof(T).Name}> with branch '{branch.RemoteUrl}'");
             return tangle;
         }
 
@@ -87,14 +88,14 @@ namespace AcornDB.Models
 
             var tangle = new Tangle<T>(tree, branch, tangleId);
             _tangles.Add(tangle);
-            Console.WriteLine($"> 🪢 Grove entangled Tree<{typeof(T).Name}>[{treeId}] with branch '{branch.RemoteUrl}'");
+            AcornLog.Info($"> 🪢 Grove entangled Tree<{typeof(T).Name}>[{treeId}] with branch '{branch.RemoteUrl}'");
             return tangle;
         }
 
         public void Oversee<T>(Branch branch, string id) where T : class
         {
             Entangle<T>(branch, id);
-            Console.WriteLine($">Grove is overseeing Tangle '{id}' for Tree<{typeof(T).Name}>");
+            AcornLog.Info($">Grove is overseeing Tangle '{id}' for Tree<{typeof(T).Name}>");
         }
 
         /// <summary>
@@ -104,7 +105,7 @@ namespace AcornDB.Models
         {
             if (_tangles.Remove(tangle))
             {
-                Console.WriteLine($"> 🔓 Grove detangled tangle");
+                AcornLog.Info($"> 🔓 Grove detangled tangle");
                 tangle?.Dispose();
             }
         }
@@ -114,19 +115,19 @@ namespace AcornDB.Models
         /// </summary>
         public void DetangleAll()
         {
-            Console.WriteLine("> 🔓 Grove detangling all tangles...");
+            AcornLog.Info("> 🔓 Grove detangling all tangles...");
             foreach (var tangle in _tangles.ToList())
             {
                 if (tangle is IDisposable disposable)
                     disposable.Dispose();
             }
             _tangles.Clear();
-            Console.WriteLine("> 🔓 All grove entanglements cleared!");
+            AcornLog.Info("> 🔓 All grove entanglements cleared!");
         }
 
         public void ShakeAll()
         {
-            Console.WriteLine("> 🍃 Grove is shaking all tangles...");
+            AcornLog.Info("> 🍃 Grove is shaking all tangles...");
             foreach (var tangle in _tangles)
             {
                 if (tangle is IDisposable disposable)
@@ -140,7 +141,7 @@ namespace AcornDB.Models
         /// </summary>
         public void EntangleAll(string remoteUrl)
         {
-            Console.WriteLine($"> 🌐 Grove entangling all trees with {remoteUrl}");
+            AcornLog.Info($"> 🌐 Grove entangling all trees with {remoteUrl}");
 
             var branch = new Branch(remoteUrl);
 
@@ -163,11 +164,11 @@ namespace AcornDB.Models
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"> ⚠️ Failed to entangle Tree<{genericArg.Name}>: {ex.Message}");
+                    AcornLog.Error($"> ⚠️ Failed to entangle Tree<{genericArg.Name}>: {ex.Message}");
                 }
             }
 
-            Console.WriteLine($"> ✅ Grove entangled {_trees.Count} trees with {remoteUrl}");
+            AcornLog.Info($"> ✅ Grove entangled {_trees.Count} trees with {remoteUrl}");
         }
 
         /// <summary>
@@ -178,7 +179,7 @@ namespace AcornDB.Models
         /// <returns>Number of tangles created</returns>
         public int EntangleAll(bool bidirectional = true)
         {
-            Console.WriteLine($"> 🕸️ Grove creating {(bidirectional ? "bidirectional" : "unidirectional")} mesh entanglement...");
+            AcornLog.Info($"> 🕸️ Grove creating {(bidirectional ? "bidirectional" : "unidirectional")} mesh entanglement...");
 
             var trees = _trees.ToList();
             var tangleCount = 0;
@@ -219,18 +220,18 @@ namespace AcornDB.Models
                             {
                                 _tangles.Add(tangle);
                                 tangleCount++;
-                                Console.WriteLine($">   🪢 {genericArg1.Name} [{tree1.Key}] ↔ [{tree2.Key}]");
+                                AcornLog.Info($">   🪢 {genericArg1.Name} [{tree1.Key}] ↔ [{tree2.Key}]");
                             }
                         }
                         catch (Exception ex)
                         {
-                            Console.WriteLine($">   ⚠️ Failed to entangle {tree1.Key} ↔ {tree2.Key}: {ex.Message}");
+                            AcornLog.Error($">   ⚠️ Failed to entangle {tree1.Key} ↔ {tree2.Key}: {ex.Message}");
                         }
                     }
                 }
             }
 
-            Console.WriteLine($"> ✅ Grove mesh complete: {tangleCount} tangles created for {trees.Count} trees");
+            AcornLog.Info($"> ✅ Grove mesh complete: {tangleCount} tangles created for {trees.Count} trees");
             return tangleCount;
         }
 
