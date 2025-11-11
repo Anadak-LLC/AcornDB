@@ -2,7 +2,7 @@
 
 namespace AcornDB
 {
-    public partial class Tangle<T> : IDisposable
+    public partial class Tangle<T> : IDisposable where T : class
     {
         private readonly Tree<T> _local;
         private readonly Sync.Branch _remoteBranch;

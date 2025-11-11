@@ -15,7 +15,7 @@ namespace AcornDB.Models
         /// <summary>
         /// Plant a tree in the grove with an auto-generated unique ID
         /// </summary>
-        public string Plant<T>(Tree<T> tree)
+        public string Plant<T>(Tree<T> tree) where T : class
         {
             var id = $"{typeof(T).FullName}#{_nextTreeId++}";
             _trees[id] = tree;
@@ -26,7 +26,7 @@ namespace AcornDB.Models
         /// <summary>
         /// Plant a tree in the grove with a specific ID
         /// </summary>
-        public void Plant<T>(Tree<T> tree, string id)
+        public void Plant<T>(Tree<T> tree, string id) where T : class
         {
             _trees[id] = tree;
             Console.WriteLine($"> 🌳 Grove planted Tree<{typeof(T).Name}> with ID '{id}'");
@@ -35,7 +35,7 @@ namespace AcornDB.Models
         /// <summary>
         /// Get the first tree of a specific type (for backward compatibility)
         /// </summary>
-        public Tree<T>? GetTree<T>()
+        public Tree<T>? GetTree<T>() where T : class
         {
             var typePrefix = typeof(T).FullName!;
             var match = _trees.FirstOrDefault(kvp => kvp.Key.StartsWith(typePrefix + "#") || kvp.Key == typePrefix);
@@ -45,7 +45,7 @@ namespace AcornDB.Models
         /// <summary>
         /// Get a tree by its specific ID
         /// </summary>
-        public Tree<T>? GetTree<T>(string id)
+        public Tree<T>? GetTree<T>(string id) where T : class
         {
             return _trees.TryGetValue(id, out var obj) ? obj as Tree<T> : null;
         }
@@ -53,7 +53,7 @@ namespace AcornDB.Models
         /// <summary>
         /// Get all trees of a specific type
         /// </summary>
-        public IEnumerable<Tree<T>> GetTrees<T>()
+        public IEnumerable<Tree<T>> GetTrees<T>() where T : class
         {
             var typePrefix = typeof(T).FullName!;
             return _trees
@@ -67,7 +67,7 @@ namespace AcornDB.Models
             return _trees.Values;
         }
 
-        public Tangle<T> Entangle<T>(Branch branch, string tangleId)
+        public Tangle<T> Entangle<T>(Branch branch, string tangleId) where T : class
         {
             var tree = GetTree<T>();
             if (tree == null)
@@ -79,7 +79,7 @@ namespace AcornDB.Models
             return tangle;
         }
 
-        public Tangle<T> Entangle<T>(Branch branch, string treeId, string tangleId)
+        public Tangle<T> Entangle<T>(Branch branch, string treeId, string tangleId) where T : class
         {
             var tree = GetTree<T>(treeId);
             if (tree == null)
@@ -91,7 +91,7 @@ namespace AcornDB.Models
             return tangle;
         }
 
-        public void Oversee<T>(Branch branch, string id)
+        public void Oversee<T>(Branch branch, string id) where T : class
         {
             Entangle<T>(branch, id);
             Console.WriteLine($">Grove is overseeing Tangle '{id}' for Tree<{typeof(T).Name}>");
@@ -100,7 +100,7 @@ namespace AcornDB.Models
         /// <summary>
         /// Detangle a specific tangle from the grove
         /// </summary>
-        public void Detangle<T>(Tangle<T> tangle)
+        public void Detangle<T>(Tangle<T> tangle) where T : class
         {
             if (_tangles.Remove(tangle))
             {

@@ -147,7 +147,7 @@ namespace AcornDB.Sync
             }
         }
 
-        public Task OnShakeAsync<T>(Tree<T> tree)
+        public Task OnShakeAsync<T>(Tree<T> tree) where T : class
         {
             ThrowIfDisposed();
             lock (_lock)
@@ -224,35 +224,5 @@ namespace AcornDB.Sync
 
             GC.SuppressFinalize(this);
         }
-    }
-
-    /// <summary>
-    /// Overall metrics summary
-    /// </summary>
-    public class MetricsSummary
-    {
-        public long TotalStash { get; set; }
-        public long TotalToss { get; set; }
-        public long TotalSquabble { get; set; }
-        public long TotalShake { get; set; }
-        public long TotalOperations { get; set; }
-        public double OperationsPerSecond { get; set; }
-        public TimeSpan Uptime { get; set; }
-        public DateTime? LastEventTime { get; set; }
-        public int UniqueTreesSeen { get; set; }
-    }
-
-    /// <summary>
-    /// Metrics for a specific tree
-    /// </summary>
-    public class TreeMetrics
-    {
-        public string TreeId { get; set; } = string.Empty;
-        public long StashCount { get; set; }
-        public long TossCount { get; set; }
-        public long SquabbleCount { get; set; }
-        public DateTime? LastSeen { get; set; }
-
-        public long TotalOperations => StashCount + TossCount + SquabbleCount;
     }
 }

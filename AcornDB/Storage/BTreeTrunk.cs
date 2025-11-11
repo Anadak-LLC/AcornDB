@@ -24,21 +24,15 @@ namespace AcornDB.Storage
     /// Write: Nut<T> → Serialize to binary → Root Chain (ascending) → byte[] → Write to MMF
     /// Read: Read MMF → byte[] → Root Chain (descending) → Deserialize from binary → Nut<T>
     /// </summary>
-    public class BTreeTrunk<T> : ITrunk<T>, IDisposable
+    public class BTreeTrunk<T> : TrunkBase<T>, IDisposable where T : class
     {
         private readonly string _filePath;
         private readonly ConcurrentDictionary<string, NutEntry> _index;
         private MemoryMappedFile? _mmf;
         private MemoryMappedViewAccessor? _accessor;
         private long _filePosition;
-        private readonly SemaphoreSlim _writeLock = new(1, 1);
-        private readonly List<PendingWrite> _writeBuffer = new();
-        private readonly Timer _flushTimer;
-        private bool _disposed = false;
+        private readonly SemaphoreSlim _mmfWriteLock = new(1, 1);  // For MMF expansion, not batching
         private FileStream? _fileStream;
-        private readonly List<IRoot> _roots = new();
-        private readonly object _rootsLock = new();
-        private readonly ISerializer _serializer;
         private bool _indexLoaded = false;
 
         private const int INITIAL_FILE_SIZE = 64 * 1024 * 1024; // 64MB initial
@@ -54,18 +48,15 @@ namespace AcornDB.Storage
             public int Version { get; set; }
         }
 
-        private struct PendingWrite
-        {
-            public string Id;
-            public byte[] Data;
-            public DateTime Timestamp;
-            public int Version;
-        }
-
         // Binary format header: [Magic:4][Version:4][Timestamp:8][PayloadLen:4][Id][Payload]
         private const int HEADER_SIZE = 20;
 
         public BTreeTrunk(string? customPath = null, ISerializer? serializer = null)
+            : base(
+                serializer,
+                enableBatching: true,           // Enable batching via TrunkBase
+                batchThreshold: BUFFER_THRESHOLD,
+                flushIntervalMs: FLUSH_INTERVAL_MS)
         {
             var typeName = typeof(T).Name;
             var folderPath = customPath ?? Path.Combine(Directory.GetCurrentDirectory(), "data", typeName);
@@ -73,71 +64,10 @@ namespace AcornDB.Storage
 
             _filePath = Path.Combine(folderPath, "btree_v2.db");
             _index = new ConcurrentDictionary<string, NutEntry>();
-            _serializer = serializer ?? new NewtonsoftJsonSerializer();
 
             InitializeMemoryMappedFile();
             // Note: Do NOT load index in constructor if roots might be needed
             // LoadIndex will be called automatically after adding roots or on first access
-
-            // Auto-flush timer for write batching
-            _flushTimer = new Timer(_ =>
-            {
-                try { FlushAsync().Wait(); }
-                catch { /* Swallow timer exceptions */ }
-            }, null, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS);
-        }
-
-        /// <summary>
-        /// Get all registered root processors
-        /// </summary>
-        public IReadOnlyList<IRoot> Roots
-        {
-            get
-            {
-                lock (_rootsLock)
-                {
-                    return _roots.ToList();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Add a root processor to the processing chain
-        /// </summary>
-        public void AddRoot(IRoot root)
-        {
-            if (root == null) throw new ArgumentNullException(nameof(root));
-
-            lock (_rootsLock)
-            {
-                _roots.Add(root);
-                // Sort by sequence to ensure correct execution order
-                _roots.Sort((a, b) => a.Sequence.CompareTo(b.Sequence));
-
-                // If index hasn't been loaded yet and we just added the first root, load it now
-                if (!_indexLoaded)
-                {
-                    LoadIndex();
-                    _indexLoaded = true;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Remove a root processor from the processing chain
-        /// </summary>
-        public bool RemoveRoot(string name)
-        {
-            lock (_rootsLock)
-            {
-                var root = _roots.FirstOrDefault(r => r.Name == name);
-                if (root != null)
-                {
-                    _roots.Remove(root);
-                    return true;
-                }
-                return false;
-            }
         }
 
         private void InitializeMemoryMappedFile()
@@ -234,97 +164,106 @@ namespace AcornDB.Storage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Stash(string id, Nut<T> nut)
+        public override void Stash(string id, Nut<T> nut)
         {
-            // Step 1: Serialize Nut<T> to binary format
-            var data = SerializeBinary(id, nut);
-
-            // Step 2: Process through root chain in ascending sequence order
-            var context = new RootProcessingContext
-            {
-                PolicyContext = new PolicyContext { Operation = "Write" },
-                DocumentId = id
-            };
-
-            var processedData = data;
-            lock (_rootsLock)
-            {
-                foreach (var root in _roots)
-                {
-                    processedData = root.OnStash(processedData, context);
-                }
-            }
-
-            // Step 3: Add to write buffer
-            lock (_writeBuffer)
-            {
-                _writeBuffer.Add(new PendingWrite
-                {
-                    Id = id,
-                    Data = processedData,
-                    Timestamp = nut.Timestamp,
-                    Version = nut.Version
-                });
-
-                // Flush if buffer is full
-                if (_writeBuffer.Count >= BUFFER_THRESHOLD)
-                {
-                    FlushAsync().Wait();
-                }
-            }
+            // Use TrunkBase batching infrastructure
+            // This handles IRoot pipeline processing, batching, and auto-flush
+            StashWithBatchingAsync(id, nut).GetAwaiter().GetResult();
         }
 
-        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
-        public void Save(string id, Nut<T> nut) => Stash(id, nut);
-
-        private async Task FlushAsync()
+        /// <summary>
+        /// Write a single item to memory-mapped file (used by TrunkBase for immediate writes if needed)
+        /// </summary>
+        protected override async Task WriteToStorageAsync(string id, byte[] data, DateTime timestamp, int version)
         {
-            List<PendingWrite> toWrite;
+            // BTreeTrunk uses binary serialization, so we need to re-wrap the processed data
+            var binaryData = WrapInBinaryFormat(id, data, timestamp, version);
 
-            lock (_writeBuffer)
-            {
-                if (_writeBuffer.Count == 0) return;
-                toWrite = new List<PendingWrite>(_writeBuffer);
-                _writeBuffer.Clear();
-            }
+            await Task.Run(() => WriteToMappedFile(id, binaryData, timestamp, version));
 
-            await _writeLock.WaitAsync();
-            try
+            // Flush immediately for non-batched writes
+            _accessor!.Flush();
+            _fileStream!.Flush(flushToDisk: true);
+        }
+
+        /// <summary>
+        /// Write a batch of items to memory-mapped file (optimized bulk write)
+        /// </summary>
+        protected override async Task WriteBatchToStorageAsync(List<PendingWrite> batch)
+        {
+            await Task.Run(() =>
             {
-                foreach (var write in toWrite)
+                // Process batch items
+                foreach (var write in batch)
                 {
-                    WriteToMappedFile(write);
+                    // Note: write.ProcessedData is already through IRoot pipeline,
+                    // but we need to wrap it in BTree binary format
+                    var binaryData = WrapInBinaryFormat(write.Id, write.ProcessedData, write.Timestamp, write.Version);
+
+                    WriteToMappedFile(write.Id, binaryData, write.Timestamp, write.Version);
                 }
 
-                // Flush to disk
+                // Flush all writes to disk at once (batch optimization!)
                 _accessor!.Flush();
                 _fileStream!.Flush(flushToDisk: true);
-            }
-            finally
-            {
-                _writeLock.Release();
-            }
+            });
+        }
+
+        /// <summary>
+        /// Wrap processed data in BTree binary format
+        /// </summary>
+        private byte[] WrapInBinaryFormat(string id, byte[] processedData, DateTime timestamp, int version)
+        {
+            var idBytes = Encoding.UTF8.GetBytes(id);
+            var buffer = new byte[HEADER_SIZE + idBytes.Length + processedData.Length];
+
+            int offset = 0;
+
+            // Magic number
+            BitConverter.GetBytes(MAGIC_NUMBER).CopyTo(buffer, offset);
+            offset += 4;
+
+            // Version
+            BitConverter.GetBytes(version).CopyTo(buffer, offset);
+            offset += 4;
+
+            // Timestamp
+            BitConverter.GetBytes(timestamp.ToBinary()).CopyTo(buffer, offset);
+            offset += 8;
+
+            // Payload length
+            BitConverter.GetBytes(processedData.Length).CopyTo(buffer, offset);
+            offset += 4;
+
+            // ID bytes
+            idBytes.CopyTo(buffer, offset);
+            offset += idBytes.Length;
+
+            // Processed payload
+            processedData.CopyTo(buffer, offset);
+
+            return buffer;
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        private void WriteToMappedFile(PendingWrite write)
+        private void WriteToMappedFile(string id, byte[] binaryData, DateTime timestamp, int version)
         {
-            var offset = Interlocked.Add(ref _filePosition, write.Data.Length) - write.Data.Length;
+            var offset = Interlocked.Add(ref _filePosition, binaryData.Length) - binaryData.Length;
 
             // Ensure capacity
-            EnsureCapacity(offset + write.Data.Length);
+            EnsureCapacity(offset + binaryData.Length);
 
             // Write data using memory-mapped file (fast!)
-            _accessor!.WriteArray(offset, write.Data, 0, write.Data.Length);
+            _accessor!.WriteArray(offset, binaryData, 0, binaryData.Length);
 
             // Update index (lock-free with ConcurrentDictionary)
             // Store the entire processed data (including header, id, and transformed payload)
-            _index[write.Id] = new NutEntry
+            _index[id] = new NutEntry
             {
                 Offset = offset,
-                Length = write.Data.Length,
-                Timestamp = write.Timestamp,
-                Version = write.Version
+                Length = binaryData.Length,
+                Timestamp = timestamp,
+                Version = version
             };
         }
 
@@ -332,7 +271,7 @@ namespace AcornDB.Storage
         {
             if (_accessor!.Capacity >= required) return;
 
-            _writeLock.Wait();
+            _mmfWriteLock.Wait();
             try
             {
                 // Double check after acquiring lock
@@ -361,12 +300,12 @@ namespace AcornDB.Storage
             }
             finally
             {
-                _writeLock.Release();
+                _mmfWriteLock.Release();
             }
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Crack(string id)
+        public override Nut<T>? Crack(string id)
         {
             // Ensure index is loaded (only matters if no roots were added)
             if (!_indexLoaded)
@@ -400,21 +339,7 @@ namespace AcornDB.Storage
             }
 
             // Step 3: Process through root chain in descending sequence order (reverse)
-            var context = new RootProcessingContext
-            {
-                PolicyContext = new PolicyContext { Operation = "Read" },
-                DocumentId = id
-            };
-
-            var processedBytes = storedBytes;
-            lock (_rootsLock)
-            {
-                // Reverse iteration for read path
-                for (int i = _roots.Count - 1; i >= 0; i--)
-                {
-                    processedBytes = _roots[i].OnCrack(processedBytes, context);
-                }
-            }
+            var processedBytes = ProcessThroughRootsDescending(storedBytes, id);
 
             // Step 4: Parse header and extract payload from processed bytes
             // Header format: [Magic:4][Version:4][Timestamp:8][PayloadLen:4][Id][Payload]
@@ -433,9 +358,6 @@ namespace AcornDB.Storage
             // Step 5: Deserialize from binary format
             return DeserializeBinary(payloadBytes, id, entry);
         }
-
-        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
-        public Nut<T>? Load(string id) => Crack(id);
 
         // Custom binary serialization - much faster than JSON for metadata
         private byte[] SerializeBinary(string id, Nut<T> nut)
@@ -482,16 +404,13 @@ namespace AcornDB.Storage
             };
         }
 
-        public void Toss(string id)
+        public override void Toss(string id)
         {
             // Logical delete - just remove from index
             _index.TryRemove(id, out _);
         }
 
-        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
-        public void Delete(string id) => Toss(id);
-
-        public IEnumerable<Nut<T>> CrackAll()
+        public override IEnumerable<Nut<T>> CrackAll()
         {
             var results = new List<Nut<T>>(_index.Count);
 
@@ -505,20 +424,17 @@ namespace AcornDB.Storage
             return results;
         }
 
-        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
-        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
-
-        public IReadOnlyList<Nut<T>> GetHistory(string id)
+        public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             throw new NotSupportedException("BTreeTrunk does not support history. Use DocumentStoreTrunk for versioning.");
         }
 
-        public IEnumerable<Nut<T>> ExportChanges()
+        public override IEnumerable<Nut<T>> ExportChanges()
         {
             return CrackAll();
         }
 
-        public void ImportChanges(IEnumerable<Nut<T>> incoming)
+        public override void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             foreach (var nut in incoming)
             {
@@ -526,7 +442,7 @@ namespace AcornDB.Storage
             }
 
             // Force flush
-            FlushAsync().Wait();
+            FlushBatchAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>
@@ -534,7 +450,10 @@ namespace AcornDB.Storage
         /// </summary>
         public void Compact()
         {
-            _writeLock.Wait();
+            // Flush any pending batched writes before compacting
+            FlushBatchAsync().GetAwaiter().GetResult();
+
+            _mmfWriteLock.Wait();
             try
             {
                 var tempPath = _filePath + ".tmp";
@@ -573,28 +492,26 @@ namespace AcornDB.Storage
             }
             finally
             {
-                _writeLock.Release();
+                _mmfWriteLock.Release();
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (_disposed) return;
 
-            _flushTimer?.Dispose();
+            // Base class handles timer disposal and flush
+            // This ensures proper batching cleanup
+            base.Dispose();
 
-            // Flush any pending writes
-            try { FlushAsync().Wait(); } catch { }
-
+            // Dispose BTreeTrunk-specific resources
             _accessor?.Dispose();
             _mmf?.Dispose();
             _fileStream?.Dispose();
-            _writeLock?.Dispose();
-
-            _disposed = true;
+            _mmfWriteLock?.Dispose();
         }
-        
-        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+
+        public override ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
             SupportsHistory = false,
             SupportsSync = true,

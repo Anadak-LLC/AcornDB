@@ -14,6 +14,12 @@ namespace AcornDB.Test
             public string Name { get; set; } = string.Empty;
         }
 
+        public class Product
+        {
+            public string Id { get; set; } = string.Empty;
+            public string Name { get; set; } = string.Empty;
+        }
+
         [Fact]
         public void Branch_ImplementsIDisposable()
         {
@@ -246,14 +252,14 @@ namespace AcornDB.Test
         {
             var grove = new Models.Grove();
             var tree1 = new Tree<User>(new MemoryTrunk<User>());
-            var tree2 = new Tree<int>(new MemoryTrunk<int>());
+            var tree2 = new Tree<Product>(new MemoryTrunk<Product>());
             grove.Plant(tree1);
             grove.Plant(tree2);
 
             var branch1 = new Branch("http://localhost:5000");
             var branch2 = new Branch("http://localhost:5001");
             var tangle1 = grove.Entangle<User>(branch1, "tangle1");
-            var tangle2 = grove.Entangle<int>(branch2, "tangle2");
+            var tangle2 = grove.Entangle<Product>(branch2, "tangle2");
 
             grove.DetangleAll();
 
@@ -261,7 +267,7 @@ namespace AcornDB.Test
             Assert.Throws<ObjectDisposedException>(() =>
                 tangle1.PushUpdate("test", new User { Id = "test", Name = "Test" }));
             Assert.Throws<ObjectDisposedException>(() =>
-                tangle2.PushUpdate("test", 42));
+                tangle2.PushUpdate("test", new Product { Id = "test", Name = "Test Product" }));
         }
 
         [Fact]

@@ -73,7 +73,7 @@ namespace AcornDB.Persistence.DataLake
         public static Tangle<T> SyncWithDataLake<T>(
             this Tree<T> tree,
             string path,
-            ParquetOptions? options = null)
+            ParquetOptions? options = null) where T : class
         {
             var parquetTrunk = new ParquetTrunk<T>(path, options);
             var dataLakeTree = new Tree<T>(parquetTrunk);
@@ -88,7 +88,7 @@ namespace AcornDB.Persistence.DataLake
             this Tree<T> tree,
             string path,
             ICloudStorageProvider cloudStorage,
-            ParquetOptions? options = null)
+            ParquetOptions? options = null) where T : class
         {
             var parquetTrunk = new ParquetTrunk<T>(path, cloudStorage, options);
             var dataLakeTree = new Tree<T>(parquetTrunk);
@@ -106,7 +106,7 @@ namespace AcornDB.Persistence.DataLake
         public static TieredTrunk<T> CreateTieredStorage<T>(
             string hotPath,
             string coldPath,
-            TieringOptions<T>? tieringOptions = null)
+            TieringOptions<T>? tieringOptions = null) where T : class
         {
             var hotTrunk = new BTreeTrunk<T>(hotPath);
             var coldTrunk = new ParquetTrunk<T>(coldPath);
@@ -128,7 +128,7 @@ namespace AcornDB.Persistence.DataLake
             string hotPath,
             string coldPath,
             NearFarOptions? nearFarOptions = null,
-            TieringOptions<T>? tieringOptions = null)
+            TieringOptions<T>? tieringOptions = null) where T : class
         {
             // Create tiered backing store (hot + cold)
             var tieredStore = CreateTieredStorage<T>(hotPath, coldPath, tieringOptions);

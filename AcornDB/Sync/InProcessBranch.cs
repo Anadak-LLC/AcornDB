@@ -6,7 +6,7 @@ namespace AcornDB.Sync
     /// <summary>
     /// InProcessBranch: Syncs between two trees in the same process without HTTP
     /// </summary>
-    public class InProcessBranch<T> : Branch
+    public class InProcessBranch<T> : Branch where T : class
     {
         private readonly Tree<T> _targetTree;
 

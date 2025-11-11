@@ -16,7 +16,7 @@ namespace AcornDB.Storage
     /// Write: Nut<T> → Store in memory → Serialize log entry → Root Chain (ascending) → byte[] → Write to log
     /// Read: In-memory retrieval (roots not involved, only for log replay on startup)
     /// </summary>
-    public class DocumentStoreTrunk<T> : ITrunk<T>, IDisposable
+    public class DocumentStoreTrunk<T> : TrunkBase<T>, IDisposable where T : class
     {
         private readonly string _folderPath;
         private readonly string _logPath;
@@ -26,16 +26,12 @@ namespace AcornDB.Storage
         private readonly SemaphoreSlim _writeLock = new(1, 1);
         private readonly Timer _flushTimer;
         private FileStream? _logStream;
-        private bool _disposed = false;
-        private readonly List<IRoot> _roots = new();
-        private readonly object _rootsLock = new();
-        private readonly ISerializer _serializer;
         private bool _logLoaded = false;
 
         private const int BUFFER_THRESHOLD = 100; // Flush after 100 log entries
         private const int FLUSH_INTERVAL_MS = 200; // Flush every 200ms
 
-        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        public override ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
             SupportsHistory = true,
             SupportsSync = true,
@@ -45,12 +41,12 @@ namespace AcornDB.Storage
         };
 
         public DocumentStoreTrunk(string? customPath = null, ISerializer? serializer = null)
+            : base(serializer)
         {
             var typeName = typeof(T).Name;
             _folderPath = customPath ?? Path.Combine(Directory.GetCurrentDirectory(), "data", "docstore", typeName);
             _logPath = Path.Combine(_folderPath, "changes.log");
             Directory.CreateDirectory(_folderPath);
-            _serializer = serializer ?? new NewtonsoftJsonSerializer();
 
             // Note: Do NOT load log in constructor if roots might be needed
             // LoadFromLog will be called automatically on first access or explicitly after adding roots
@@ -67,61 +63,8 @@ namespace AcornDB.Storage
             }, null, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS);
         }
 
-        /// <summary>
-        /// Get all registered root processors
-        /// </summary>
-        public IReadOnlyList<IRoot> Roots
-        {
-            get
-            {
-                lock (_rootsLock)
-                {
-                    return _roots.ToList();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Add a root processor to the processing chain
-        /// </summary>
-        public void AddRoot(IRoot root)
-        {
-            if (root == null) throw new ArgumentNullException(nameof(root));
-
-            lock (_rootsLock)
-            {
-                _roots.Add(root);
-                // Sort by sequence to ensure correct execution order
-                _roots.Sort((a, b) => a.Sequence.CompareTo(b.Sequence));
-
-                // If log hasn't been loaded yet and we just added the first root, load it now
-                if (!_logLoaded)
-                {
-                    LoadFromLog();
-                    _logLoaded = true;
-                }
-            }
-        }
-
-        /// <summary>
-        /// Remove a root processor from the processing chain
-        /// </summary>
-        public bool RemoveRoot(string name)
-        {
-            lock (_rootsLock)
-            {
-                var root = _roots.FirstOrDefault(r => r.Name == name);
-                if (root != null)
-                {
-                    _roots.Remove(root);
-                    return true;
-                }
-                return false;
-            }
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Stash(string id, Nut<T> shell)
+        public override void Stash(string id, Nut<T> shell)
         {
             // Store previous version in history
             if (_current.TryGetValue(id, out var previous))
@@ -150,11 +93,8 @@ namespace AcornDB.Storage
             QueueLogEntry(logEntry);
         }
 
-        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
-        public void Save(string id, Nut<T> shell) => Stash(id, shell);
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Crack(string id)
+        public override Nut<T>? Crack(string id)
         {
             // Ensure log is loaded (only matters if no roots were added)
             if (!_logLoaded)
@@ -173,11 +113,8 @@ namespace AcornDB.Storage
             return _current.TryGetValue(id, out var shell) ? shell : null;
         }
 
-        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
-        public Nut<T>? Load(string id) => Crack(id);
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Toss(string id)
+        public override void Toss(string id)
         {
             if (_current.TryRemove(id, out var shell))
             {
@@ -200,10 +137,7 @@ namespace AcornDB.Storage
             }
         }
 
-        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
-        public void Delete(string id) => Toss(id);
-
-        public IEnumerable<Nut<T>> CrackAll()
+        public override IEnumerable<Nut<T>> CrackAll()
         {
             // Ensure log is loaded (only matters if no roots were added)
             if (!_logLoaded)
@@ -222,22 +156,19 @@ namespace AcornDB.Storage
             return _current.Values;
         }
 
-        public IReadOnlyList<Nut<T>> GetHistory(string id)
+        public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             return _history.TryGetValue(id, out var versions)
                 ? versions.AsReadOnly()
                 : new List<Nut<T>>().AsReadOnly();
         }
 
-        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
-        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
-
-        public IEnumerable<Nut<T>> ExportChanges()
+        public override IEnumerable<Nut<T>> ExportChanges()
         {
             return _current.Values.ToList();
         }
 
-        public void ImportChanges(IEnumerable<Nut<T>> incoming)
+        public override void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             foreach (var shell in incoming)
             {
@@ -388,27 +319,27 @@ namespace AcornDB.Storage
             }
         }
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (_disposed) return;
 
             _flushTimer?.Dispose();
 
             // Flush any pending writes
-            try { FlushAsync().Wait(); } catch { }
+            try
+            {
+                FlushAsync().Wait();
+            }
+            catch (Exception ex)
+            {
+                Console.Error.WriteLine($"⚠️ ERROR: DocumentStoreTrunk failed to flush during disposal: {ex.Message}");
+                // Don't rethrow - disposal must succeed to release resources
+            }
 
             _logStream?.Dispose();
             _writeLock?.Dispose();
 
-            _disposed = true;
+            base.Dispose();
         }
-    }
-
-    public class ChangeLogEntry<T>
-    {
-        public string Action { get; set; } = "";
-        public string Id { get; set; } = "";
-        public Nut<T>? Shell { get; set; }
-        public DateTime Timestamp { get; set; }
     }
 }

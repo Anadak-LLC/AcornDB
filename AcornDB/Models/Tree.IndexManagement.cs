@@ -5,7 +5,7 @@ using AcornDB.Indexing;
 
 namespace AcornDB
 {
-    public partial class Tree<T>
+    public partial class Tree<T> where T : class
     {
         // Index collection - stores all registered indexes
         private readonly Dictionary<string, IIndex> _indexes = new Dictionary<string, IIndex>();

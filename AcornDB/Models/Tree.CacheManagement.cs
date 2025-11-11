@@ -9,7 +9,7 @@ namespace AcornDB
     /// Cache management functionality for Tree&lt;T&gt;
     /// Handles TTL enforcement, cache eviction strategies, and automatic cleanup
     /// </summary>
-    public partial class Tree<T>
+    public partial class Tree<T> where T : class
     {
         private Timer? _expirationTimer;
         private TimeSpan _cleanupInterval = TimeSpan.FromMinutes(1);

@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace AcornDB
 {
-    public partial class Tree<T>
+    public partial class Tree<T> where T : class
     {
         // Tree identity for anti-loop tracking
         public string TreeId { get; private set; } = Guid.NewGuid().ToString();

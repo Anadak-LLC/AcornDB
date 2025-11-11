@@ -8,10 +8,49 @@ using Newtonsoft.Json;
 namespace AcornDB.Storage
 {
     /// <summary>
-    /// Encrypted wrapper for any ITrunk implementation
+    /// [DEPRECATED] Encrypted wrapper for any ITrunk implementation
     /// Encrypts payloads before storage, decrypts on retrieval
+    ///
+    /// ⚠️ IMPORTANT: This class is DEPRECATED and will be REMOVED in v0.6.0.
+    ///
+    /// Why this is deprecated:
+    /// - Old wrapper pattern creates type system complexity (Nut<T> → Nut<EncryptedNut>)
+    /// - Cannot dynamically add/remove encryption at runtime
+    /// - Difficult to inspect transformation chain
+    /// - Doesn't support policy context or transformation tracking
+    ///
+    /// Migration to IRoot pattern:
+    ///
+    /// OLD CODE:
+    ///   var baseTrunk = new FileTrunk<EncryptedNut>();
+    ///   var encryptedTrunk = new EncryptedTrunk<User>(baseTrunk, AesEncryptionProvider.FromPassword("secret"));
+    ///   var tree = new Tree<User>(encryptedTrunk);
+    ///
+    /// NEW CODE (Option 1 - Direct):
+    ///   var trunk = new FileTrunk<User>();
+    ///   trunk.AddRoot(new EncryptionRoot(AesEncryptionProvider.FromPassword("secret"), sequence: 200));
+    ///   var tree = new Tree<User>(trunk);
+    ///
+    /// NEW CODE (Option 2 - Fluent):
+    ///   var trunk = new FileTrunk<User>()
+    ///       .WithEncryption(AesEncryptionProvider.FromPassword("secret"));
+    ///   var tree = new Tree<User>(trunk);
+    ///
+    /// NEW CODE (Option 3 - Acorn Builder):
+    ///   var tree = new Acorn<User>()
+    ///       .WithEncryption("secret")
+    ///       .Sprout();
+    ///
+    /// NEW CODE (Option 4 - Combined with Compression):
+    ///   var tree = new Acorn<User>()
+    ///       .WithCompression()      // Sequence 100
+    ///       .WithEncryption("secret") // Sequence 200
+    ///       .Sprout();
+    ///
+    /// See ROOT_ARCHITECTURE.md for complete migration guide.
     /// </summary>
-    [Obsolete("EncryptedTrunk is obsolete. Use IRoot pattern instead.")]
+    [Obsolete("EncryptedTrunk is deprecated and will be REMOVED in v0.6.0. Use EncryptionRoot with trunk.AddRoot() or trunk.WithEncryption() instead. " +
+              "Example: trunk.WithEncryption(AesEncryptionProvider.FromPassword(\"secret\")). See ROOT_ARCHITECTURE.md for migration guide.", true)]
     public class EncryptedTrunk<T> : ITrunk<T>
     {
         private readonly ITrunk<EncryptedNut> _innerTrunk;
@@ -139,14 +178,5 @@ namespace AcornDB.Storage
                 return null;
             }
         }
-    }
-
-    /// <summary>
-    /// Wrapper for encrypted payload data
-    /// </summary>
-    public class EncryptedNut
-    {
-        public string EncryptedData { get; set; } = "";
-        public string OriginalType { get; set; } = "";
     }
 }

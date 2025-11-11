@@ -46,68 +46,6 @@ namespace AcornDB.Query
     }
 
     /// <summary>
-    /// Result of analyzing a WHERE expression
-    /// </summary>
-    public class ExpressionAnalysisResult
-    {
-        public bool IsIndexable { get; set; }
-        public List<IndexableCondition> Conditions { get; set; } = new List<IndexableCondition>();
-    }
-
-    /// <summary>
-    /// Represents a single indexable condition extracted from a WHERE clause
-    /// </summary>
-    public class IndexableCondition
-    {
-        /// <summary>
-        /// Property name being compared (e.g., "Email", "Age")
-        /// </summary>
-        public string PropertyName { get; set; } = string.Empty;
-
-        /// <summary>
-        /// Property type
-        /// </summary>
-        public Type PropertyType { get; set; } = typeof(object);
-
-        /// <summary>
-        /// Comparison operator (Equal, GreaterThan, LessThan, etc.)
-        /// </summary>
-        public ComparisonOperator Operator { get; set; }
-
-        /// <summary>
-        /// Value being compared against (if constant)
-        /// </summary>
-        public object? Value { get; set; }
-
-        /// <summary>
-        /// Whether the value is a constant (true) or variable (false)
-        /// </summary>
-        public bool IsConstantValue { get; set; }
-    }
-
-    /// <summary>
-    /// Information about a property access in an expression
-    /// </summary>
-    public class PropertyAccessInfo
-    {
-        public string PropertyName { get; set; } = string.Empty;
-        public Type PropertyType { get; set; } = typeof(object);
-    }
-
-    /// <summary>
-    /// Comparison operators that can be used with indexes
-    /// </summary>
-    public enum ComparisonOperator
-    {
-        Equal,              // ==
-        NotEqual,           // !=
-        GreaterThan,        // >
-        GreaterThanOrEqual, // >=
-        LessThan,           // <
-        LessThanOrEqual     // <=
-    }
-
-    /// <summary>
     /// Expression visitor that identifies indexable conditions in WHERE clauses
     /// </summary>
     internal class IndexableExpressionVisitor<T> : ExpressionVisitor

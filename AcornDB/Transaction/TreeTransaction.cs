@@ -8,7 +8,7 @@ namespace AcornDB.Transaction
     /// Provides atomic multi-nut transactions for Trees
     /// All operations succeed or all fail together
     /// </summary>
-    public class TreeTransaction<T>
+    public class TreeTransaction<T> where T : class
     {
         private readonly Tree<T> _tree;
         private readonly List<TransactionOperation<T>> _operations = new();
@@ -162,16 +162,6 @@ namespace AcornDB.Transaction
     }
 
     /// <summary>
-    /// Transaction result information
-    /// </summary>
-    public class TransactionResult
-    {
-        public bool Success { get; set; }
-        public int OperationCount { get; set; }
-        public bool RolledBack { get; set; }
-    }
-
-    /// <summary>
     /// Transaction operation types
     /// </summary>
     internal enum OperationType
@@ -198,7 +188,7 @@ namespace AcornDB.Transaction
         /// <summary>
         /// Begin a new transaction on this tree
         /// </summary>
-        public static TreeTransaction<T> BeginTransaction<T>(this Tree<T> tree)
+        public static TreeTransaction<T> BeginTransaction<T>(this Tree<T> tree) where T : class
         {
             return new TreeTransaction<T>(tree);
         }

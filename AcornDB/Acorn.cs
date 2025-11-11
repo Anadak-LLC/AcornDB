@@ -15,7 +15,7 @@ namespace AcornDB
     /// Fluent builder for configuring and creating Trees.
     /// Usage: new Acorn&lt;User&gt;().WithEncryption("password").WithCompression().Sprout()
     /// </summary>
-    public class Acorn<T>
+    public class Acorn<T> where T : class
     {
         private ITrunk<T>? _trunk;
         private string? _storagePath;
@@ -260,7 +260,7 @@ namespace AcornDB
             }
         }
 
-        private ITrunk<TPayload> CreateFileTrunk<TPayload>(string? storagePath)
+        private ITrunk<TPayload> CreateFileTrunk<TPayload>(string? storagePath) where TPayload : class
         {
             return string.IsNullOrEmpty(storagePath)
                 ? new FileTrunk<TPayload>()

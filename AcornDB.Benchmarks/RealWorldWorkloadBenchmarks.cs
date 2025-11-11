@@ -109,7 +109,7 @@ namespace AcornDB.Benchmarks
             }
         }
 
-        private Tree<T> CreateMemoryTree<T>()
+        private Tree<T> CreateMemoryTree<T>() where T : class
         {
             var tree = new Tree<T>(new MemoryTrunk<T>());
             tree.TtlEnforcementEnabled = false;
@@ -117,7 +117,7 @@ namespace AcornDB.Benchmarks
             return tree;
         }
 
-        private Tree<T> CreateBTreeTree<T>(string subdirName)
+        private Tree<T> CreateBTreeTree<T>(string subdirName) where T : class
         {
             var dir = Path.Combine(_tempDir, subdirName);
             Directory.CreateDirectory(dir);
@@ -128,7 +128,7 @@ namespace AcornDB.Benchmarks
             return tree;
         }
 
-        private Tree<T> CreateDocumentStoreTree<T>(string subdirName)
+        private Tree<T> CreateDocumentStoreTree<T>(string subdirName) where T : class
         {
             var dir = Path.Combine(_tempDir, subdirName);
             Directory.CreateDirectory(dir);

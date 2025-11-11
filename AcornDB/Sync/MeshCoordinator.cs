@@ -10,7 +10,7 @@ namespace AcornDB.Sync
     /// Coordinates synchronization across a mesh network of Trees
     /// Handles topology management and prevents sync loops
     /// </summary>
-    public class MeshCoordinator<T>
+    public class MeshCoordinator<T> where T : class
     {
         private readonly Dictionary<string, Tree<T>> _nodes = new();
         private readonly Dictionary<string, List<string>> _topology = new();
@@ -186,26 +186,5 @@ namespace AcornDB.Sync
                 };
             }
         }
-    }
-
-    /// <summary>
-    /// Mesh topology information
-    /// </summary>
-    public class MeshTopology
-    {
-        public int TotalNodes { get; set; }
-        public int TotalConnections { get; set; }
-        public Dictionary<string, List<string>> Connections { get; set; } = new();
-
-        public double AverageDegree => TotalNodes > 0 ? (TotalConnections * 2.0) / TotalNodes : 0;
-    }
-
-    /// <summary>
-    /// Complete mesh network statistics
-    /// </summary>
-    public class MeshNetworkStats
-    {
-        public MeshTopology Topology { get; set; } = new();
-        public Dictionary<string, MeshSyncStats> NodeStats { get; set; } = new();
     }
 }

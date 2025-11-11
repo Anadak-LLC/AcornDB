@@ -25,25 +25,12 @@ namespace AcornDB.Persistence.RDBMS
     /// Write: Nut<T> → Serialize to JSON → Root Chain (ascending) → byte[] → Store in database
     /// Read: Read from database → byte[] → Root Chain (descending) → Deserialize → Nut<T>
     /// </summary>
-    public class SqliteTrunk<T> : ITrunk<T>, IDisposable
+    public class SqliteTrunk<T> : TrunkBase<T>, IDisposable
         where T : class
     {
         private readonly string _connectionString;
         private readonly string _tableName;
         private readonly SemaphoreSlim _connectionLock = new(1, 1);
-        private readonly List<PendingWrite> _writeBuffer = new();
-        private readonly SemaphoreSlim _writeLock = new(1, 1);
-        private readonly Timer? _flushTimer;
-        private bool _disposed;
-        private readonly List<IRoot> _roots = new();
-        private readonly object _rootsLock = new();
-        private readonly ISerializer _serializer;
-
-        private struct PendingWrite
-        {
-            public string Id;
-            public Nut<T> Nut;
-        }
 
         private const int BATCH_SIZE = 100;
         private const int FLUSH_INTERVAL_MS = 200;
@@ -55,74 +42,25 @@ namespace AcornDB.Persistence.RDBMS
         /// <param name="tableName">Optional custom table name. Default: acorn_{TypeName}</param>
         /// <param name="serializer">Optional custom serializer. Default: NewtonsoftJsonSerializer</param>
         public SqliteTrunk(string databasePath, string? tableName = null, ISerializer? serializer = null)
+            : base(
+                serializer,
+                enableBatching: true,            // Enable batching via TrunkBase
+                batchThreshold: BATCH_SIZE,
+                flushIntervalMs: FLUSH_INTERVAL_MS)
         {
             var typeName = typeof(T).Name;
             _tableName = tableName ?? $"acorn_{typeName}";
-            _serializer = serializer ?? new NewtonsoftJsonSerializer();
 
             // Connection string with pooling and optimization
             _connectionString = $"Data Source={databasePath};Cache=Shared;Mode=ReadWriteCreate;Pooling=True";
 
             EnsureDatabase();
 
-            // Auto-flush timer for write batching
-            _flushTimer = new Timer(_ =>
-            {
-                try { FlushAsync().Wait(); }
-                catch { /* Swallow timer exceptions */ }
-            }, null, FLUSH_INTERVAL_MS, FLUSH_INTERVAL_MS);
-
             Console.WriteLine($"💾 SqliteTrunk initialized:");
             Console.WriteLine($"   Database: {databasePath}");
             Console.WriteLine($"   Table: {_tableName}");
             Console.WriteLine($"   WAL Mode: Enabled");
             Console.WriteLine($"   Batch Size: {BATCH_SIZE}");
-        }
-
-        /// <summary>
-        /// Get all registered root processors
-        /// </summary>
-        public IReadOnlyList<IRoot> Roots
-        {
-            get
-            {
-                lock (_rootsLock)
-                {
-                    return _roots.ToList();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Add a root processor to the processing chain
-        /// </summary>
-        public void AddRoot(IRoot root)
-        {
-            if (root == null) throw new ArgumentNullException(nameof(root));
-
-            lock (_rootsLock)
-            {
-                _roots.Add(root);
-                // Sort by sequence to ensure correct execution order
-                _roots.Sort((a, b) => a.Sequence.CompareTo(b.Sequence));
-            }
-        }
-
-        /// <summary>
-        /// Remove a root processor from the processing chain
-        /// </summary>
-        public bool RemoveRoot(string name)
-        {
-            lock (_rootsLock)
-            {
-                var root = _roots.FirstOrDefault(r => r.Name == name);
-                if (root != null)
-                {
-                    _roots.Remove(root);
-                    return true;
-                }
-                return false;
-            }
         }
 
         private void EnsureDatabase()
@@ -168,44 +106,24 @@ namespace AcornDB.Persistence.RDBMS
             cmd.ExecuteNonQuery();
         }
 
-        public void Stash(string id, Nut<T> nut)
+        public override void Stash(string id, Nut<T> nut)
         {
-            StashAsync(id, nut).GetAwaiter().GetResult();
+            // Use TrunkBase batching infrastructure
+            // This handles IRoot pipeline processing, batching, and auto-flush
+            StashWithBatchingAsync(id, nut).GetAwaiter().GetResult();
         }
-
-        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
-        public void Save(string id, Nut<T> nut) => Stash(id, nut);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task StashAsync(string id, Nut<T> nut)
         {
-            // Add to write buffer for batching
-            bool shouldFlush = false;
-            lock (_writeBuffer)
-            {
-                _writeBuffer.Add(new PendingWrite { Id = id, Nut = nut });
-
-                // Check if buffer is full
-                if (_writeBuffer.Count >= BATCH_SIZE)
-                {
-                    shouldFlush = true;
-                }
-            }
-
-            // Flush outside the lock
-            if (shouldFlush)
-            {
-                await FlushAsync();
-            }
+            // Use TrunkBase batching infrastructure
+            await StashWithBatchingAsync(id, nut);
         }
 
-        public Nut<T>? Crack(string id)
+        public override Nut<T>? Crack(string id)
         {
             return CrackAsync(id).GetAwaiter().GetResult();
         }
-
-        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
-        public Nut<T>? Load(string id) => Crack(id);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task<Nut<T>?> CrackAsync(string id)
@@ -236,21 +154,7 @@ namespace AcornDB.Persistence.RDBMS
                 }
 
                 // Step 2: Process through root chain in descending sequence order (reverse)
-                var context = new RootProcessingContext
-                {
-                    PolicyContext = new PolicyContext { Operation = "Read" },
-                    DocumentId = id
-                };
-
-                var processedBytes = storedBytes;
-                lock (_rootsLock)
-                {
-                    // Reverse iteration for read path
-                    for (int i = _roots.Count - 1; i >= 0; i--)
-                    {
-                        processedBytes = _roots[i].OnCrack(processedBytes, context);
-                    }
-                }
+                var processedBytes = ProcessThroughRootsDescending(storedBytes, id);
 
                 // Step 3: Deserialize bytes to Nut<T>
                 try
@@ -268,13 +172,10 @@ namespace AcornDB.Persistence.RDBMS
             return null;
         }
 
-        public void Toss(string id)
+        public override void Toss(string id)
         {
             TossAsync(id).GetAwaiter().GetResult();
         }
-
-        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
-        public void Delete(string id) => Toss(id);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public async Task TossAsync(string id)
@@ -290,13 +191,10 @@ namespace AcornDB.Persistence.RDBMS
             await cmd.ExecuteNonQueryAsync();
         }
 
-        public IEnumerable<Nut<T>> CrackAll()
+        public override IEnumerable<Nut<T>> CrackAll()
         {
             return CrackAllAsync().GetAwaiter().GetResult();
         }
-
-        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
-        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public async Task<IEnumerable<Nut<T>>> CrackAllAsync()
         {
@@ -320,24 +218,24 @@ namespace AcornDB.Persistence.RDBMS
             return nuts;
         }
 
-        public IReadOnlyList<Nut<T>> GetHistory(string id)
+        public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             // SQLite trunk doesn't maintain history by default
             // For history support, use DocumentStoreTrunk or GitHubTrunk
             throw new NotSupportedException("SqliteTrunk does not support history. Use DocumentStoreTrunk for versioning.");
         }
 
-        public IEnumerable<Nut<T>> ExportChanges()
+        public override IEnumerable<Nut<T>> ExportChanges()
         {
-            return LoadAll();
+            return CrackAll();
         }
 
-        public void ImportChanges(IEnumerable<Nut<T>> incoming)
+        public override void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             ImportChangesAsync(incoming).GetAwaiter().GetResult();
         }
 
-        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        public override ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
             SupportsHistory = true,
             SupportsSync = true,
@@ -353,17 +251,14 @@ namespace AcornDB.Persistence.RDBMS
         {
             var changesList = incoming.ToList();
 
-            // Add all to write buffer
-            lock (_writeBuffer)
+            // Stash all nuts (batching handled by TrunkBase)
+            foreach (var nut in changesList)
             {
-                foreach (var nut in changesList)
-                {
-                    _writeBuffer.Add(new PendingWrite { Id = nut.Id, Nut = nut });
-                }
+                await StashAsync(nut.Id, nut);
             }
 
-            // Flush everything
-            await FlushAsync();
+            // Force flush
+            await FlushBatchAsync();
 
             Console.WriteLine($"   💾 Imported {changesList.Count} nuts to SQLite");
         }
@@ -438,99 +333,90 @@ namespace AcornDB.Persistence.RDBMS
         /// </summary>
         public void Flush()
         {
-            FlushAsync().GetAwaiter().GetResult();
+            FlushBatchAsync().GetAwaiter().GetResult();
         }
 
         /// <summary>
         /// Flush pending writes to database using a transaction
         /// </summary>
-        private async Task FlushAsync()
+        /// <summary>
+        /// Write a single item to SQLite (used by TrunkBase for immediate writes if needed)
+        /// </summary>
+        protected override async Task WriteToStorageAsync(string id, byte[] processedBytes, DateTime timestamp, int version)
         {
-            List<PendingWrite> toWrite;
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
 
-            lock (_writeBuffer)
-            {
-                if (_writeBuffer.Count == 0) return;
-                toWrite = new List<PendingWrite>(_writeBuffer);
-                _writeBuffer.Clear();
-            }
+            await WriteToSqlite(conn, null, id, processedBytes, timestamp, version);
+        }
 
-            await _writeLock.WaitAsync();
+        /// <summary>
+        /// Write a batch of items to SQLite (optimized with transaction)
+        /// </summary>
+        protected override async Task WriteBatchToStorageAsync(List<PendingWrite> batch)
+        {
+            using var conn = new SqliteConnection(_connectionString);
+            await conn.OpenAsync();
+
+            // Use transaction for batch insert (massive speedup!)
+            using var transaction = conn.BeginTransaction();
+
             try
             {
-                using var conn = new SqliteConnection(_connectionString);
-                await conn.OpenAsync();
-
-                // Use transaction for batch insert (massive speedup!)
-                using var transaction = conn.BeginTransaction();
-
-                var sql = $@"
-                    INSERT INTO {_tableName} (id, json_data, payload_json, timestamp, version, expires_at)
-                    VALUES (@id, @json, @payloadJson, @timestamp, @version, @expiresAt)
-                    ON CONFLICT(id) DO UPDATE SET
-                        json_data = @json,
-                        payload_json = @payloadJson,
-                        timestamp = @timestamp,
-                        version = @version,
-                        expires_at = @expiresAt";
-
-                using var cmd = new SqliteCommand(sql, conn, transaction);
-
-                // Add parameters once, reuse for all writes
-                cmd.Parameters.Add("@id", SqliteType.Text);
-                cmd.Parameters.Add("@json", SqliteType.Text);
-                cmd.Parameters.Add("@payloadJson", SqliteType.Text);
-                cmd.Parameters.Add("@timestamp", SqliteType.Text);
-                cmd.Parameters.Add("@version", SqliteType.Integer);
-                cmd.Parameters.Add("@expiresAt", SqliteType.Text);
-
-                foreach (var write in toWrite)
+                foreach (var write in batch)
                 {
-                    // Step 1: Serialize Nut<T> to JSON
-                    var json = _serializer.Serialize(write.Nut);
-                    var bytes = Encoding.UTF8.GetBytes(json);
-
-                    // Step 2: Process through root chain in ascending sequence order
-                    var context = new RootProcessingContext
-                    {
-                        PolicyContext = new PolicyContext { Operation = "Write" },
-                        DocumentId = write.Id
-                    };
-
-                    var processedBytes = bytes;
-                    lock (_rootsLock)
-                    {
-                        foreach (var root in _roots)
-                        {
-                            processedBytes = root.OnStash(processedBytes, context);
-                        }
-                    }
-
-                    // Step 3: Convert to base64 for storage
-                    var dataStr = Convert.ToBase64String(processedBytes);
-                    var timestampStr = write.Nut.Timestamp.ToString("O");
-                    var expiresAtStr = write.Nut.ExpiresAt?.ToString("O");
-
-                    // Step 4: Serialize just the Payload as JSON for native indexing
-                    var payloadJson = _serializer.Serialize(write.Nut.Payload);
-
-                    cmd.Parameters["@id"].Value = write.Id;
-                    cmd.Parameters["@json"].Value = dataStr;
-                    cmd.Parameters["@payloadJson"].Value = payloadJson;
-                    cmd.Parameters["@timestamp"].Value = timestampStr;
-                    cmd.Parameters["@version"].Value = write.Nut.Version;
-                    cmd.Parameters["@expiresAt"].Value = expiresAtStr ?? (object)DBNull.Value;
-
-                    await cmd.ExecuteNonQueryAsync();
+                    await WriteToSqlite(conn, transaction, write.Id, write.ProcessedData, write.Timestamp, write.Version);
                 }
 
                 await transaction.CommitAsync();
-                Console.WriteLine($"   💾 Flushed {toWrite.Count} nuts to SQLite");
+                Console.WriteLine($"   💾 Flushed {batch.Count} nuts to SQLite");
             }
-            finally
+            catch
             {
-                _writeLock.Release();
+                await transaction.RollbackAsync();
+                throw;
             }
+        }
+
+        /// <summary>
+        /// Helper method to write processed data to SQLite
+        /// </summary>
+        private async Task WriteToSqlite(SqliteConnection conn, SqliteTransaction? transaction, string id, byte[] processedBytes, DateTime timestamp, int version)
+        {
+            // Convert to base64 for storage
+            var dataStr = Convert.ToBase64String(processedBytes);
+            var timestampStr = timestamp.ToString("O");
+
+            // Get the full nut to extract payload and expires_at
+            // Note: This is a bit inefficient, but maintains compatibility
+            // In the future, we could pass these values directly
+            var json = Encoding.UTF8.GetString(processedBytes);
+            var nut = _serializer.Deserialize<Nut<T>>(json);
+            var expiresAtStr = nut?.ExpiresAt?.ToString("O");
+            var payloadJson = nut != null ? _serializer.Serialize(nut.Payload) : "{}";
+
+            var sql = $@"
+                INSERT INTO {_tableName} (id, json_data, payload_json, timestamp, version, expires_at)
+                VALUES (@id, @json, @payloadJson, @timestamp, @version, @expiresAt)
+                ON CONFLICT(id) DO UPDATE SET
+                    json_data = @json,
+                    payload_json = @payloadJson,
+                    timestamp = @timestamp,
+                    version = @version,
+                    expires_at = @expiresAt";
+
+            using var cmd = transaction != null
+                ? new SqliteCommand(sql, conn, transaction)
+                : new SqliteCommand(sql, conn);
+
+            cmd.Parameters.AddWithValue("@id", id);
+            cmd.Parameters.AddWithValue("@json", dataStr);
+            cmd.Parameters.AddWithValue("@payloadJson", payloadJson);
+            cmd.Parameters.AddWithValue("@timestamp", timestampStr);
+            cmd.Parameters.AddWithValue("@version", version);
+            cmd.Parameters.AddWithValue("@expiresAt", expiresAtStr ?? (object)DBNull.Value);
+
+            await cmd.ExecuteNonQueryAsync();
         }
 
         // Native Index Support
@@ -609,19 +495,16 @@ namespace AcornDB.Persistence.RDBMS
         public bool SupportsAsync => true;  // Now supports async!
         public string TrunkType => "SqliteTrunk";
 
-        public void Dispose()
+        public override void Dispose()
         {
             if (_disposed) return;
 
-            _flushTimer?.Dispose();
+            // Base class handles timer disposal and flush
+            // This ensures proper batching cleanup
+            base.Dispose();
 
-            // Flush any pending writes
-            try { FlushAsync().Wait(); } catch { }
-
+            // Dispose SqliteTrunk-specific resources
             _connectionLock?.Dispose();
-            _writeLock?.Dispose();
-
-            _disposed = true;
         }
     }
 }

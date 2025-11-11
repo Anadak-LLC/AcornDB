@@ -9,7 +9,7 @@ namespace AcornDB.Persistence.Cloud
     /// Azure Blob Storage trunk - convenient wrapper over CloudTrunk with AzureBlobProvider.
     /// Provides simple API while leveraging all CloudTrunk optimizations (compression, batching, caching, parallel downloads).
     /// </summary>
-    public class AzureTrunk<T> : ITrunk<T>, IDisposable
+    public class AzureTrunk<T> : ITrunk<T>, IDisposable where T : class
     {
         private readonly CloudTrunk<T> _cloudTrunk;
 
@@ -122,9 +122,9 @@ namespace AcornDB.Persistence.Cloud
 
         public void Dispose() => _cloudTrunk?.Dispose();
 
-        // IRoot support - stub implementation (to be fully implemented later)
-        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
-        public void AddRoot(IRoot root) { /* TODO: Implement root support */ }
-        public bool RemoveRoot(string name) => false;
+        // IRoot support - delegate to CloudTrunk
+        public IReadOnlyList<IRoot> Roots => _cloudTrunk.Roots;
+        public void AddRoot(IRoot root) => _cloudTrunk.AddRoot(root);
+        public bool RemoveRoot(string name) => _cloudTrunk.RemoveRoot(name);
     }
 }

@@ -17,7 +17,7 @@ namespace AcornDB.Storage
         /// <returns>Cached trunk</returns>
         public static CachedTrunk<T> WithCache<T>(
             this ITrunk<T> trunk,
-            CacheOptions? options = null)
+            CacheOptions? options = null) where T : class
         {
             return new CachedTrunk<T>(trunk, options);
         }
@@ -32,7 +32,7 @@ namespace AcornDB.Storage
         public static NearFarTrunk<T> WithNearFarCache<T>(
             this ITrunk<T> trunk,
             ITrunk<T> farCache,
-            NearFarOptions? options = null)
+            NearFarOptions? options = null) where T : class
         {
             var nearCache = new MemoryTrunk<T>();
             return new NearFarTrunk<T>(nearCache, farCache, trunk, options);
@@ -50,7 +50,7 @@ namespace AcornDB.Storage
             this ITrunk<T> trunk,
             ITrunk<T> nearCache,
             ITrunk<T> farCache,
-            NearFarOptions? options = null)
+            NearFarOptions? options = null) where T : class
         {
             return new NearFarTrunk<T>(nearCache, farCache, trunk, options);
         }

@@ -8,13 +8,43 @@ using Newtonsoft.Json;
 namespace AcornDB.Storage
 {
     /// <summary>
-    /// Compressed wrapper for any ITrunk implementation
+    /// [DEPRECATED] Compressed wrapper for any ITrunk implementation
     /// Compresses payloads before storage, decompresses on retrieval
     ///
-    /// OBSOLETE: Use CompressionRoot with ITrunk.AddRoot() instead.
-    /// This wrapper approach is deprecated in favor of the IRoot pipeline pattern.
+    /// ⚠️ IMPORTANT: This class is DEPRECATED and will be REMOVED in v0.6.0.
+    ///
+    /// Why this is deprecated:
+    /// - Old wrapper pattern creates type system complexity (Nut<T> → Nut<CompressedNut>)
+    /// - Cannot dynamically add/remove compression at runtime
+    /// - Difficult to inspect transformation chain
+    /// - Doesn't support policy context or transformation tracking
+    ///
+    /// Migration to IRoot pattern:
+    ///
+    /// OLD CODE:
+    ///   var baseTrunk = new FileTrunk<CompressedNut>();
+    ///   var compressedTrunk = new CompressedTrunk<User>(baseTrunk, new GzipCompressionProvider());
+    ///   var tree = new Tree<User>(compressedTrunk);
+    ///
+    /// NEW CODE (Option 1 - Direct):
+    ///   var trunk = new FileTrunk<User>();
+    ///   trunk.AddRoot(new CompressionRoot(new GzipCompressionProvider(), sequence: 100));
+    ///   var tree = new Tree<User>(trunk);
+    ///
+    /// NEW CODE (Option 2 - Fluent):
+    ///   var trunk = new FileTrunk<User>()
+    ///       .WithCompression(new GzipCompressionProvider());
+    ///   var tree = new Tree<User>(trunk);
+    ///
+    /// NEW CODE (Option 3 - Acorn Builder):
+    ///   var tree = new Acorn<User>()
+    ///       .WithCompression()
+    ///       .Sprout();
+    ///
+    /// See ROOT_ARCHITECTURE.md for complete migration guide.
     /// </summary>
-    [Obsolete("Use CompressionRoot with trunk.AddRoot() instead. Example: trunk.AddRoot(new CompressionRoot(compressionProvider))")]
+    [Obsolete("CompressedTrunk is deprecated and will be REMOVED in v0.6.0. Use CompressionRoot with trunk.AddRoot() or trunk.WithCompression() instead. " +
+              "Example: trunk.WithCompression(new GzipCompressionProvider()). See ROOT_ARCHITECTURE.md for migration guide.", true)]
     public class CompressedTrunk<T> : ITrunk<T>
     {
         private readonly ITrunk<CompressedNut> _innerTrunk;
@@ -150,29 +180,5 @@ namespace AcornDB.Storage
                 return null;
             }
         }
-    }
-
-    /// <summary>
-    /// Wrapper for compressed payload data with metadata
-    /// </summary>
-    public class CompressedNut
-    {
-        public byte[] CompressedData { get; set; } = Array.Empty<byte>();
-        public int OriginalSize { get; set; }
-        public int CompressedSize { get; set; }
-        public string Algorithm { get; set; } = "";
-        public string OriginalType { get; set; } = "";
-
-        /// <summary>
-        /// Compression ratio (e.g., 0.5 = 50% of original size)
-        /// </summary>
-        public double CompressionRatio => OriginalSize > 0
-            ? (double)CompressedSize / OriginalSize
-            : 1.0;
-
-        /// <summary>
-        /// Space saved in bytes
-        /// </summary>
-        public int SpaceSaved => OriginalSize - CompressedSize;
     }
 }

@@ -478,7 +478,7 @@ public static class ResilientCacheApp
     }
 
     // Simulated unreliable trunk for demo purposes
-    private class UnreliableTrunk<T> : ITrunk<T>, IDisposable
+    private class UnreliableTrunk<T> : ITrunk<T>, IDisposable where T : class
     {
         private readonly MemoryTrunk<T> _inner = new();
         private readonly double _failureRate;

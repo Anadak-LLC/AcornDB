@@ -15,15 +15,12 @@ namespace AcornDB.Storage
     /// Write: Nut<T> → Serialize → Root Chain (ascending) → byte[] → Write to file
     /// Read: Read file → byte[] → Root Chain (descending) → Deserialize → Nut<T>
     /// </summary>
-    public class FileTrunk<T> : ITrunk<T>
+    public class FileTrunk<T> : TrunkBase<T> where T : class
     {
         private readonly string _folderPath;
         private readonly JsonSerializerSettings _jsonSettings;
-        private readonly List<IRoot> _roots = new();
-        private readonly object _rootsLock = new();
-        private readonly ISerializer _serializer;
 
-        public ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
+        public override ITrunkCapabilities Capabilities { get; } = new TrunkCapabilities
         {
             SupportsHistory = false,
             SupportsSync = true,
@@ -33,12 +30,11 @@ namespace AcornDB.Storage
         };
 
         public FileTrunk(string? customPath = null, ISerializer? serializer = null)
+            : base(serializer)
         {
             var typeName = typeof(T).Name;
             _folderPath = customPath ?? Path.Combine(Directory.GetCurrentDirectory(), "data", typeName);
             Directory.CreateDirectory(_folderPath);
-
-            _serializer = serializer ?? new NewtonsoftJsonSerializer();
 
             // Optimize JSON serialization
             _jsonSettings = new JsonSerializerSettings
@@ -49,52 +45,6 @@ namespace AcornDB.Storage
             };
         }
 
-        /// <summary>
-        /// Get all registered root processors
-        /// </summary>
-        public IReadOnlyList<IRoot> Roots
-        {
-            get
-            {
-                lock (_rootsLock)
-                {
-                    return _roots.ToList();
-                }
-            }
-        }
-
-        /// <summary>
-        /// Add a root processor to the processing chain
-        /// </summary>
-        public void AddRoot(IRoot root)
-        {
-            if (root == null) throw new ArgumentNullException(nameof(root));
-
-            lock (_rootsLock)
-            {
-                _roots.Add(root);
-                // Sort by sequence to ensure correct execution order
-                _roots.Sort((a, b) => a.Sequence.CompareTo(b.Sequence));
-            }
-        }
-
-        /// <summary>
-        /// Remove a root processor from the processing chain
-        /// </summary>
-        public bool RemoveRoot(string name)
-        {
-            lock (_rootsLock)
-            {
-                var root = _roots.FirstOrDefault(r => r.Name == name);
-                if (root != null)
-                {
-                    _roots.Remove(root);
-                    return true;
-                }
-                return false;
-            }
-        }
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         private string GetFilePath(string id)
         {
@@ -102,27 +52,14 @@ namespace AcornDB.Storage
             return Path.Combine(_folderPath, id + ".json");
         }
 
-        public void Stash(string id, Nut<T> nut)
+        public override void Stash(string id, Nut<T> nut)
         {
             // Step 1: Serialize Nut<T> to JSON then bytes
             var json = _serializer.Serialize(nut);
             var bytes = Encoding.UTF8.GetBytes(json);
 
             // Step 2: Process through root chain in ascending sequence order
-            var context = new RootProcessingContext
-            {
-                PolicyContext = new PolicyContext { Operation = "Write" },
-                DocumentId = id
-            };
-
-            var processedBytes = bytes;
-            lock (_rootsLock)
-            {
-                foreach (var root in _roots)
-                {
-                    processedBytes = root.OnStash(processedBytes, context);
-                }
-            }
+            var processedBytes = ProcessThroughRootsAscending(bytes, id);
 
             // Step 3: Write final byte array to file
             var file = GetFilePath(id);
@@ -133,11 +70,8 @@ namespace AcornDB.Storage
             }
         }
 
-        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
-        public void Save(string id, Nut<T> nut) => Stash(id, nut);
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Crack(string id)
+        public override Nut<T>? Crack(string id)
         {
             // Step 1: Read byte array from file
             var file = GetFilePath(id);
@@ -151,21 +85,7 @@ namespace AcornDB.Storage
             }
 
             // Step 2: Process through root chain in descending sequence order (reverse)
-            var context = new RootProcessingContext
-            {
-                PolicyContext = new PolicyContext { Operation = "Read" },
-                DocumentId = id
-            };
-
-            var processedBytes = storedBytes;
-            lock (_rootsLock)
-            {
-                // Reverse iteration for read path
-                for (int i = _roots.Count - 1; i >= 0; i--)
-                {
-                    processedBytes = _roots[i].OnCrack(processedBytes, context);
-                }
-            }
+            var processedBytes = ProcessThroughRootsDescending(storedBytes, id);
 
             // Step 3: Deserialize bytes back to Nut<T>
             try
@@ -181,11 +101,8 @@ namespace AcornDB.Storage
             }
         }
 
-        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
-        public Nut<T>? Load(string id) => Crack(id);
-
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Toss(string id)
+        public override void Toss(string id)
         {
             var file = GetFilePath(id);
             if (File.Exists(file))
@@ -194,10 +111,7 @@ namespace AcornDB.Storage
             }
         }
 
-        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
-        public void Delete(string id) => Toss(id);
-
-        public IEnumerable<Nut<T>> CrackAll()
+        public override IEnumerable<Nut<T>> CrackAll()
         {
             // Load all nuts by passing each through the Load pipeline
             var files = Directory.GetFiles(_folderPath, "*.json");
@@ -215,22 +129,19 @@ namespace AcornDB.Storage
             return list;
         }
 
-        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
-        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
-
         // Optional features - not supported by FileTrunk
-        public IReadOnlyList<Nut<T>> GetHistory(string id)
+        public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             throw new NotSupportedException("FileTrunk does not support history. Use DocumentStoreTrunk for versioning.");
         }
 
-        public IEnumerable<Nut<T>> ExportChanges()
+        public override IEnumerable<Nut<T>> ExportChanges()
         {
             // Simple implementation: export all current data
             return CrackAll();
         }
 
-        public void ImportChanges(IEnumerable<Nut<T>> incoming)
+        public override void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             foreach (var nut in incoming)
             {

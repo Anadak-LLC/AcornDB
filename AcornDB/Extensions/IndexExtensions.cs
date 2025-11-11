@@ -5,8 +5,12 @@ using AcornDB.Indexing;
 namespace AcornDB
 {
     /// <summary>
-    /// Extension methods for adding indexes to Acorn builder and Trees
+    /// Extension methods for adding indexes to Acorn builder and Trees.
+    /// Note: Advanced index methods (composite, computed, text, time-series, TTL) are experimental
+    /// and not yet implemented. They will throw NotImplementedException until v0.6.0+.
+    /// Only WithIndex (scalar indexes) is production-ready.
     /// </summary>
+    [Experimental("Advanced index types are planned for v0.6.0+. Only scalar indexes (WithIndex) are currently implemented.", "v0.6.0")]
     public static class IndexExtensions
     {
         /// <summary>
@@ -42,6 +46,7 @@ namespace AcornDB
         /// <param name="keySelector">Expression creating composite key from multiple properties</param>
         /// <param name="configure">Optional configuration for the index</param>
         /// <returns>Acorn builder for chaining</returns>
+        /// <exception cref="NotImplementedException">This feature is not yet implemented. Planned for v0.6.0 (Phase 4.1)</exception>
         public static Acorn<T> WithCompositeIndex<T>(
             this Acorn<T> acorn,
             Expression<Func<T, object>> keySelector,
@@ -65,6 +70,7 @@ namespace AcornDB
         /// <param name="computeExpression">Expression computing the indexed value</param>
         /// <param name="configure">Optional configuration for the index</param>
         /// <returns>Acorn builder for chaining</returns>
+        /// <exception cref="NotImplementedException">This feature is not yet implemented. Planned for v0.6.0 (Phase 4.2)</exception>
         public static Acorn<T> WithComputedIndex<T, TResult>(
             this Acorn<T> acorn,
             Expression<Func<T, TResult>> computeExpression,
@@ -86,6 +92,7 @@ namespace AcornDB
         /// <param name="textSelector">Expression selecting the text property to index</param>
         /// <param name="configure">Optional configuration for the index</param>
         /// <returns>Acorn builder for chaining</returns>
+        /// <exception cref="NotImplementedException">This feature is not yet implemented. Planned for v0.6.0 (Phase 4.3-4.4)</exception>
         public static Acorn<T> WithTextIndex<T>(
             this Acorn<T> acorn,
             Expression<Func<T, string>> textSelector,
@@ -107,6 +114,7 @@ namespace AcornDB
         /// <param name="timestampSelector">Expression selecting the timestamp property</param>
         /// <param name="configure">Configuration for bucket size and aggregation</param>
         /// <returns>Acorn builder for chaining</returns>
+        /// <exception cref="NotImplementedException">This feature is not yet implemented. Planned for v0.6.0 (Phase 4.5)</exception>
         public static Acorn<T> WithTimeSeries<T>(
             this Acorn<T> acorn,
             Expression<Func<T, DateTime>> timestampSelector,
@@ -128,6 +136,7 @@ namespace AcornDB
         /// <param name="expirationSelector">Expression selecting the expiration timestamp property</param>
         /// <param name="configure">Optional configuration for TTL behavior</param>
         /// <returns>Acorn builder for chaining</returns>
+        /// <exception cref="NotImplementedException">This feature is not yet implemented. Planned for v0.6.0 (Phase 4.6)</exception>
         public static Acorn<T> WithTtl<T>(
             this Acorn<T> acorn,
             Expression<Func<T, DateTime>> expirationSelector,

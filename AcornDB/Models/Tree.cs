@@ -9,7 +9,7 @@ using System.Linq;
 
 namespace AcornDB
 {
-    public partial class Tree<T>
+    public partial class Tree<T> where T : class
     {
         private readonly Dictionary<string, Nut<T>> _cache = new();
         private readonly List<IBranch> _branches = new(); // Stores Branch and IBranch implementations
@@ -90,7 +90,7 @@ namespace AcornDB
             };
 
             _cache[id] = nut;
-            _trunk.Save(id, nut);
+            _trunk.Stash(id, nut);
             _totalStashed++;
 
             // Notify cache strategy
@@ -122,7 +122,7 @@ namespace AcornDB
                 return shell.Payload;
             }
 
-            var fromTrunk = _trunk.Load(id);
+            var fromTrunk = _trunk.Crack(id);
             if (fromTrunk != null)
             {
                 _cache[id] = fromTrunk;
@@ -138,7 +138,7 @@ namespace AcornDB
         {
             var item = Crack(id);
             _cache.Remove(id);
-            _trunk.Delete(id);
+            _trunk.Toss(id);
             _totalTossed++;
 
             // Notify cache strategy
@@ -220,13 +220,13 @@ namespace AcornDB
 
                 // Otherwise, save the incoming nut
                 _cache[id] = winner;
-                _trunk.Save(id, winner);
+                _trunk.Stash(id, winner);
             }
             else
             {
                 // No conflict, just stash the incoming nut
                 _cache[id] = incoming;
-                _trunk.Save(id, incoming);
+                _trunk.Stash(id, incoming);
                 OnStashEvent?.Invoke(id, incoming.Payload, incoming);
             }
         }
@@ -425,7 +425,7 @@ namespace AcornDB
 
                 var lastVersion = versions[^1];
                 _cache[id] = lastVersion;
-                _trunk.Save(id, lastVersion);
+                _trunk.Stash(id, lastVersion);
 
                 // Squabble undone successfully
                 return true;
@@ -465,7 +465,7 @@ namespace AcornDB
 
         private void LoadFromTrunk()
         {
-            foreach (var shell in _trunk.LoadAll())
+            foreach (var shell in _trunk.CrackAll())
             {
                 if (!string.IsNullOrWhiteSpace(shell.Id))
                     _cache[shell.Id] = shell;

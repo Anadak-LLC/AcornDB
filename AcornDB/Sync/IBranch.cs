@@ -37,7 +37,7 @@ namespace AcornDB.Sync
         /// <summary>
         /// Called during shake operations (full sync)
         /// </summary>
-        Task OnShakeAsync<T>(Tree<T> tree);
+        Task OnShakeAsync<T>(Tree<T> tree) where T : class;
 
         /// <summary>
         /// Flush any batched leaves (if batching is supported)

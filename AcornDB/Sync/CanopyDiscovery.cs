@@ -221,43 +221,4 @@ namespace AcornDB.Sync
             }
         }
     }
-
-    /// <summary>
-    /// Canopy announcement broadcast on the network
-    /// </summary>
-    public class CanopyAnnouncement
-    {
-        public string NodeId { get; set; } = "";
-        public int HttpPort { get; set; }
-        public int TreeCount { get; set; }
-        public List<string> TreeTypes { get; set; } = new();
-        public DateTime Timestamp { get; set; }
-    }
-
-    /// <summary>
-    /// Information about a discovered node
-    /// </summary>
-    public class DiscoveredNode
-    {
-        public string NodeId { get; set; } = "";
-        public string Address { get; set; } = "";
-        public int HttpPort { get; set; }
-        public string RemoteUrl { get; set; } = "";
-        public int TreeCount { get; set; }
-        public List<string> TreeTypes { get; set; } = new();
-        public DateTime DiscoveredAt { get; set; }
-        public DateTime LastSeen { get; set; }
-    }
-
-    /// <summary>
-    /// Canopy discovery statistics
-    /// </summary>
-    public class CanopyStats
-    {
-        public string LocalNodeId { get; set; } = "";
-        public int TotalDiscovered { get; set; }
-        public int ActiveNodes { get; set; }
-        public int TotalTrees { get; set; }
-        public int UniqueTreeTypes { get; set; }
-    }
 }

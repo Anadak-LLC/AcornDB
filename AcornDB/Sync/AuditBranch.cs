@@ -63,7 +63,7 @@ namespace AcornDB.Sync
             LogLeaf("SQUABBLE", leaf);
         }
 
-        public Task OnShakeAsync<T>(Tree<T> tree)
+        public Task OnShakeAsync<T>(Tree<T> tree) where T : class
         {
             ThrowIfDisposed();
             _auditLog.Add(new AuditEntry
@@ -130,20 +130,5 @@ namespace AcornDB.Sync
             _auditLog.Clear();
             GC.SuppressFinalize(this);
         }
-    }
-
-    /// <summary>
-    /// Audit log entry
-    /// </summary>
-    public class AuditEntry
-    {
-        public DateTime Timestamp { get; set; }
-        public string Action { get; set; } = string.Empty;
-        public string LeafId { get; set; } = string.Empty;
-        public string OriginTreeId { get; set; } = string.Empty;
-        public string Key { get; set; } = string.Empty;
-        public string TreeType { get; set; } = string.Empty;
-        public int HopCount { get; set; }
-        public string Details { get; set; } = string.Empty;
     }
 }

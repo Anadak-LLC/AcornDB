@@ -4,16 +4,26 @@ using AcornDB.Indexing;
 namespace AcornDB.Storage.Roots
 {
     /// <summary>
-    /// Root processor that tracks index metadata and provides hooks for index-aware operations.
+    /// [DEPRECATED] Root processor that tracks index metadata and provides hooks for index-aware operations.
     /// This root operates at sequence 50 (pre-compression) to access uncompressed document data.
     ///
-    /// Primary responsibilities:
-    /// - Track which documents have been indexed
-    /// - Provide metadata for index verification/rebuilding
-    /// - Enable future index-aware load optimizations
+    /// ⚠️ IMPORTANT: This class is DEPRECATED and will be removed in v0.6.0.
+    ///
+    /// Reason for deprecation:
+    /// - Does not actually manage indexes (indexes are managed at Tree level in Tree.IndexManagement.cs)
+    /// - Misleading name suggests index management when it only tracks metrics
+    /// - Root processors should transform bytes, not just observe operations
+    /// - Index metrics belong at Tree level where actual index updates occur
+    ///
+    /// Migration:
+    /// - If you need index metrics, use Tree.GetNutStats() which provides comprehensive statistics
+    /// - Index updates are automatically tracked in Tree.IndexManagement.cs
+    /// - Root processors should focus on byte-level transformations (compression, encryption, etc.)
     ///
     /// Recommended sequence: 50 (before compression)
     /// </summary>
+    [Obsolete("ManagedIndexRoot is deprecated and will be removed in v0.6.0. Index metrics are tracked at Tree level. " +
+              "Use Tree.GetNutStats() for statistics. Root processors should transform bytes, not just observe operations.", false)]
     public class ManagedIndexRoot : IRoot
     {
         private readonly ManagedIndexMetrics _metrics;
@@ -86,56 +96,6 @@ namespace AcornDB.Storage.Roots
                 // Don't throw - indexing failures shouldn't break reads
                 return data;
             }
-        }
-    }
-
-    /// <summary>
-    /// Metrics for managed index operations (thread-safe)
-    /// </summary>
-    public class ManagedIndexMetrics
-    {
-        private long _totalStashes;
-        private long _totalCracks;
-        private long _totalErrors;
-        private DateTime _lastStash;
-        private DateTime _lastCrack;
-
-        public long TotalStashes => Interlocked.Read(ref _totalStashes);
-        public long TotalCracks => Interlocked.Read(ref _totalCracks);
-        public long TotalErrors => Interlocked.Read(ref _totalErrors);
-        public DateTime LastStash => _lastStash;
-        public DateTime LastCrack => _lastCrack;
-
-        internal void RecordStash(string? documentId)
-        {
-            Interlocked.Increment(ref _totalStashes);
-            _lastStash = DateTime.UtcNow;
-        }
-
-        internal void RecordCrack(string? documentId)
-        {
-            Interlocked.Increment(ref _totalCracks);
-            _lastCrack = DateTime.UtcNow;
-        }
-
-        internal void RecordError()
-        {
-            Interlocked.Increment(ref _totalErrors);
-        }
-
-        public void Reset()
-        {
-            Interlocked.Exchange(ref _totalStashes, 0);
-            Interlocked.Exchange(ref _totalCracks, 0);
-            Interlocked.Exchange(ref _totalErrors, 0);
-            _lastStash = DateTime.MinValue;
-            _lastCrack = DateTime.MinValue;
-        }
-
-        public override string ToString()
-        {
-            return $"Stashes: {TotalStashes}, Cracks: {TotalCracks}, Errors: {TotalErrors}, " +
-                   $"Last Stash: {LastStash:yyyy-MM-dd HH:mm:ss}, Last Crack: {LastCrack:yyyy-MM-dd HH:mm:ss}";
         }
     }
 }

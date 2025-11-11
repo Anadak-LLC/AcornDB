@@ -330,7 +330,7 @@ public record DemoUser(string Name, string Email);
 /// <summary>
 /// Simulated unreliable trunk for testing resilience features
 /// </summary>
-internal class UnreliableTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable
+internal class UnreliableTrunk<T> : ITrunk<T>, ITrunkCapabilities, IDisposable where T : class
 {
     private readonly MemoryTrunk<T> _innerTrunk = new();
     private readonly double _failureRate;
