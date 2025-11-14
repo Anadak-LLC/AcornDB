@@ -31,7 +31,7 @@ namespace AcornDB.Storage
     /// - Read-heavy workloads with multiple replicas
     /// - Reducing database load in high-traffic scenarios
     /// </summary>
-    public class NearFarTrunk<T> : ITrunk<T>, IDisposable
+    public class NearFarTrunk<T> : TrunkBase<T>, IDisposable where T: class
     {
         private readonly ITrunk<T> _nearCache;
         private readonly ITrunk<T> _farCache;
@@ -65,7 +65,7 @@ namespace AcornDB.Storage
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Stash(string id, Nut<T> nut)
+        public override void Stash(string id, Nut<T> nut)
         {
             // Write to backing store first (write-through)
             _backingStore.Stash(id, nut);
@@ -89,7 +89,7 @@ namespace AcornDB.Storage
         public void Save(string id, Nut<T> nut) => Stash(id, nut);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public Nut<T>? Crack(string id)
+        public override Nut<T>? Crack(string id)
         {
             Nut<T>? nut = null;
 
@@ -134,7 +134,7 @@ namespace AcornDB.Storage
         public Nut<T>? Load(string id) => Crack(id);
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
-        public void Toss(string id)
+        public override void Toss(string id)
         {
             // Delete from backing store
             _backingStore.Toss(id);
@@ -147,7 +147,7 @@ namespace AcornDB.Storage
         [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
         public void Delete(string id) => Toss(id);
 
-        public IEnumerable<Nut<T>> CrackAll()
+        public override IEnumerable<Nut<T>> CrackAll()
         {
             // Always load from backing store for consistency
             return _backingStore.CrackAll();
@@ -156,19 +156,19 @@ namespace AcornDB.Storage
         [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
         public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
-        public IReadOnlyList<Nut<T>> GetHistory(string id)
+        public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             // History always from backing store (caches don't store history)
             return _backingStore.GetHistory(id);
         }
 
-        public IEnumerable<Nut<T>> ExportChanges()
+        public override IEnumerable<Nut<T>> ExportChanges()
         {
             // Export from backing store
             return _backingStore.ExportChanges();
         }
 
-        public void ImportChanges(IEnumerable<Nut<T>> incoming)
+        public override void ImportChanges(IEnumerable<Nut<T>> incoming)
         {
             // Import to backing store
             _backingStore.ImportChanges(incoming);
@@ -250,7 +250,7 @@ namespace AcornDB.Storage
         }
 
         // ITrunkCapabilities implementation - forward to near cache (primary read cache) with custom TrunkType
-        public ITrunkCapabilities Capabilities
+        public override ITrunkCapabilities Capabilities
         {
             get
             {

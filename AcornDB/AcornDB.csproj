@@ -20,7 +20,10 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <!-- PackageIcon>acorn-icon.png</PackageIcon --> <!-- TODO: Create 128x128 PNG icon (<1MB) and uncomment -->
     <Copyright>Copyright © 2025 Anadak LLC</Copyright>
-    <PackageReleaseNotes>v0.5.0: </PackageReleaseNotes>
+    <PackageReleaseNotes>Refactored persistence pipeline to leverage IRoot chain, with support across all trunk implementations
+Refactored logging output to use standardized model
+Several architectural alignment/consistency changes
+Optimization of most Trunk implementations</PackageReleaseNotes>
 
     <!-- Build Settings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
