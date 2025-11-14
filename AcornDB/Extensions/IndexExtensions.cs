@@ -56,9 +56,9 @@ namespace AcornDB
             var config = new IndexConfiguration();
             configure?.Invoke(config);
 
-            // Composite index implementation will come in Phase 4.1
+            // Composite index implementation will come in 0.6
             // For now, register the intent
-            throw new NotImplementedException("Composite indexes will be implemented in Phase 4.1");
+            throw new NotImplementedException("Composite indexes will be implemented in 0.6");
         }
 
         /// <summary>
@@ -80,8 +80,8 @@ namespace AcornDB
             var config = new IndexConfiguration();
             configure?.Invoke(config);
 
-            // Computed index implementation will come in Phase 4.2
-            throw new NotImplementedException("Computed indexes will be implemented in Phase 4.2");
+            // Computed index implementation will come in 0.6
+            throw new NotImplementedException("Computed indexes will be implemented in 0.6");
         }
 
         /// <summary>
@@ -102,8 +102,8 @@ namespace AcornDB
             var config = new IndexConfiguration();
             configure?.Invoke(config);
 
-            // Text index implementation will come in Phase 4.3/4.4
-            throw new NotImplementedException("Text indexes will be implemented in Phase 4.3-4.4");
+            // Text index implementation will come in 0.6
+            throw new NotImplementedException("Text indexes will be implemented in 0.6");
         }
 
         /// <summary>
@@ -124,8 +124,8 @@ namespace AcornDB
             var config = new IndexConfiguration();
             configure(config);
 
-            // Time-series index implementation will come in Phase 4.5
-            throw new NotImplementedException("Time-series indexes will be implemented in Phase 4.5");
+            // Time-series index implementation will come in 0.6
+            throw new NotImplementedException("Time-series indexes will be implemented in 0.6");
         }
 
         /// <summary>
@@ -146,8 +146,8 @@ namespace AcornDB
             var config = new IndexConfiguration();
             configure?.Invoke(config);
 
-            // TTL index optimization will come in Phase 4.6
-            throw new NotImplementedException("TTL index optimization will be implemented in Phase 4.6");
+            // TTL index optimization will come in 0.6
+            throw new NotImplementedException("TTL index optimization will be implemented in 0.6");
         }
     }
 }
