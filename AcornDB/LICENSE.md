@@ -36,8 +36,8 @@ Commercial licensing provides:
 To obtain a commercial license, contact:
 
     Anadak LLC
-    Email: licensing@anadakcorp.com
-    Website: https://www.anadakcorp.com
+    Email: licensing@anadak.ai
+    Website: https://www.anadak.ai
 
 -------------------------------------------------------------------------------
 Warranty Disclaimer
@@ -56,4 +56,4 @@ Attribution
 
 When redistributing or referencing this software, please include the following notice:
 
-    "Powered by AcornDB — a project by Anadak LLC (https://www.anadakcorp.com)"
+    "Powered by AcornDB — a project by Anadak LLC (https://www.anadak.ai)"

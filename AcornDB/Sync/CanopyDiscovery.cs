@@ -1,4 +1,5 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
@@ -52,7 +53,7 @@ namespace AcornDB.Sync
             // Start listening
             Task.Run(async () => await ListenForNodes(autoConnect, token), token);
 
-            Console.WriteLine($"> 🌳 Canopy discovery started on port {DiscoveryPort}");
+            AcornLog.Info($"> 🌳 Canopy discovery started on port {DiscoveryPort}");
         }
 
         /// <summary>
@@ -62,7 +63,7 @@ namespace AcornDB.Sync
         {
             _cancellationSource?.Cancel();
             _udpClient?.Close();
-            Console.WriteLine($"> 🌳 Canopy discovery stopped");
+            AcornLog.Info($"> 🌳 Canopy discovery stopped");
         }
 
         private async Task BroadcastPresence(CancellationToken token)
@@ -96,7 +97,7 @@ namespace AcornDB.Sync
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"> ⚠️ Canopy broadcast error: {ex.Message}");
+                    AcornLog.Info($"> ⚠️ Canopy broadcast error: {ex.Message}");
                 }
             }
         }
@@ -141,7 +142,7 @@ namespace AcornDB.Sync
 
                             if (autoConnect && node.DiscoveredAt == DateTime.UtcNow)
                             {
-                                Console.WriteLine($"> 🌳 Canopy: Discovered {nodeKey} ({node.TreeCount} trees)");
+                                AcornLog.Info($"> 🌳 Canopy: Discovered {nodeKey} ({node.TreeCount} trees)");
                                 ConnectToNode(node);
                             }
                         }
@@ -154,7 +155,7 @@ namespace AcornDB.Sync
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"> ⚠️ Canopy listener error: {ex.Message}");
+                AcornLog.Info($"> ⚠️ Canopy listener error: {ex.Message}");
             }
         }
 
@@ -163,11 +164,11 @@ namespace AcornDB.Sync
             try
             {
                 _localGrove.EntangleAll(node.RemoteUrl);
-                Console.WriteLine($"> 🔗 Auto-connected to {node.RemoteUrl}");
+                AcornLog.Info($"> 🔗 Auto-connected to {node.RemoteUrl}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"> ⚠️ Failed to connect to {node.RemoteUrl}: {ex.Message}");
+                AcornLog.Info($"> ⚠️ Failed to connect to {node.RemoteUrl}: {ex.Message}");
             }
         }
 
@@ -217,47 +218,8 @@ namespace AcornDB.Sync
             foreach (var key in staleKeys)
             {
                 _discoveredNodes.TryRemove(key, out _);
-                Console.WriteLine($"> 🌳 Removed stale node: {key}");
+                AcornLog.Info($"> 🌳 Removed stale node: {key}");
             }
         }
-    }
-
-    /// <summary>
-    /// Canopy announcement broadcast on the network
-    /// </summary>
-    public class CanopyAnnouncement
-    {
-        public string NodeId { get; set; } = "";
-        public int HttpPort { get; set; }
-        public int TreeCount { get; set; }
-        public List<string> TreeTypes { get; set; } = new();
-        public DateTime Timestamp { get; set; }
-    }
-
-    /// <summary>
-    /// Information about a discovered node
-    /// </summary>
-    public class DiscoveredNode
-    {
-        public string NodeId { get; set; } = "";
-        public string Address { get; set; } = "";
-        public int HttpPort { get; set; }
-        public string RemoteUrl { get; set; } = "";
-        public int TreeCount { get; set; }
-        public List<string> TreeTypes { get; set; } = new();
-        public DateTime DiscoveredAt { get; set; }
-        public DateTime LastSeen { get; set; }
-    }
-
-    /// <summary>
-    /// Canopy discovery statistics
-    /// </summary>
-    public class CanopyStats
-    {
-        public string LocalNodeId { get; set; } = "";
-        public int TotalDiscovered { get; set; }
-        public int ActiveNodes { get; set; }
-        public int TotalTrees { get; set; }
-        public int UniqueTreeTypes { get; set; }
     }
 }

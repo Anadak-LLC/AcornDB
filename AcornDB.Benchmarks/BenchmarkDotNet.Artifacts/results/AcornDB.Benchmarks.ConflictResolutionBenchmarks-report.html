@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>AcornDB.Benchmarks.ConflictResolutionBenchmarks-20251007-012758</title>
+<title>AcornDB.Benchmarks.ConflictResolutionBenchmarks-20251113-004013</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -13,34 +13,34 @@
 </head>
 <body>
 <pre><code>
-BenchmarkDotNet v0.15.4, Windows 11 (10.0.26100.6584/24H2/2024Update/HudsonValley)
-AMD Ryzen 9 7900X 4.70GHz, 1 CPU, 24 logical and 12 physical cores
-.NET SDK 9.0.304
-  [Host]     : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
-  Job-ARDWEO : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
+BenchmarkDotNet v0.15.4, Linux Linux Mint 22.2 (Zara)
+AMD Ryzen 9 7900X 3.01GHz, 1 CPU, 24 logical and 12 physical cores
+.NET SDK 9.0.111
+  [Host]     : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
+  Job-ARDWEO : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
 </code></pre>
 <pre><code>InvocationCount=1  IterationCount=5  UnrollFactor=1  
 WarmupCount=2  
 </code></pre>
 
 <table>
-<thead><tr><th>Method                 </th><th>ConflictCount</th><th>Mean </th><th>Error </th><th>StdDev</th><th>Allocated</th>
+<thead><tr><th>Method                 </th><th>ConflictCount</th><th>Mean  </th><th>Error </th><th>StdDev</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>Squabble_LocalWins</td><td>100</td><td>501.60 &mu;s</td><td>977.054 &mu;s</td><td>151.200 &mu;s</td><td>44.98 KB</td>
-</tr><tr><td>Squabble_IncomingWins</td><td>100</td><td>405.64 &mu;s</td><td>393.553 &mu;s</td><td>102.205 &mu;s</td><td>45.05 KB</td>
-</tr><tr><td>Squabble_MixedResults</td><td>100</td><td>461.14 &mu;s</td><td>430.263 &mu;s</td><td>111.738 &mu;s</td><td>45.02 KB</td>
-</tr><tr><td>Squabble_WithHistoryRetrieval</td><td>100</td><td>462.43 &mu;s</td><td>104.613 &mu;s</td><td>16.189 &mu;s</td><td>139.21 KB</td>
-</tr><tr><td>NoConflict_DirectStash</td><td>100</td><td>40.06 &mu;s</td><td>4.860 &mu;s</td><td>1.262 &mu;s</td><td>52.49 KB</td>
-</tr><tr><td>Squabble_LocalWins</td><td>500</td><td>3,759.64 &mu;s</td><td>270.773 &mu;s</td><td>70.319 &mu;s</td><td>223.1 KB</td>
-</tr><tr><td>Squabble_IncomingWins</td><td>500</td><td>3,833.86 &mu;s</td><td>811.377 &mu;s</td><td>210.712 &mu;s</td><td>226.3 KB</td>
-</tr><tr><td>Squabble_MixedResults</td><td>500</td><td>3,974.80 &mu;s</td><td>440.060 &mu;s</td><td>114.282 &mu;s</td><td>224.7 KB</td>
-</tr><tr><td>Squabble_WithHistoryRetrieval</td><td>500</td><td>4,046.25 &mu;s</td><td>372.732 &mu;s</td><td>57.681 &mu;s</td><td>681.51 KB</td>
-</tr><tr><td>NoConflict_DirectStash</td><td>500</td><td>189.78 &mu;s</td><td>52.455 &mu;s</td><td>13.622 &mu;s</td><td>244.79 KB</td>
-</tr><tr><td>Squabble_LocalWins</td><td>1000</td><td>8,162.40 &mu;s</td><td>502.395 &mu;s</td><td>130.470 &mu;s</td><td>445.76 KB</td>
-</tr><tr><td>Squabble_IncomingWins</td><td>1000</td><td>7,938.00 &mu;s</td><td>1,525.291 &mu;s</td><td>396.113 &mu;s</td><td>452.87 KB</td>
-</tr><tr><td>Squabble_MixedResults</td><td>1000</td><td>7,827.36 &mu;s</td><td>1,229.297 &mu;s</td><td>319.245 &mu;s</td><td>449.31 KB</td>
-</tr><tr><td>Squabble_WithHistoryRetrieval</td><td>1000</td><td>8,485.68 &mu;s</td><td>1,197.879 &mu;s</td><td>311.085 &mu;s</td><td>1379.13 KB</td>
-</tr><tr><td>NoConflict_DirectStash</td><td>1000</td><td>371.45 &mu;s</td><td>140.748 &mu;s</td><td>21.781 &mu;s</td><td>504.91 KB</td>
+</thead><tbody><tr><td>Squabble_LocalWins</td><td>100</td><td>60.21 &mu;s</td><td>2.057 &mu;s</td><td>0.318 &mu;s</td><td>30.47 KB</td>
+</tr><tr><td>Squabble_IncomingWins</td><td>100</td><td>552.76 &mu;s</td><td>101.657 &mu;s</td><td>26.400 &mu;s</td><td>372.19 KB</td>
+</tr><tr><td>Squabble_MixedResults</td><td>100</td><td>317.00 &mu;s</td><td>35.640 &mu;s</td><td>9.256 &mu;s</td><td>201.33 KB</td>
+</tr><tr><td>Squabble_WithHistoryRetrieval</td><td>100</td><td>1,776.11 &mu;s</td><td>792.294 &mu;s</td><td>205.756 &mu;s</td><td>842.9 KB</td>
+</tr><tr><td>NoConflict_DirectStash</td><td>100</td><td>661.98 &mu;s</td><td>258.026 &mu;s</td><td>67.009 &mu;s</td><td>429.8 KB</td>
+</tr><tr><td>Squabble_LocalWins</td><td>500</td><td>308.87 &mu;s</td><td>6.869 &mu;s</td><td>1.784 &mu;s</td><td>152.34 KB</td>
+</tr><tr><td>Squabble_IncomingWins</td><td>500</td><td>2,621.77 &mu;s</td><td>54.864 &mu;s</td><td>8.490 &mu;s</td><td>1865.41 KB</td>
+</tr><tr><td>Squabble_MixedResults</td><td>500</td><td>1,440.02 &mu;s</td><td>133.391 &mu;s</td><td>20.642 &mu;s</td><td>1008.93 KB</td>
+</tr><tr><td>Squabble_WithHistoryRetrieval</td><td>500</td><td>8,040.69 &mu;s</td><td>262.025 &mu;s</td><td>40.549 &mu;s</td><td>4246.85 KB</td>
+</tr><tr><td>NoConflict_DirectStash</td><td>500</td><td>2,750.42 &mu;s</td><td>28.850 &mu;s</td><td>4.465 &mu;s</td><td>2178.53 KB</td>
+</tr><tr><td>Squabble_LocalWins</td><td>1000</td><td>600.77 &mu;s</td><td>7.173 &mu;s</td><td>1.110 &mu;s</td><td>304.69 KB</td>
+</tr><tr><td>Squabble_IncomingWins</td><td>1000</td><td>5,116.22 &mu;s</td><td>952.531 &mu;s</td><td>147.405 &mu;s</td><td>3735.73 KB</td>
+</tr><tr><td>Squabble_MixedResults</td><td>1000</td><td>2,846.06 &mu;s</td><td>37.692 &mu;s</td><td>5.833 &mu;s</td><td>2020.27 KB</td>
+</tr><tr><td>Squabble_WithHistoryRetrieval</td><td>1000</td><td>17,224.06 &mu;s</td><td>4,781.340 &mu;s</td><td>739.918 &mu;s</td><td>8643.24 KB</td>
+</tr><tr><td>NoConflict_DirectStash</td><td>1000</td><td>5,862.67 &mu;s</td><td>1,523.053 &mu;s</td><td>235.694 &mu;s</td><td>4385.23 KB</td>
 </tr></tbody></table>
 </body>
 </html>

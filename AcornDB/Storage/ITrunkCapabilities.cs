@@ -27,6 +27,27 @@ namespace AcornDB.Storage
         bool SupportsAsync { get; }
 
         /// <summary>
+        /// Whether this trunk supports native secondary indexes.
+        /// When true, the trunk can create and maintain its own indexes (e.g., SQL CREATE INDEX).
+        /// When false, managed indexes via ManagedIndexRoot will be used.
+        /// </summary>
+        bool SupportsNativeIndexes { get; }
+
+        /// <summary>
+        /// Whether this trunk supports native full-text search.
+        /// When true, the trunk can perform FTS operations natively (e.g., SQLite FTS5, PostgreSQL tsvector).
+        /// When false, managed text indexing will be used.
+        /// </summary>
+        bool SupportsFullTextSearch { get; }
+
+        /// <summary>
+        /// Whether this trunk supports native computed/expression indexes.
+        /// When true, the trunk can create indexes on expressions (e.g., PostgreSQL expression indexes).
+        /// When false, computed indexes will be materialized in managed index.
+        /// </summary>
+        bool SupportsComputedIndexes { get; }
+
+        /// <summary>
         /// Human-readable name of the trunk type
         /// </summary>
         string TrunkType { get; }
@@ -38,59 +59,11 @@ namespace AcornDB.Storage
     public static class TrunkCapabilitiesExtensions
     {
         /// <summary>
-        /// Get capabilities for a trunk (returns default if not explicitly implemented)
+        /// Get capabilities for a trunk (backward compatibility helper)
         /// </summary>
         public static ITrunkCapabilities GetCapabilities<T>(this ITrunk<T> trunk)
         {
-            if (trunk is ITrunkCapabilities caps)
-            {
-                return caps;
-            }
-
-            // Return inferred capabilities based on trunk type
-            return trunk switch
-            {
-                DocumentStoreTrunk<T> => new TrunkCapabilities
-                {
-                    SupportsHistory = true,
-                    SupportsSync = true,
-                    IsDurable = true,
-                    SupportsAsync = false,
-                    TrunkType = "DocumentStoreTrunk"
-                },
-                FileTrunk<T> => new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = true,
-                    SupportsAsync = false,
-                    TrunkType = "FileTrunk"
-                },
-                MemoryTrunk<T> => new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = false,
-                    SupportsAsync = false,
-                    TrunkType = "MemoryTrunk"
-                },
-                AzureTrunk<T> => new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = true,
-                    SupportsAsync = true,
-                    TrunkType = "AzureTrunk"
-                },
-                _ => new TrunkCapabilities
-                {
-                    SupportsHistory = false,
-                    SupportsSync = true,
-                    IsDurable = false,
-                    SupportsAsync = false,
-                    TrunkType = trunk.GetType().Name
-                }
-            };
+            return trunk.Capabilities;
         }
 
         /// <summary>
@@ -98,7 +71,7 @@ namespace AcornDB.Storage
         /// </summary>
         public static bool CanGetHistory<T>(this ITrunk<T> trunk)
         {
-            return trunk.GetCapabilities().SupportsHistory;
+            return trunk.Capabilities.SupportsHistory;
         }
 
         /// <summary>
@@ -106,19 +79,7 @@ namespace AcornDB.Storage
         /// </summary>
         public static bool CanSync<T>(this ITrunk<T> trunk)
         {
-            return trunk.GetCapabilities().SupportsSync;
+            return trunk.Capabilities.SupportsSync;
         }
-    }
-
-    /// <summary>
-    /// Default implementation of trunk capabilities
-    /// </summary>
-    public class TrunkCapabilities : ITrunkCapabilities
-    {
-        public bool SupportsHistory { get; init; }
-        public bool SupportsSync { get; init; }
-        public bool IsDurable { get; init; }
-        public bool SupportsAsync { get; init; }
-        public string TrunkType { get; init; } = "Unknown";
     }
 }

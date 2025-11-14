@@ -1,5 +1,6 @@
 using System;
 using AcornDB;
+using AcornDB.Models;
 
 namespace AcornDB.Persistence.RDBMS
 {
@@ -17,6 +18,7 @@ namespace AcornDB.Persistence.RDBMS
             this Acorn<T> acorn,
             string databasePath,
             string? tableName = null)
+            where T : class
         {
             var sqliteTrunk = new SqliteTrunk<T>(databasePath, tableName);
             return acorn.WithTrunk(sqliteTrunk);
@@ -33,6 +35,7 @@ namespace AcornDB.Persistence.RDBMS
             string connectionString,
             string? tableName = null,
             string schema = "dbo")
+            where T : class
         {
             var sqlServerTrunk = new SqlServerTrunk<T>(connectionString, tableName, schema);
             return acorn.WithTrunk(sqlServerTrunk);
@@ -49,6 +52,7 @@ namespace AcornDB.Persistence.RDBMS
             string connectionString,
             string? tableName = null,
             string schema = "public")
+            where T : class
         {
             var postgresTrunk = new PostgreSqlTrunk<T>(connectionString, tableName, schema);
             return acorn.WithTrunk(postgresTrunk);
@@ -65,6 +69,7 @@ namespace AcornDB.Persistence.RDBMS
             string connectionString,
             string? tableName = null,
             string? database = null)
+            where T : class
         {
             var mysqlTrunk = new MySqlTrunk<T>(connectionString, tableName, database);
             return acorn.WithTrunk(mysqlTrunk);

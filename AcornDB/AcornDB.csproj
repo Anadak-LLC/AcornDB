@@ -7,12 +7,12 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>AcornDB</PackageId>
-    <Version>0.4.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB</Product>
     <Description>🌰 AcornDB - A distributed, embeddable, reactive object database for .NET. Local-first persistence with mesh sync, LRU cache eviction, TTL enforcement, pluggable storage backends, and zero configuration. Perfect for desktop apps, IoT devices, and edge workloads.</Description>
-    <PackageTags>database;embedded;nosql;document-db;local-first;offline-sync;reactive;iot;edge;storage;versioning;mesh;distributed;cache;lru;git</PackageTags>
+    <PackageTags>database;embedded;nosql;document-db;local-first;offline-sync;reactive;iot;edge;storage;versioning;mesh;distributed;cache;lru;git;resilience</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
@@ -20,7 +20,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <!-- PackageIcon>acorn-icon.png</PackageIcon --> <!-- TODO: Create 128x128 PNG icon (<1MB) and uncomment -->
     <Copyright>Copyright © 2025 Anadak LLC</Copyright>
-    <PackageReleaseNotes>v0.4.0: NEW GitHubTrunk (Git-as-database with full version history), Nursery system for dynamic trunk discovery, trunk factory pattern, fluent trunk configuration API. Separate persistence packages: AcornDB.Persistence.Cloud (S3, Azure Blob) and AcornDB.Persistence.RDBMS (SQLite, SQL Server, PostgreSQL, MySQL).</PackageReleaseNotes>
+    <PackageReleaseNotes>v0.5.0: </PackageReleaseNotes>
 
     <!-- Build Settings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -28,6 +28,15 @@
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <Title>AcornDB</Title>
+    <PackageLicenseUrl>https://github.com/Anadak-LLC/AcornDB/blob/main/LICENSE.md</PackageLicenseUrl>
+    <PackageIcon>icon.png</PackageIcon>
+    <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
+    <AssemblyVersion>0.5.0</AssemblyVersion>
+    <FileVersion>0.5.0</FileVersion>
+    <SignAssembly>true</SignAssembly>
+    <AssemblyOriginatorKeyFile>AcornDBKey.snk</AssemblyOriginatorKeyFile>
+    <PublicSign>true</PublicSign>
   </PropertyGroup>
 
   <ItemGroup>

@@ -9,15 +9,18 @@ namespace AcornDB.Query
     /// LINQ-style query interface for AcornDB Trees
     /// Provides fluent API for filtering, ordering, and projecting tree data
     /// </summary>
-    public class TreeQuery<T>
+    public class TreeQuery<T> where T : class
     {
         private readonly Tree<T> _tree;
         private IEnumerable<Nut<T>> _source;
         private Func<Nut<T>, bool>? _whereClause;
+        private Expression<Func<T, bool>>? _whereExpression;
         private Func<Nut<T>, object>? _orderByClause;
+        private LambdaExpression? _orderByExpression;
         private bool _orderDescending = false;
         private int? _takeCount;
         private int? _skipCount;
+        private string? _indexHint;
 
         internal TreeQuery(Tree<T> tree)
         {
@@ -28,9 +31,11 @@ namespace AcornDB.Query
         /// <summary>
         /// Filter nuts by predicate on the payload
         /// </summary>
-        public TreeQuery<T> Where(Func<T, bool> predicate)
+        public TreeQuery<T> Where(Expression<Func<T, bool>> predicate)
         {
-            _whereClause = nut => predicate(nut.Payload);
+            _whereExpression = predicate;
+            var compiled = predicate.Compile();
+            _whereClause = nut => compiled(nut.Payload);
             return this;
         }
 
@@ -46,9 +51,11 @@ namespace AcornDB.Query
         /// <summary>
         /// Order results by a key selector
         /// </summary>
-        public TreeQuery<T> OrderBy<TKey>(Func<T, TKey> keySelector)
+        public TreeQuery<T> OrderBy<TKey>(Expression<Func<T, TKey>> keySelector)
         {
-            _orderByClause = nut => keySelector(nut.Payload)!;
+            _orderByExpression = keySelector;
+            var compiled = keySelector.Compile();
+            _orderByClause = nut => compiled(nut.Payload)!;
             _orderDescending = false;
             return this;
         }
@@ -56,9 +63,11 @@ namespace AcornDB.Query
         /// <summary>
         /// Order results by a key selector (descending)
         /// </summary>
-        public TreeQuery<T> OrderByDescending<TKey>(Func<T, TKey> keySelector)
+        public TreeQuery<T> OrderByDescending<TKey>(Expression<Func<T, TKey>> keySelector)
         {
-            _orderByClause = nut => keySelector(nut.Payload)!;
+            _orderByExpression = keySelector;
+            var compiled = keySelector.Compile();
+            _orderByClause = nut => compiled(nut.Payload)!;
             _orderDescending = true;
             return this;
         }
@@ -201,8 +210,104 @@ namespace AcornDB.Query
             return ExecuteQuery().Select(nut => nut.Payload);
         }
 
+        /// <summary>
+        /// Provide a hint to use a specific index
+        /// </summary>
+        public TreeQuery<T> UseIndex(string indexName)
+        {
+            _indexHint = indexName;
+            return this;
+        }
+
+        /// <summary>
+        /// Get the query execution plan without executing the query.
+        /// Useful for understanding query performance and index usage.
+        /// </summary>
+        public QueryPlan<T> Explain()
+        {
+            var planner = new DefaultQueryPlanner<T>(_tree);
+            var context = CreateQueryContext();
+            return planner.CreatePlan(context);
+        }
+
+        /// <summary>
+        /// Get the query execution plan as a formatted string.
+        /// </summary>
+        public string ExplainString()
+        {
+            var plan = Explain();
+            return FormatQueryPlan(plan);
+        }
+
+        private QueryContext<T> CreateQueryContext()
+        {
+            return new QueryContext<T>
+            {
+                WherePredicate = _whereClause,
+                WhereExpression = _whereExpression,
+                OrderBySelector = _orderByClause,
+                OrderByExpression = _orderByExpression,
+                OrderDescending = _orderDescending,
+                Take = _takeCount,
+                Skip = _skipCount,
+                IndexHint = _indexHint
+            };
+        }
+
+        private string FormatQueryPlan(QueryPlan<T> plan)
+        {
+            var sb = new System.Text.StringBuilder();
+            sb.AppendLine("=== Query Execution Plan ===");
+            sb.AppendLine($"Strategy: {plan.Strategy}");
+            sb.AppendLine($"Selected Index: {plan.SelectedIndex?.Name ?? "None (Full Scan)"}");
+            sb.AppendLine($"Estimated Cost: {plan.EstimatedCost:F2}");
+            sb.AppendLine($"Estimated Rows Examined: {plan.EstimatedRowsExamined}");
+            sb.AppendLine($"Estimated Rows Returned: {plan.EstimatedRowsReturned}");
+            sb.AppendLine($"Explanation: {plan.Explanation}");
+
+            if (plan.Candidates.Any())
+            {
+                sb.AppendLine();
+                sb.AppendLine("Index Candidates Considered:");
+                foreach (var candidate in plan.Candidates)
+                {
+                    var selected = candidate.Index.Name == plan.SelectedIndex?.Name ? " [SELECTED]" : "";
+                    sb.AppendLine($"  - {candidate.Index.Name}{selected}");
+                    sb.AppendLine($"    Type: {candidate.Index.IndexType}");
+                    sb.AppendLine($"    Cost: {candidate.EstimatedCost:F2}");
+                    sb.AppendLine($"    Reason: {candidate.Reason}");
+                }
+            }
+
+            return sb.ToString();
+        }
+
         private IEnumerable<Nut<T>> ExecuteQuery()
         {
+            // Try to use query planner for index-aware execution
+            // Only use planner if we have indexes to potentially use
+            var availableIndexes = _tree.GetAllIndexes().ToList();
+            if (availableIndexes.Any())
+            {
+                try
+                {
+                    var planner = new DefaultQueryPlanner<T>(_tree);
+                    var context = CreateQueryContext();
+                    var plan = planner.CreatePlan(context);
+
+                    // Use planner execution if it selected an index
+                    if (plan.SelectedIndex != null && plan.Strategy != QueryStrategy.FullScan)
+                    {
+                        return planner.Execute(plan);
+                    }
+                }
+                catch
+                {
+                    // Fall back to manual execution if planner fails
+                }
+            }
+
+            // Fall back to manual LINQ-based execution
             IEnumerable<Nut<T>> query = _source;
 
             // Apply where clause
@@ -243,7 +348,7 @@ namespace AcornDB.Query
         /// <summary>
         /// Start a LINQ-style query on this tree
         /// </summary>
-        public static TreeQuery<T> Query<T>(this Tree<T> tree)
+        public static TreeQuery<T> Query<T>(this Tree<T> tree) where T : class
         {
             return new TreeQuery<T>(tree);
         }
@@ -251,7 +356,7 @@ namespace AcornDB.Query
         /// <summary>
         /// Get all nuts from the tree (internal helper)
         /// </summary>
-        internal static IEnumerable<Nut<T>> GetAllNuts<T>(this Tree<T> tree)
+        internal static IEnumerable<Nut<T>> GetAllNuts<T>(this Tree<T> tree) where T : class
         {
             // Use the public GetAllNuts() method we just added to Tree
             return tree.GetAllNuts();

@@ -7,18 +7,18 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>AcornDB.Persistence.RDBMS</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB.Persistence.RDBMS</Product>
-    <Description>🌰 RDBMS storage providers for AcornDB - SQLite, SQL Server, PostgreSQL, MySQL trunk implementations for relational database persistence.</Description>
+    <Description>🌰 RDBMS storage providers for AcornDB - SQLite, SQL Server, PostgreSQL, MySQL trunk implementations with full IRoot pipeline support for compression, encryption, and policy enforcement.</Description>
     <PackageTags>database;embedded;sql;sqlite;sqlserver;postgresql;mysql;rdbms;acorndb</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
     <Copyright>Copyright © 2025 Anadak LLC</Copyright>
-    <PackageReleaseNotes>v0.1.0: Initial release with SQLite, SQL Server, PostgreSQL, and MySQL trunk implementations.</PackageReleaseNotes>
+    <PackageReleaseNotes>v0.5.0: Professional logging infrastructure, architectural consistency improvements, comprehensive documentation updates.</PackageReleaseNotes>
 
     <!-- Build Settings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

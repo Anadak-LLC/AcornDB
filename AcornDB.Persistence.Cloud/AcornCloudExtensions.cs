@@ -1,5 +1,6 @@
 using System;
 using AcornDB;
+using AcornDB.Models;
 
 namespace AcornDB.Persistence.Cloud
 {
@@ -22,7 +23,7 @@ namespace AcornDB.Persistence.Cloud
             string secretKey,
             string bucketName,
             string region = "us-east-1",
-            string? prefix = null)
+            string? prefix = null) where T : class
         {
             var s3Provider = new AwsS3Provider(accessKey, secretKey, bucketName, region);
             var cloudTrunk = new CloudTrunk<T>(s3Provider, prefix);
@@ -39,7 +40,7 @@ namespace AcornDB.Persistence.Cloud
             this Acorn<T> acorn,
             string bucketName,
             string region = "us-east-1",
-            string? prefix = null)
+            string? prefix = null) where T : class
         {
             var s3Provider = new AwsS3Provider(bucketName, region);
             var cloudTrunk = new CloudTrunk<T>(s3Provider, prefix);
@@ -60,7 +61,7 @@ namespace AcornDB.Persistence.Cloud
             string secretKey,
             string bucketName,
             string serviceUrl,
-            string? prefix = null)
+            string? prefix = null) where T : class
         {
             var s3Provider = new AwsS3Provider(accessKey, secretKey, bucketName, new Uri(serviceUrl));
             var cloudTrunk = new CloudTrunk<T>(s3Provider, prefix);
@@ -77,7 +78,7 @@ namespace AcornDB.Persistence.Cloud
             this Acorn<T> acorn,
             string connectionString,
             string containerName,
-            string? prefix = null)
+            string? prefix = null) where T : class
         {
             var azureProvider = new AzureBlobProvider(connectionString, containerName);
 
@@ -96,7 +97,7 @@ namespace AcornDB.Persistence.Cloud
         public static Acorn<T> WithAzureBlobStorage<T>(
             this Acorn<T> acorn,
             Uri sasUri,
-            string? prefix = null)
+            string? prefix = null) where T : class
         {
             var azureProvider = new AzureBlobProvider(sasUri);
             var cloudTrunk = new CloudTrunk<T>(azureProvider, prefix);
@@ -109,7 +110,7 @@ namespace AcornDB.Persistence.Cloud
         public static Acorn<T> WithCloudStorage<T>(
             this Acorn<T> acorn,
             ICloudStorageProvider cloudProvider,
-            string? prefix = null)
+            string? prefix = null) where T : class
         {
             var cloudTrunk = new CloudTrunk<T>(cloudProvider, prefix);
             return acorn.WithTrunk(cloudTrunk);

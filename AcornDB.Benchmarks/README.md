@@ -10,6 +10,9 @@ This project contains comprehensive benchmarks for measuring AcornDB's performan
 - **Memory Usage** - Memory consumption with different cache strategies
 - **Sync Performance** - In-process synchronization performance
 - **Conflict Resolution** - Squabble (conflict resolution) overhead
+- **Competitive Benchmarks** - AcornDB vs LiteDB, SQLite (1K/10K/50K docs)
+- **Delta Sync** - Incremental sync efficiency
+- **Redis Comparison** - AcornDB vs Redis cache performance
 
 ## Running Benchmarks
 
@@ -21,10 +24,13 @@ dotnet run -c Release
 
 ### Run specific benchmark suite
 ```bash
-dotnet run -c Release basic      # Basic operations
-dotnet run -c Release memory     # Memory usage
-dotnet run -c Release sync       # Sync performance
-dotnet run -c Release conflict   # Conflict resolution
+dotnet run -c Release basic        # Basic operations
+dotnet run -c Release memory       # Memory usage
+dotnet run -c Release sync         # Sync performance
+dotnet run -c Release conflict     # Conflict resolution
+dotnet run -c Release competitive  # vs LiteDB, SQLite
+dotnet run -c Release delta        # Delta sync
+dotnet run -c Release redis        # vs Redis cache
 ```
 
 ### Get help
@@ -85,6 +91,38 @@ Measures Squabble (conflict resolution) overhead:
 **What it measures**: Conflict resolution overhead vs. direct writes
 
 **Parameterized**: Tests with 100, 500, and 1000 conflicts
+
+### 5. CompetitiveBenchmarks
+
+Compares AcornDB against embedded database alternatives:
+
+- **vs SQLite** - File-based and in-memory modes
+- **vs LiteDB** - .NET document database
+- **Operations**: Insert, Read, Update, Delete, Scan, Mixed workloads
+
+**What it measures**: Relative performance, memory efficiency
+
+**Parameterized**: Tests with 1,000, 10,000, and 50,000 documents
+
+### 6. RedisCacheBenchmarks
+
+Direct cache-to-cache comparison with Redis:
+
+- **Single Operations**: Insert, Read, Update, Delete
+- **Mixed Workloads**: 70% read, 30% write
+- **Access Patterns**: Hot spot (90/10), random, batch
+- **Advanced**: Complex objects, TTL/expiration
+
+**Prerequisites**:
+- Redis server running on localhost:6379
+- Quick setup: `./start-redis.sh` or `start-redis.cmd`
+- Or use docker-compose: `docker-compose -f docker-compose.redis.yml up -d`
+
+**What it measures**: In-process vs client-server overhead, serialization cost
+
+**See**: [REDIS_BENCHMARK_GUIDE.md](REDIS_BENCHMARK_GUIDE.md) for detailed setup
+
+**Parameterized**: Tests with 1,000 and 10,000 operations
 
 ## Understanding Results
 

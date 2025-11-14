@@ -6,7 +6,9 @@
 
   <ItemGroup>
     <PackageReference Include="AWSSDK.S3" Version="4.0.7.7" />
+    <PackageReference Include="AWSSDK.DynamoDBv2" Version="4.0.0.32" />
     <PackageReference Include="Azure.Storage.Blobs" Version="12.25.1" />
+    <PackageReference Include="Azure.Data.Tables" Version="12.9.1" />
   </ItemGroup>
 
   <PropertyGroup>
@@ -16,18 +18,18 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>AcornDB.Persistence.Cloud</PackageId>
-    <Version>0.1.0</Version>
+    <Version>0.5.0</Version>
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB.Persistence.Cloud</Product>
-    <Description>🌰 Cloud storage providers for AcornDB - AWS S3, Azure Blob Storage, and other cloud-based trunk implementations. Separate package to keep core AcornDB lean.</Description>
-    <PackageTags>acorndb;cloud;aws;s3;azure;blob-storage;storage;persistence;database;nosql;distributed</PackageTags>
+    <Description>🌰 Cloud storage providers for AcornDB - AWS S3, Azure Blob Storage, DynamoDB, Azure Table Storage. All with full IRoot pipeline support for compression, encryption, and policy enforcement.</Description>
+    <PackageTags>acorndb;cloud;aws;s3;azure;blob-storage;dynamodb;table-storage;storage;persistence;database;nosql;distributed</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
     <Copyright>Copyright © 2025 Anadak LLC</Copyright>
-    <PackageReleaseNotes>v0.1.0: Initial release with AWS S3 and Azure Blob Storage support</PackageReleaseNotes>
+    <PackageReleaseNotes>v0.5.0: DynamoDbTrunk and AzureTableTrunk migrated to TrunkBase with full IRoot support, optimized batching (25 items for DynamoDB, 100 for Azure Table), unified architecture.</PackageReleaseNotes>
 
     <!-- Build Settings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>

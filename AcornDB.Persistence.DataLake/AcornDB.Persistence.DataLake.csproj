@@ -1,0 +1,41 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <ItemGroup>
+    <ProjectReference Include="..\AcornDB\AcornDB.csproj" />
+    <ProjectReference Include="..\AcornDB.Persistence.Cloud\AcornDB.Persistence.Cloud.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
+    <PackageReference Include="Parquet.Net" Version="5.2.0" />
+  </ItemGroup>
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+
+    <!-- NuGet Package Metadata -->
+    <PackageId>AcornDB.Persistence.DataLake</PackageId>
+    <Version>0.5.0</Version>
+    <Authors>Anadak LLC</Authors>
+    <Company>Anadak LLC</Company>
+    <Product>AcornDB.Persistence.DataLake</Product>
+    <Description>🌰 Data Lake persistence for AcornDB - Apache Parquet and TieredTrunk with full IRoot pipeline support. Enables compression, encryption, policy enforcement on columnar storage with hot/cold tiering capabilities.</Description>
+    <PackageTags>acorndb;datalake;parquet;analytics;columnar;s3;azure;data-lake;storage;persistence;database;tiered</PackageTags>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
+    <Copyright>Copyright © 2025 Anadak LLC</Copyright>
+    <PackageReleaseNotes>v0.5.0: ParquetTrunk and TieredTrunk migrated to TrunkBase with full IRoot support, unified architecture, hot/cold storage optimization.</PackageReleaseNotes>
+
+    <!-- Build Settings -->
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <PublishRepositoryUrl>true</PublishRepositoryUrl>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <IncludeSymbols>true</IncludeSymbols>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+  </PropertyGroup>
+
+</Project>

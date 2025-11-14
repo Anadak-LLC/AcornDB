@@ -11,7 +11,7 @@ namespace AcornDB.Test
             public void FileTrunk_Can_Save_And_Load()
             {
                 var trunk = new FileTrunk<string>("data/test-file");
-                var shell = new NutShell<string> { Id = "test", Payload = "value" };
+                var shell = new Nut<string> { Id = "test", Payload = "value" };
 
                 trunk.Save("test", shell);
                 var loaded = trunk.Load("test");
@@ -32,7 +32,7 @@ namespace AcornDB.Test
             public void FileTrunk_Can_Export_And_Import()
             {
                 var trunk1 = new FileTrunk<string>("data/export-source");
-                trunk1.Save("key1", new NutShell<string> { Id = "key1", Payload = "value1" });
+                trunk1.Save("key1", new Nut<string> { Id = "key1", Payload = "value1" });
 
                 var exported = trunk1.ExportChanges();
 
@@ -50,7 +50,7 @@ namespace AcornDB.Test
             public void MemoryTrunk_Can_Save_And_Load()
             {
                 var trunk = new MemoryTrunk<string>();
-                var shell = new NutShell<string> { Id = "test", Payload = "value" };
+                var shell = new Nut<string> { Id = "test", Payload = "value" };
 
                 trunk.Save("test", shell);
                 var loaded = trunk.Load("test");
@@ -72,7 +72,7 @@ namespace AcornDB.Test
             public void MemoryTrunk_Can_Delete()
             {
                 var trunk = new MemoryTrunk<string>();
-                trunk.Save("test", new NutShell<string> { Id = "test", Payload = "value" });
+                trunk.Save("test", new Nut<string> { Id = "test", Payload = "value" });
 
                 trunk.Delete("test");
                 var loaded = trunk.Load("test");
@@ -98,7 +98,7 @@ namespace AcornDB.Test
             public void DocumentStoreTrunk_Can_Save_And_Load()
             {
                 var trunk = new DocumentStoreTrunk<string>(GetUniquePath("save-load"));
-                var shell = new NutShell<string> { Id = "test", Payload = "value" };
+                var shell = new Nut<string> { Id = "test", Payload = "value" };
 
                 trunk.Save("test", shell);
                 var loaded = trunk.Load("test");
@@ -112,9 +112,9 @@ namespace AcornDB.Test
             {
                 var trunk = new DocumentStoreTrunk<string>(GetUniquePath("history"));
 
-                trunk.Save("key1", new NutShell<string> { Id = "key1", Payload = "version1" });
-                trunk.Save("key1", new NutShell<string> { Id = "key1", Payload = "version2" });
-                trunk.Save("key1", new NutShell<string> { Id = "key1", Payload = "version3" });
+                trunk.Save("key1", new Nut<string> { Id = "key1", Payload = "version1" });
+                trunk.Save("key1", new Nut<string> { Id = "key1", Payload = "version2" });
+                trunk.Save("key1", new Nut<string> { Id = "key1", Payload = "version3" });
 
                 var history = trunk.GetHistory("key1");
 
@@ -128,8 +128,8 @@ namespace AcornDB.Test
             {
                 var trunk = new DocumentStoreTrunk<string>(GetUniquePath("latest"));
 
-                trunk.Save("key1", new NutShell<string> { Id = "key1", Payload = "version1" });
-                trunk.Save("key1", new NutShell<string> { Id = "key1", Payload = "version2" });
+                trunk.Save("key1", new Nut<string> { Id = "key1", Payload = "version1" });
+                trunk.Save("key1", new Nut<string> { Id = "key1", Payload = "version2" });
 
                 var current = trunk.Load("key1");
 
@@ -141,7 +141,7 @@ namespace AcornDB.Test
             {
                 var trunk = new DocumentStoreTrunk<string>(GetUniquePath("delete"));
 
-                trunk.Save("key1", new NutShell<string> { Id = "key1", Payload = "value" });
+                trunk.Save("key1", new Nut<string> { Id = "key1", Payload = "value" });
                 trunk.Delete("key1");
 
                 var current = trunk.Load("key1");
@@ -159,13 +159,66 @@ namespace AcornDB.Test
 
                 // First instance
                 var trunk1 = new DocumentStoreTrunk<string>(path);
-                trunk1.Save("persistent", new NutShell<string> { Id = "persistent", Payload = "data" });
+                trunk1.Save("persistent", new Nut<string> { Id = "persistent", Payload = "data" });
+                trunk1.Dispose();
 
                 // Second instance (loads from log)
                 var trunk2 = new DocumentStoreTrunk<string>(path);
                 var loaded = trunk2.Load("persistent");
 
                 Assert.Equal("data", loaded?.Payload);
+                trunk2.Dispose();
+            }
+
+            [Fact]
+            public void DocumentStoreTrunk_Uses_Compact_JSON_Format()
+            {
+                var path = GetUniquePath("compact-json");
+
+                var trunk = new DocumentStoreTrunk<string>(path);
+                trunk.Save("test1", new Nut<string> { Id = "test1", Payload = "data1" });
+                trunk.Save("test2", new Nut<string> { Id = "test2", Payload = "data2" });
+                trunk.Save("test3", new Nut<string> { Id = "test3", Payload = "data3" });
+                trunk.Dispose();
+
+                // Read log file and verify it's compact JSON (one line per entry)
+                var logPath = System.IO.Path.Combine(path, "changes.log");
+                var lines = System.IO.File.ReadAllLines(logPath);
+
+                // Should have 3 lines (one per save)
+                Assert.Equal(3, lines.Length);
+
+                // Each line should be valid JSON (no internal newlines)
+                foreach (var line in lines)
+                {
+                    Assert.DoesNotContain('\n', line);
+                    Assert.DoesNotContain('\r', line);
+
+                    // Should be parseable as JSON
+                    var parsed = Newtonsoft.Json.JsonConvert.DeserializeObject(line);
+                    Assert.NotNull(parsed);
+                }
+            }
+
+            [Fact]
+            public void DocumentStoreTrunk_Loads_From_Compact_JSON_Log()
+            {
+                var path = GetUniquePath("load-compact");
+
+                // Write compact JSON log
+                var trunk1 = new DocumentStoreTrunk<string>(path);
+                trunk1.Save("key1", new Nut<string> { Id = "key1", Payload = "value1" });
+                trunk1.Save("key2", new Nut<string> { Id = "key2", Payload = "value2" });
+                trunk1.Dispose();
+
+                // Reload from log
+                var trunk2 = new DocumentStoreTrunk<string>(path);
+                var loaded1 = trunk2.Load("key1");
+                var loaded2 = trunk2.Load("key2");
+
+                Assert.Equal("value1", loaded1?.Payload);
+                Assert.Equal("value2", loaded2?.Payload);
+                trunk2.Dispose();
             }
         }
 

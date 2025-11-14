@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>AcornDB.Benchmarks.SyncBenchmarks-20251007-012435</title>
+<title>AcornDB.Benchmarks.SyncBenchmarks-20251113-003950</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -13,31 +13,31 @@
 </head>
 <body>
 <pre><code>
-BenchmarkDotNet v0.15.4, Windows 11 (10.0.26100.6584/24H2/2024Update/HudsonValley)
-AMD Ryzen 9 7900X 4.70GHz, 1 CPU, 24 logical and 12 physical cores
-.NET SDK 9.0.304
-  [Host]     : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
-  Job-SWDXLI : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
+BenchmarkDotNet v0.15.4, Linux Linux Mint 22.2 (Zara)
+AMD Ryzen 9 7900X 3.01GHz, 1 CPU, 24 logical and 12 physical cores
+.NET SDK 9.0.111
+  [Host]     : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
+  Job-SWDXLI : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
 </code></pre>
 <pre><code>InvocationCount=1  IterationCount=3  UnrollFactor=1  
 WarmupCount=2  
 </code></pre>
 
 <table>
-<thead><tr><th>Method                  </th><th>ItemCount</th><th>Mean      </th><th>Error  </th><th>StdDev </th><th>Allocated</th>
+<thead><tr><th>Method                  </th><th>ItemCount</th><th>Mean  </th><th>Error</th><th>StdDev</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>InProcessSync_Push</td><td>100</td><td>627.57 &mu;s</td><td>7,938.52 &mu;s</td><td>435.137 &mu;s</td><td>81.36 KB</td>
-</tr><tr><td>InProcessSync_Bidirectional</td><td>100</td><td>1,003.00 &mu;s</td><td>1,616.04 &mu;s</td><td>88.581 &mu;s</td><td>90.57 KB</td>
-</tr><tr><td>ExportChanges_Performance</td><td>100</td><td>35.73 &mu;s</td><td>50.11 &mu;s</td><td>2.747 &mu;s</td><td>52.13 KB</td>
-</tr><tr><td>SquabbleResolution_Performance</td><td>100</td><td>1,546,689.87 &mu;s</td><td>74,941.17 &mu;s</td><td>4,107.778 &mu;s</td><td>94.91 KB</td>
-</tr><tr><td>InProcessSync_Push</td><td>500</td><td>3,469.03 &mu;s</td><td>1,461.80 &mu;s</td><td>80.126 &mu;s</td><td>391.44 KB</td>
-</tr><tr><td>InProcessSync_Bidirectional</td><td>500</td><td>5,906.10 &mu;s</td><td>1,926.05 &mu;s</td><td>105.573 &mu;s</td><td>434.9 KB</td>
-</tr><tr><td>ExportChanges_Performance</td><td>500</td><td>164.97 &mu;s</td><td>107.94 &mu;s</td><td>5.916 &mu;s</td><td>250.68 KB</td>
-</tr><tr><td>SquabbleResolution_Performance</td><td>500</td><td>7,770,619.20 &mu;s</td><td>161,222.09 &mu;s</td><td>8,837.127 &mu;s</td><td>468.46 KB</td>
-</tr><tr><td>InProcessSync_Push</td><td>1000</td><td>7,575.20 &mu;s</td><td>7,298.93 &mu;s</td><td>400.079 &mu;s</td><td>811.95 KB</td>
-</tr><tr><td>InProcessSync_Bidirectional</td><td>1000</td><td>12,927.07 &mu;s</td><td>2,455.58 &mu;s</td><td>134.599 &mu;s</td><td>899.79 KB</td>
-</tr><tr><td>ExportChanges_Performance</td><td>1000</td><td>322.67 &mu;s</td><td>92.42 &mu;s</td><td>5.066 &mu;s</td><td>518.61 KB</td>
-</tr><tr><td>SquabbleResolution_Performance</td><td>1000</td><td>15,521,967.20 &mu;s</td><td>728,021.98 &mu;s</td><td>39,905.342 &mu;s</td><td>955.68 KB</td>
+</thead><tbody><tr><td>InProcessSync_Push</td><td>100</td><td>2.115 ms</td><td>4.333 ms</td><td>0.2375 ms</td><td>1139.02 KB</td>
+</tr><tr><td>InProcessSync_Bidirectional</td><td>100</td><td>2.597 ms</td><td>4.682 ms</td><td>0.2567 ms</td><td>1341.78 KB</td>
+</tr><tr><td>ExportChanges_Performance</td><td>100</td><td>1.492 ms</td><td>3.280 ms</td><td>0.1798 ms</td><td>780.34 KB</td>
+</tr><tr><td>SquabbleResolution_Performance</td><td>100</td><td>106.965 ms</td><td>9.096 ms</td><td>0.4986 ms</td><td>777.68 KB</td>
+</tr><tr><td>InProcessSync_Push</td><td>500</td><td>10.007 ms</td><td>15.984 ms</td><td>0.8761 ms</td><td>5683.17 KB</td>
+</tr><tr><td>InProcessSync_Bidirectional</td><td>500</td><td>12.263 ms</td><td>18.256 ms</td><td>1.0007 ms</td><td>6711.84 KB</td>
+</tr><tr><td>ExportChanges_Performance</td><td>500</td><td>7.713 ms</td><td>16.174 ms</td><td>0.8865 ms</td><td>3956.7 KB</td>
+</tr><tr><td>SquabbleResolution_Performance</td><td>500</td><td>530.245 ms</td><td>16.626 ms</td><td>0.9113 ms</td><td>3874.84 KB</td>
+</tr><tr><td>InProcessSync_Push</td><td>1000</td><td>21.053 ms</td><td>29.679 ms</td><td>1.6268 ms</td><td>11526.05 KB</td>
+</tr><tr><td>InProcessSync_Bidirectional</td><td>1000</td><td>23.549 ms</td><td>28.580 ms</td><td>1.5666 ms</td><td>13451.9 KB</td>
+</tr><tr><td>ExportChanges_Performance</td><td>1000</td><td>14.233 ms</td><td>15.705 ms</td><td>0.8608 ms</td><td>7948.23 KB</td>
+</tr><tr><td>SquabbleResolution_Performance</td><td>1000</td><td>1,059.595 ms</td><td>17.350 ms</td><td>0.9510 ms</td><td>7788.09 KB</td>
 </tr></tbody></table>
 </body>
 </html>
