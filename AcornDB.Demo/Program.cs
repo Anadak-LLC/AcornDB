@@ -1,7 +1,37 @@
 ﻿using AcornDB;
 using AcornDB.Storage;
 using AcornDB.Models;
+using AcornDB.Demo;
 
+Console.WriteLine("🌰 AcornDB Demo Suite");
+Console.WriteLine("=====================\n");
+Console.WriteLine("Choose a demo:");
+Console.WriteLine("  1 - Basic trunk abstraction demos");
+Console.WriteLine("  2 - Production features (v0.4-v0.6): Batching, Resilience, Metrics");
+Console.WriteLine("  3 - Run all demos");
+Console.WriteLine();
+Console.Write("Enter choice (1-3): ");
+var choice = Console.ReadLine()?.Trim() ?? "1";
+Console.WriteLine();
+
+if (choice == "2")
+{
+    await ProductionFeaturesDemo.RunAllDemos();
+    return;
+}
+else if (choice == "3")
+{
+    RunBasicDemos();
+    Console.WriteLine("\n" + new string('=', 70) + "\n");
+    await ProductionFeaturesDemo.RunAllDemos();
+    return;
+}
+
+RunBasicDemos();
+return;
+
+static void RunBasicDemos()
+{
 Console.WriteLine("🌰 AcornDB Trunk Abstraction Demo");
 Console.WriteLine("==================================\n");
 
@@ -74,6 +104,7 @@ Console.WriteLine($"  - Products: {productTree?.Crack("acorn-1")?.Name}");
 
 Console.WriteLine("\n✅ All demos complete!");
 Console.WriteLine("📂 Check 'data/' folders for persisted files");
+}
 
 record User(string Name);
 record Product(string Name);

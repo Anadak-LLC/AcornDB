@@ -17,8 +17,8 @@ Create a new grove (database) at the specified path.
 
 ```bash
 acorn new ./mygrove
-# ✅ Created new grove at: ./mygrove
-# 📁 Grove ready for use!
+# Created new grove at: ./mygrove
+# Grove ready for use!
 ```
 
 ---
@@ -28,10 +28,10 @@ Inspect a grove and show statistics about trees, nuts, and sync status.
 
 ```bash
 acorn inspect ./mygrove
-# 📊 Grove Inspection: ./mygrove
+# Grove Inspection: ./mygrove
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 📁 Path: C:\Development\mygrove
-# 🌳 Tree files found: 3
+# Path: C:\Development\mygrove
+# Tree files found: 3
 #
 # Trees:
 #   • users.acorn (1.2 MB)
@@ -52,9 +52,9 @@ acorn inspect ./mygrove
 Synchronize a grove with a remote AcornDB server.
 
 ```bash
-acorn sync ./mygrove http://192.168.1.100:5000
-# 🔄 Syncing grove at ./mygrove with http://192.168.1.100:5000...
-# ✅ Sync complete!
+acorn sync ./mygrove https://192.168.1.100:5000
+# Syncing grove at ./mygrove with https://192.168.1.100:5000...
+# Sync complete!
 ```
 
 ---
@@ -64,8 +64,8 @@ Export grove data to JSON for backup or migration.
 
 ```bash
 acorn export ./mygrove backup.json
-# 📤 Exporting grove from ./mygrove...
-# ✅ Exported to: backup.json
+# Exporting grove from ./mygrove...
+# Exported to: backup.json
 ```
 
 ---
@@ -75,16 +75,16 @@ Start Canopy network discovery to find other AcornDB nodes on your network.
 
 ```bash
 acorn discover 5000
-# 🌳 Starting Canopy network discovery on port 5000...
+# Starting Canopy network discovery on port 5000...
 # Press Ctrl+C to stop
 #
-# 🌳 Canopy Discovery - Found 2 nodes
+# Canopy Discovery - Found 2 nodes
 # ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-# 🟢 Active http://192.168.1.100:5000
+# Active http://192.168.1.100:5000
 #   Trees: 5 | Types: User, Post, Session
 #   Last seen: 2s ago
 #
-# 🟢 Active http://192.168.1.101:5000
+# Active http://192.168.1.101:5000
 #   Trees: 3 | Types: User, Comment, Tag
 #   Last seen: 4s ago
 #
@@ -104,14 +104,14 @@ Create a mesh network by auto-discovering and connecting to all nearby nodes.
 
 ```bash
 acorn mesh ./mygrove
-# 🕸️  Creating mesh network from grove at ./mygrove...
+# Creating mesh network from grove at ./mygrove...
 # This will discover and connect to all nearby AcornDB nodes.
 #
-# ✅ Mesh discovery started!
-# 🌳 Canopy: Discovered 192.168.1.100:5000 (5 trees)
-# 🔗 Auto-connected to http://192.168.1.100:5000
-# 🌳 Canopy: Discovered 192.168.1.101:5000 (3 trees)
-# 🔗 Auto-connected to http://192.168.1.101:5000
+# Mesh discovery started!
+# Canopy: Discovered 192.168.1.100:5000 (5 trees)
+# Auto-connected to http://192.168.1.100:5000
+# Canopy: Discovered 192.168.1.101:5000 (3 trees)
+# Auto-connected to http://192.168.1.101:5000
 # Press Ctrl+C to stop
 ```
 
@@ -172,16 +172,16 @@ acorn mesh ./node1
 # Terminal 2 - Start second node
 acorn new ./node2
 acorn mesh ./node2
-# 🌳 Canopy: Discovered 127.0.0.1:5000 (0 trees)
-# 🔗 Auto-connected to http://127.0.0.1:5000
+# Canopy: Discovered 127.0.0.1:5000 (0 trees)
+# Auto-connected to http://127.0.0.1:5000
 
 # Terminal 3 - Start third node
 acorn new ./node3
 acorn mesh ./node3
-# 🌳 Canopy: Discovered 127.0.0.1:5000 (0 trees)
-# 🔗 Auto-connected to http://127.0.0.1:5000
-# 🌳 Canopy: Discovered 127.0.0.1:5001 (0 trees)
-# 🔗 Auto-connected to http://127.0.0.1:5001
+# Canopy: Discovered 127.0.0.1:5000 (0 trees)
+# Auto-connected to http://127.0.0.1:5000
+# Canopy: Discovered 127.0.0.1:5001 (0 trees)
+# Auto-connected to http://127.0.0.1:5001
 
 # Now all three nodes are connected in a mesh!
 ```
@@ -238,4 +238,3 @@ dotnet publish -c Release -r osx-x64 --self-contained -o dist
 
 - [AcornDB Documentation](../README.md)
 - [Canopy Discovery System](../AcornDB/Sync/CanopyDiscovery.cs)
-- [Mesh Sync Guide](../AcornDB/Sync/MeshSyncExample.md)

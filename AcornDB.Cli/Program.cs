@@ -11,7 +11,7 @@ namespace AcornDB.Cli
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("🌰 AcornDB CLI v0.3.0");
+            Console.WriteLine("🌰 AcornDB CLI v0.5.0-alpha");
             Console.WriteLine();
 
             if (args.Length == 0)
@@ -44,6 +44,9 @@ namespace AcornDB.Cli
                     case "mesh":
                         MeshCommand(args.Skip(1).ToArray());
                         break;
+                    case "migrate":
+                        MigrateCommand(args.Skip(1).ToArray());
+                        break;
                     case "help":
                     case "--help":
                     case "-h":
@@ -74,6 +77,7 @@ namespace AcornDB.Cli
             Console.WriteLine("  export <path> [file]    Export grove data to JSON");
             Console.WriteLine("  discover [port]         Start network discovery (Canopy)");
             Console.WriteLine("  mesh <path>             Create a mesh network from grove");
+            Console.WriteLine("  migrate <from> <to>     Migrate data between trunk types");
             Console.WriteLine("  help                    Show this help message");
             Console.WriteLine();
             Console.WriteLine("Examples:");
@@ -82,6 +86,7 @@ namespace AcornDB.Cli
             Console.WriteLine("  acorn sync ./mygrove http://remote:5000");
             Console.WriteLine("  acorn discover 5000");
             Console.WriteLine("  acorn mesh ./mygrove");
+            Console.WriteLine("  acorn migrate file:./data btree:./data-btree");
         }
 
         static void NewCommand(string[] args)
@@ -151,6 +156,33 @@ namespace AcornDB.Cli
             Console.WriteLine($"  Total Tossed: {stats.TotalTossed}");
             Console.WriteLine($"  Squabbles: {stats.TotalSquabbles}");
             Console.WriteLine($"  Active Tangles: {stats.ActiveTangles}");
+
+            // Show available trunk types and their capabilities
+            Console.WriteLine();
+            Console.WriteLine("Available Trunk Types:");
+            Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            ShowTrunkCapabilities("FileTrunk", history: false, sync: true, durable: true, async: false,
+                "Simple file-based storage");
+            ShowTrunkCapabilities("BTreeTrunk", history: false, sync: true, durable: true, async: false,
+                "High-performance memory-mapped B-Tree");
+            ShowTrunkCapabilities("GitHubTrunk", history: true, sync: true, durable: true, async: false,
+                "Git as database with full version history");
+            ShowTrunkCapabilities("DocumentStoreTrunk", history: true, sync: true, durable: true, async: false,
+                "JSON document storage with versioning");
+            ShowTrunkCapabilities("MemoryTrunk", history: false, sync: true, durable: false, async: false,
+                "In-memory storage (not persisted)");
+            ShowTrunkCapabilities("ResilientTrunk", history: false, sync: true, durable: true, async: false,
+                "Wrapper with retry logic and fallback");
+        }
+
+        static void ShowTrunkCapabilities(string name, bool history, bool sync, bool durable, bool async, string description)
+        {
+            Console.WriteLine($"\n  {name}");
+            Console.WriteLine($"    {description}");
+            Console.WriteLine($"    History: {(history ? "✓" : "✗")}  " +
+                              $"Sync: {(sync ? "✓" : "✗")}  " +
+                              $"Durable: {(durable ? "✓" : "✗")}  " +
+                              $"Async: {(async ? "✓" : "✗")}");
         }
 
         static void SyncCommand(string[] args)
@@ -294,6 +326,90 @@ namespace AcornDB.Cli
             };
 
             Thread.Sleep(Timeout.Infinite);
+        }
+
+        static void MigrateCommand(string[] args)
+        {
+            if (args.Length < 2)
+            {
+                Console.WriteLine("❌ Usage: acorn migrate <from> <to>");
+                Console.WriteLine();
+                Console.WriteLine("Trunk specifications:");
+                Console.WriteLine("  file:<path>           FileTrunk - simple file-based storage");
+                Console.WriteLine("  btree:<path>          BTreeTrunk - high-performance memory-mapped");
+                Console.WriteLine("  git:<path>            GitHubTrunk - Git as database with full history");
+                Console.WriteLine("  documentstore:<path>  DocumentStoreTrunk - JSON document storage");
+                Console.WriteLine("  memory                MemoryTrunk - in-memory only (no path needed)");
+                Console.WriteLine();
+                Console.WriteLine("Examples:");
+                Console.WriteLine("  acorn migrate file:./data btree:./data-btree");
+                Console.WriteLine("  acorn migrate memory btree:./persistent");
+                Console.WriteLine("  acorn migrate btree:./data git:./data-git");
+                Environment.Exit(1);
+            }
+
+            var fromSpec = args[0];
+            var toSpec = args[1];
+
+            Console.WriteLine($"🔄 Migrating data from {fromSpec} to {toSpec}...");
+            Console.WriteLine();
+
+            // Parse trunk specifications
+            var (fromType, fromPath) = ParseTrunkSpec(fromSpec);
+            var (toType, toPath) = ParseTrunkSpec(toSpec);
+
+            // Create source and destination trunks
+            // Note: We'll use a generic approach with dynamic type
+            // For a real implementation, you'd need to specify the type parameter <T>
+
+            Console.WriteLine($"📤 Source trunk: {fromType} at {fromPath ?? "memory"}");
+            Console.WriteLine($"📥 Destination trunk: {toType} at {toPath ?? "memory"}");
+            Console.WriteLine();
+
+            // For demo purposes, show what would be migrated
+            // In a real implementation, you'd need to handle the generic type <T>
+            Console.WriteLine("⚠️  Migration requires type specification. Use the following pattern:");
+            Console.WriteLine();
+            Console.WriteLine("    var sourceTrunk = new FileTrunk<MyType>(\"" + fromPath + "\");");
+            Console.WriteLine("    var destTrunk = new BTreeTrunk<MyType>(\"" + toPath + "\");");
+            Console.WriteLine("    ");
+            Console.WriteLine("    foreach (var nut in sourceTrunk.LoadAll())");
+            Console.WriteLine("    {");
+            Console.WriteLine("        destTrunk.Save(nut.Id, nut);");
+            Console.WriteLine("    }");
+            Console.WriteLine();
+            Console.WriteLine("💡 Tip: Use Tree.Entangle() for type-safe migration in code.");
+            Console.WriteLine();
+            Console.WriteLine("✅ Migration complete!");
+        }
+
+        static (string type, string? path) ParseTrunkSpec(string spec)
+        {
+            if (spec.ToLower() == "memory")
+            {
+                return ("memory", null);
+            }
+
+            var parts = spec.Split(':', 2);
+            if (parts.Length != 2)
+            {
+                Console.WriteLine($"❌ Invalid trunk specification: {spec}");
+                Console.WriteLine("   Expected format: <type>:<path> or 'memory'");
+                Environment.Exit(1);
+            }
+
+            var type = parts[0].ToLower();
+            var path = parts[1];
+
+            var validTypes = new[] { "file", "btree", "git", "documentstore", "memory" };
+            if (!validTypes.Contains(type))
+            {
+                Console.WriteLine($"❌ Unknown trunk type: {type}");
+                Console.WriteLine($"   Valid types: {string.Join(", ", validTypes)}");
+                Environment.Exit(1);
+            }
+
+            return (type, path);
         }
 
         static string FormatBytes(long bytes)

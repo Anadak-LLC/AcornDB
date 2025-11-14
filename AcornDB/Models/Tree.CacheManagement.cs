@@ -9,7 +9,7 @@ namespace AcornDB
     /// Cache management functionality for Tree&lt;T&gt;
     /// Handles TTL enforcement, cache eviction strategies, and automatic cleanup
     /// </summary>
-    public partial class Tree<T>
+    public partial class Tree<T> where T : class
     {
         private Timer? _expirationTimer;
         private TimeSpan _cleanupInterval = TimeSpan.FromMinutes(1);
@@ -109,11 +109,18 @@ namespace AcornDB
             if (!_ttlEnforcementEnabled) return 0;
 
             var now = DateTime.UtcNow;
-            var expired = _cache
-                .Where(x => x.Value.ExpiresAt.HasValue && x.Value.ExpiresAt.Value <= now)
-                .Select(x => x.Key)
-                .ToList();
+            List<string> expired;
 
+            // Lock only the enumeration to get expired IDs
+            lock (_cacheLock)
+            {
+                expired = _cache
+                    .Where(x => x.Value.ExpiresAt.HasValue && x.Value.ExpiresAt.Value <= now)
+                    .Select(x => x.Key)
+                    .ToList();
+            }
+
+            // Delete outside the lock to avoid holding it too long
             foreach (var id in expired)
             {
                 Toss(id);
@@ -129,9 +136,12 @@ namespace AcornDB
         public int GetExpiringNutsCount(TimeSpan within)
         {
             var threshold = DateTime.UtcNow.Add(within);
-            return _cache.Count(x =>
-                x.Value.ExpiresAt.HasValue &&
-                x.Value.ExpiresAt.Value <= threshold);
+            lock (_cacheLock)
+            {
+                return _cache.Count(x =>
+                    x.Value.ExpiresAt.HasValue &&
+                    x.Value.ExpiresAt.Value <= threshold);
+            }
         }
 
         /// <summary>
@@ -140,10 +150,13 @@ namespace AcornDB
         public string[] GetExpiringNuts(TimeSpan within)
         {
             var threshold = DateTime.UtcNow.Add(within);
-            return _cache
-                .Where(x => x.Value.ExpiresAt.HasValue && x.Value.ExpiresAt.Value <= threshold)
-                .Select(x => x.Key)
-                .ToArray();
+            lock (_cacheLock)
+            {
+                return _cache
+                    .Where(x => x.Value.ExpiresAt.HasValue && x.Value.ExpiresAt.Value <= threshold)
+                    .Select(x => x.Key)
+                    .ToArray();
+            }
         }
 
         /// <summary>
@@ -155,12 +168,20 @@ namespace AcornDB
             if (!_cacheEvictionEnabled || _cacheStrategy == null)
                 return 0;
 
-            var candidates = _cacheStrategy.GetEvictionCandidates(_cache).ToList();
+            List<string> candidates;
+
+            lock (_cacheLock)
+            {
+                candidates = _cacheStrategy.GetEvictionCandidates(_cache).ToList();
+            }
 
             foreach (var id in candidates)
             {
-                // Remove from cache but NOT from trunk (eviction != deletion)
-                _cache.Remove(id);
+                lock (_cacheLock)
+                {
+                    // Remove from cache but NOT from trunk (eviction != deletion)
+                    _cache.Remove(id);
+                }
                 _cacheStrategy.OnToss(id);
                 // Removed console logging - use events/telemetry instead
             }
@@ -178,10 +199,18 @@ namespace AcornDB
                 return;
 
             // Quick check: if cache is under limit, no need to call GetEvictionCandidates
-            if (_cacheStrategy is LRUCacheStrategy<T> lru && _cache.Count <= lru.MaxSize)
-                return;
+            lock (_cacheLock)
+            {
+                if (_cacheStrategy is LRUCacheStrategy<T> lru && _cache.Count <= lru.MaxSize)
+                    return;
+            }
 
-            var candidates = _cacheStrategy.GetEvictionCandidates(_cache);
+            IEnumerable<string> candidates;
+            lock (_cacheLock)
+            {
+                candidates = _cacheStrategy.GetEvictionCandidates(_cache);
+            }
+
             if (candidates.Any())
             {
                 EvictCacheItems();

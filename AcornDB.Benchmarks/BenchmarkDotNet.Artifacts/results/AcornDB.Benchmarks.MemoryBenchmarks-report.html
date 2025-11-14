@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>AcornDB.Benchmarks.MemoryBenchmarks-20251007-011838</title>
+<title>AcornDB.Benchmarks.MemoryBenchmarks-20251113-003839</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -13,30 +13,30 @@
 </head>
 <body>
 <pre><code>
-BenchmarkDotNet v0.15.4, Windows 11 (10.0.26100.6584/24H2/2024Update/HudsonValley)
-AMD Ryzen 9 7900X 4.70GHz, 1 CPU, 24 logical and 12 physical cores
-.NET SDK 9.0.304
-  [Host]     : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
-  Job-WWFMMQ : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
+BenchmarkDotNet v0.15.4, Linux Linux Mint 22.2 (Zara)
+AMD Ryzen 9 7900X 3.01GHz, 1 CPU, 24 logical and 12 physical cores
+.NET SDK 9.0.111
+  [Host]     : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
+  Job-WWFMMQ : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
 </code></pre>
 <pre><code>IterationCount=3  WarmupCount=1  
 </code></pre>
 
 <table>
-<thead><tr><th>Method                      </th><th>ItemCount</th><th>Mean  </th><th>Error   </th><th>StdDev </th><th>Median</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th>
+<thead><tr><th>Method                      </th><th>ItemCount</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>MemoryUsage_LRU_Cache</td><td>10000</td><td>5.193 ms</td><td>5.205 ms</td><td>0.2853 ms</td><td>5.045 ms</td><td>750.0000</td><td>742.1875</td><td>-</td><td>12.05 MB</td>
-</tr><tr><td>MemoryUsage_Unlimited_Cache</td><td>10000</td><td>5.239 ms</td><td>3.307 ms</td><td>0.1813 ms</td><td>5.325 ms</td><td>750.0000</td><td>742.1875</td><td>-</td><td>12.05 MB</td>
-</tr><tr><td>MemoryUsage_NoEviction_Strategy</td><td>10000</td><td>4.211 ms</td><td>6.099 ms</td><td>0.3343 ms</td><td>4.389 ms</td><td>750.0000</td><td>742.1875</td><td>-</td><td>12.05 MB</td>
-</tr><tr><td>LRU_EvictionPerformance_100k_Items</td><td>10000</td><td>1,826.977 ms</td><td>27,776.985 ms</td><td>1,522.5503 ms</td><td>964.009 ms</td><td>9000.0000</td><td>8000.0000</td><td>-</td><td>189.2 MB</td>
-</tr><tr><td>MemoryUsage_LRU_Cache</td><td>50000</td><td>567.904 ms</td><td>162.102 ms</td><td>8.8854 ms</td><td>563.712 ms</td><td>5000.0000</td><td>4000.0000</td><td>-</td><td>114.25 MB</td>
-</tr><tr><td>MemoryUsage_Unlimited_Cache</td><td>50000</td><td>60.532 ms</td><td>5.212 ms</td><td>0.2857 ms</td><td>60.422 ms</td><td>4888.8889</td><td>4777.7778</td><td>1111.1111</td><td>60.57 MB</td>
-</tr><tr><td>MemoryUsage_NoEviction_Strategy</td><td>50000</td><td>60.230 ms</td><td>31.887 ms</td><td>1.7478 ms</td><td>59.394 ms</td><td>4888.8889</td><td>4777.7778</td><td>1111.1111</td><td>60.57 MB</td>
-</tr><tr><td>LRU_EvictionPerformance_100k_Items</td><td>50000</td><td>952.695 ms</td><td>402.980 ms</td><td>22.0887 ms</td><td>960.706 ms</td><td>9000.0000</td><td>8000.0000</td><td>-</td><td>189.2 MB</td>
-</tr><tr><td>MemoryUsage_LRU_Cache</td><td>100000</td><td>5,942.961 ms</td><td>152,546.753 ms</td><td>8,361.6023 ms</td><td>1,124.482 ms</td><td>11000.0000</td><td>10000.0000</td><td>1000.0000</td><td>228.6 MB</td>
-</tr><tr><td>MemoryUsage_Unlimited_Cache</td><td>100000</td><td>123.789 ms</td><td>59.758 ms</td><td>3.2755 ms</td><td>125.054 ms</td><td>8800.0000</td><td>8600.0000</td><td>1200.0000</td><td>121.22 MB</td>
-</tr><tr><td>MemoryUsage_NoEviction_Strategy</td><td>100000</td><td>114.676 ms</td><td>71.761 ms</td><td>3.9335 ms</td><td>113.434 ms</td><td>8800.0000</td><td>8600.0000</td><td>1200.0000</td><td>121.23 MB</td>
-</tr><tr><td>LRU_EvictionPerformance_100k_Items</td><td>100000</td><td>1,245.888 ms</td><td>8,843.549 ms</td><td>484.7448 ms</td><td>971.803 ms</td><td>9000.0000</td><td>8000.0000</td><td>-</td><td>189.2 MB</td>
+</thead><tbody><tr><td>MemoryUsage_LRU_Cache</td><td>10000</td><td>53.18 ms</td><td>44.812 ms</td><td>2.456 ms</td><td>8500.0000</td><td>4800.0000</td><td>1100.0000</td><td>119.07 MB</td>
+</tr><tr><td>MemoryUsage_Unlimited_Cache</td><td>10000</td><td>54.74 ms</td><td>75.568 ms</td><td>4.142 ms</td><td>8600.0000</td><td>4900.0000</td><td>1200.0000</td><td>119.07 MB</td>
+</tr><tr><td>MemoryUsage_NoEviction_Strategy</td><td>10000</td><td>50.57 ms</td><td>4.820 ms</td><td>0.264 ms</td><td>8500.0000</td><td>4800.0000</td><td>1100.0000</td><td>119.07 MB</td>
+</tr><tr><td>LRU_EvictionPerformance_100k_Items</td><td>10000</td><td>449.35 ms</td><td>494.139 ms</td><td>27.085 ms</td><td>48000.0000</td><td>24000.0000</td><td>-</td><td>783.15 MB</td>
+</tr><tr><td>MemoryUsage_LRU_Cache</td><td>50000</td><td>269.67 ms</td><td>283.394 ms</td><td>15.534 ms</td><td>39000.0000</td><td>20000.0000</td><td>2000.0000</td><td>610.28 MB</td>
+</tr><tr><td>MemoryUsage_Unlimited_Cache</td><td>50000</td><td>263.71 ms</td><td>74.248 ms</td><td>4.070 ms</td><td>38000.0000</td><td>19500.0000</td><td>1000.0000</td><td>595.75 MB</td>
+</tr><tr><td>MemoryUsage_NoEviction_Strategy</td><td>50000</td><td>266.72 ms</td><td>60.715 ms</td><td>3.328 ms</td><td>38000.0000</td><td>19000.0000</td><td>1000.0000</td><td>595.75 MB</td>
+</tr><tr><td>LRU_EvictionPerformance_100k_Items</td><td>50000</td><td>435.59 ms</td><td>445.080 ms</td><td>24.396 ms</td><td>48000.0000</td><td>24000.0000</td><td>-</td><td>783.15 MB</td>
+</tr><tr><td>MemoryUsage_LRU_Cache</td><td>100000</td><td>529.36 ms</td><td>184.091 ms</td><td>10.091 ms</td><td>77000.0000</td><td>39000.0000</td><td>2000.0000</td><td>1220.67 MB</td>
+</tr><tr><td>MemoryUsage_Unlimited_Cache</td><td>100000</td><td>516.81 ms</td><td>160.968 ms</td><td>8.823 ms</td><td>75000.0000</td><td>38000.0000</td><td>1000.0000</td><td>1191.6 MB</td>
+</tr><tr><td>MemoryUsage_NoEviction_Strategy</td><td>100000</td><td>503.93 ms</td><td>192.858 ms</td><td>10.571 ms</td><td>75000.0000</td><td>38000.0000</td><td>1000.0000</td><td>1191.6 MB</td>
+</tr><tr><td>LRU_EvictionPerformance_100k_Items</td><td>100000</td><td>417.50 ms</td><td>411.783 ms</td><td>22.571 ms</td><td>48000.0000</td><td>24000.0000</td><td>-</td><td>783.15 MB</td>
 </tr></tbody></table>
 </body>
 </html>

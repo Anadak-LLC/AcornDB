@@ -27,7 +27,7 @@ namespace AcornDB
         public int HopCount { get; set; } = 0;
     }
 
-    public partial class Tree<T>
+    public partial class Tree<T> where T : class
     {
         private readonly HashSet<Guid> _recentChangeIds = new();
         private readonly ConcurrentQueue<Guid> _changeIdQueue = new();

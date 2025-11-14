@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>AcornDB.Benchmarks.CompetitiveBenchmarks-20251113-004025</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.4, Linux Linux Mint 22.2 (Zara)
+AMD Ryzen 9 7900X 3.01GHz, 1 CPU, 24 logical and 12 physical cores
+.NET SDK 9.0.111
+  [Host]     : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
+  Job-NTRUNJ : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
+</code></pre>
+<pre><code>IterationCount=5  WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method                    </th><th>DocumentCount</th><th>Mean    </th><th>Error    </th><th>StdDev  </th><th>Median  </th><th>Ratio</th><th>RatioSD</th><th>Gen0 </th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>AcornDB_BTree_Insert_Documents</td><td>1000</td><td>5.270 ms</td><td>0.4732 ms</td><td>0.1229 ms</td><td>5.249 ms</td><td>1.00</td><td>0.03</td><td>351.5625</td><td>289.0625</td><td>-</td><td>5.62 MB</td><td>1.00</td>
+</tr><tr><td>AcornDB_BTree_Read_ById</td><td>1000</td><td>4.966 ms</td><td>0.1525 ms</td><td>0.0396 ms</td><td>4.979 ms</td><td>0.94</td><td>0.02</td><td>320.3125</td><td>234.3750</td><td>-</td><td>5.11 MB</td><td>0.91</td>
+</tr><tr><td>AcornDB_BTree_Update_Documents</td><td>1000</td><td>8.890 ms</td><td>0.1488 ms</td><td>0.0230 ms</td><td>8.896 ms</td><td>1.69</td><td>0.04</td><td>609.3750</td><td>468.7500</td><td>-</td><td>9.72 MB</td><td>1.73</td>
+</tr><tr><td>AcornDB_BTree_Delete_Documents</td><td>1000</td><td>4.963 ms</td><td>0.0791 ms</td><td>0.0206 ms</td><td>4.958 ms</td><td>0.94</td><td>0.02</td><td>328.1250</td><td>140.6250</td><td>-</td><td>5.31 MB</td><td>0.94</td>
+</tr><tr><td>AcornDB_BTree_Mixed_Workload</td><td>1000</td><td>3.507 ms</td><td>0.0697 ms</td><td>0.0108 ms</td><td>3.509 ms</td><td>0.67</td><td>0.01</td><td>203.1250</td><td>128.9063</td><td>-</td><td>3.26 MB</td><td>0.58</td>
+</tr><tr><td>AcornDB_BTree_Scan_All_Documents</td><td>1000</td><td>4.777 ms</td><td>0.3015 ms</td><td>0.0783 ms</td><td>4.769 ms</td><td>0.91</td><td>0.02</td><td>312.5000</td><td>257.8125</td><td>-</td><td>5.07 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_BTree_Scan_With_Filter</td><td>1000</td><td>15.708 ms</td><td>1.2809 ms</td><td>0.1982 ms</td><td>15.661 ms</td><td>2.98</td><td>0.07</td><td>312.5000</td><td>218.7500</td><td>-</td><td>5.07 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_FileTrunk_Insert</td><td>1000</td><td>2,037.531 ms</td><td>133.7654 ms</td><td>20.7003 ms</td><td>2,043.366 ms</td><td>386.83</td><td>8.95</td><td>-</td><td>-</td><td>-</td><td>8.68 MB</td><td>1.54</td>
+</tr><tr><td>AcornDB_FileTrunk_Read</td><td>1000</td><td>2,024.349 ms</td><td>62.8314 ms</td><td>16.3171 ms</td><td>2,015.046 ms</td><td>384.32</td><td>8.62</td><td>-</td><td>-</td><td>-</td><td>8.72 MB</td><td>1.55</td>
+</tr><tr><td>AcornDB_BTreeTrunk_Insert</td><td>1000</td><td>11.855 ms</td><td>0.2118 ms</td><td>0.0550 ms</td><td>11.828 ms</td><td>2.25</td><td>0.05</td><td>312.5000</td><td>218.7500</td><td>-</td><td>5.07 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_BTreeTrunk_Read</td><td>1000</td><td>11.958 ms</td><td>0.2168 ms</td><td>0.0563 ms</td><td>11.971 ms</td><td>2.27</td><td>0.05</td><td>312.5000</td><td>203.1250</td><td>-</td><td>5.11 MB</td><td>0.91</td>
+</tr><tr><td>AcornDB_Memory_Insert_Documents</td><td>1000</td><td>2.043 ms</td><td>0.0749 ms</td><td>0.0194 ms</td><td>2.046 ms</td><td>0.39</td><td>0.01</td><td>277.3438</td><td>218.7500</td><td>-</td><td>4.43 MB</td><td>0.79</td>
+</tr><tr><td>SQLite_InMemory_Insert_Documents</td><td>1000</td><td>2.455 ms</td><td>0.0158 ms</td><td>0.0041 ms</td><td>2.456 ms</td><td>0.47</td><td>0.01</td><td>74.2188</td><td>-</td><td>-</td><td>1.2 MB</td><td>0.21</td>
+</tr><tr><td>AcornDB_Memory_Read_ById</td><td>1000</td><td>2.052 ms</td><td>0.0612 ms</td><td>0.0095 ms</td><td>2.053 ms</td><td>0.39</td><td>0.01</td><td>277.3438</td><td>195.3125</td><td>-</td><td>4.47 MB</td><td>0.79</td>
+</tr><tr><td>SQLite_InMemory_Read_ById</td><td>1000</td><td>6.212 ms</td><td>0.0773 ms</td><td>0.0201 ms</td><td>6.203 ms</td><td>1.18</td><td>0.03</td><td>140.6250</td><td>-</td><td>-</td><td>2.27 MB</td><td>0.40</td>
+</tr><tr><td>LiteDB_Insert_Documents</td><td>1000</td><td>54.921 ms</td><td>1.1781 ms</td><td>0.3059 ms</td><td>54.884 ms</td><td>10.43</td><td>0.23</td><td>1500.0000</td><td>1000.0000</td><td>400.0000</td><td>31.84 MB</td><td>5.66</td>
+</tr><tr><td>LiteDB_Read_ById</td><td>1000</td><td>65.442 ms</td><td>7.2864 ms</td><td>1.1276 ms</td><td>65.142 ms</td><td>12.42</td><td>0.33</td><td>3000.0000</td><td>500.0000</td><td>250.0000</td><td>57.65 MB</td><td>10.25</td>
+</tr><tr><td>LiteDB_Update_Documents</td><td>1000</td><td>76.359 ms</td><td>2.3912 ms</td><td>0.6210 ms</td><td>76.378 ms</td><td>14.50</td><td>0.33</td><td>2500.0000</td><td>500.0000</td><td>250.0000</td><td>49.67 MB</td><td>8.83</td>
+</tr><tr><td>LiteDB_Delete_Documents</td><td>1000</td><td>99.154 ms</td><td>0.7566 ms</td><td>0.1965 ms</td><td>99.055 ms</td><td>18.82</td><td>0.40</td><td>2250.0000</td><td>500.0000</td><td>250.0000</td><td>48.34 MB</td><td>8.59</td>
+</tr><tr><td>LiteDB_Mixed_Workload</td><td>1000</td><td>39.232 ms</td><td>0.9237 ms</td><td>0.2399 ms</td><td>39.225 ms</td><td>7.45</td><td>0.16</td><td>2000.0000</td><td>1714.2857</td><td>785.7143</td><td>32.75 MB</td><td>5.82</td>
+</tr><tr><td>LiteDB_Scan_All_Documents</td><td>1000</td><td>55.698 ms</td><td>2.9439 ms</td><td>0.7645 ms</td><td>55.724 ms</td><td>10.57</td><td>0.26</td><td>1888.8889</td><td>1444.4444</td><td>666.6667</td><td>33.29 MB</td><td>5.92</td>
+</tr><tr><td>LiteDB_Scan_With_Filter</td><td>1000</td><td>56.995 ms</td><td>5.7075 ms</td><td>1.4822 ms</td><td>57.386 ms</td><td>10.82</td><td>0.34</td><td>1888.8889</td><td>1444.4444</td><td>666.6667</td><td>33.33 MB</td><td>5.93</td>
+</tr><tr><td>SQLite_Insert_Documents</td><td>1000</td><td>28.281 ms</td><td>0.6847 ms</td><td>0.1060 ms</td><td>28.319 ms</td><td>5.37</td><td>0.12</td><td>133.3333</td><td>-</td><td>-</td><td>2.13 MB</td><td>0.38</td>
+</tr><tr><td>SQLite_Read_ById</td><td>1000</td><td>30.117 ms</td><td>0.8864 ms</td><td>0.2302 ms</td><td>30.203 ms</td><td>5.72</td><td>0.13</td><td>125.0000</td><td>-</td><td>-</td><td>2.28 MB</td><td>0.41</td>
+</tr><tr><td>SQLite_Update_Documents</td><td>1000</td><td>33.155 ms</td><td>0.9383 ms</td><td>0.2437 ms</td><td>33.117 ms</td><td>6.29</td><td>0.14</td><td>125.0000</td><td>-</td><td>-</td><td>2.39 MB</td><td>0.42</td>
+</tr><tr><td>SQLite_Delete_Documents</td><td>1000</td><td>21.889 ms</td><td>51.1510 ms</td><td>13.2838 ms</td><td>29.466 ms</td><td>4.16</td><td>2.30</td><td>117.1875</td><td>7.8125</td><td>-</td><td>1.98 MB</td><td>0.35</td>
+</tr><tr><td>SQLite_Mixed_Workload</td><td>1000</td><td>21.526 ms</td><td>0.8496 ms</td><td>0.2206 ms</td><td>21.507 ms</td><td>4.09</td><td>0.09</td><td>62.5000</td><td>-</td><td>-</td><td>1.1 MB</td><td>0.20</td>
+</tr><tr><td>SQLite_Scan_All_Documents</td><td>1000</td><td>21.581 ms</td><td>0.4894 ms</td><td>0.0757 ms</td><td>21.584 ms</td><td>4.10</td><td>0.09</td><td>93.7500</td><td>-</td><td>-</td><td>1.57 MB</td><td>0.28</td>
+</tr><tr><td>SQLite_Scan_With_Filter</td><td>1000</td><td>21.479 ms</td><td>0.1508 ms</td><td>0.0233 ms</td><td>21.487 ms</td><td>4.08</td><td>0.09</td><td>62.5000</td><td>-</td><td>-</td><td>1.49 MB</td><td>0.27</td>
+</tr><tr><td>SQLite_With_Index_Insert</td><td>1000</td><td>30.719 ms</td><td>1.4523 ms</td><td>0.3771 ms</td><td>30.523 ms</td><td>5.83</td><td>0.14</td><td>62.5000</td><td>-</td><td>-</td><td>1.22 MB</td><td>0.22</td>
+</tr><tr><td>SQLite_With_Index_Query</td><td>1000</td><td>31.440 ms</td><td>1.2958 ms</td><td>0.3365 ms</td><td>31.275 ms</td><td>5.97</td><td>0.14</td><td>62.5000</td><td>-</td><td>-</td><td>1.32 MB</td><td>0.23</td>
+</tr><tr><td>AcornDB_BTree_Insert_Documents</td><td>10000</td><td>155.494 ms</td><td>5.0797 ms</td><td>1.3192 ms</td><td>155.995 ms</td><td>1.00</td><td>0.01</td><td>3000.0000</td><td>1000.0000</td><td>500.0000</td><td>55.39 MB</td><td>1.00</td>
+</tr><tr><td>AcornDB_BTree_Read_ById</td><td>10000</td><td>155.343 ms</td><td>3.2517 ms</td><td>0.5032 ms</td><td>155.172 ms</td><td>1.00</td><td>0.01</td><td>3000.0000</td><td>1000.0000</td><td>500.0000</td><td>50.1 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_BTree_Update_Documents</td><td>10000</td><td>301.104 ms</td><td>19.3655 ms</td><td>5.0292 ms</td><td>299.138 ms</td><td>1.94</td><td>0.03</td><td>5000.0000</td><td>2000.0000</td><td>1000.0000</td><td>96.41 MB</td><td>1.74</td>
+</tr><tr><td>AcornDB_BTree_Delete_Documents</td><td>10000</td><td>155.261 ms</td><td>7.3921 ms</td><td>1.9197 ms</td><td>154.335 ms</td><td>1.00</td><td>0.01</td><td>3000.0000</td><td>1000.0000</td><td>500.0000</td><td>53.23 MB</td><td>0.96</td>
+</tr><tr><td>AcornDB_BTree_Mixed_Workload</td><td>10000</td><td>98.620 ms</td><td>3.7799 ms</td><td>0.9816 ms</td><td>98.838 ms</td><td>0.63</td><td>0.01</td><td>1666.6667</td><td>333.3333</td><td>-</td><td>32.79 MB</td><td>0.59</td>
+</tr><tr><td>AcornDB_BTree_Scan_All_Documents</td><td>10000</td><td>159.128 ms</td><td>10.8555 ms</td><td>1.6799 ms</td><td>158.952 ms</td><td>1.02</td><td>0.01</td><td>3000.0000</td><td>1000.0000</td><td>500.0000</td><td>49.76 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_BTree_Scan_With_Filter</td><td>10000</td><td>153.007 ms</td><td>1.2931 ms</td><td>0.3358 ms</td><td>153.140 ms</td><td>0.98</td><td>0.01</td><td>3000.0000</td><td>1000.0000</td><td>666.6667</td><td>49.72 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_FileTrunk_Insert</td><td>10000</td><td>21,011.313 ms</td><td>42,456.0564 ms</td><td>11,025.7030 ms</td><td>25,641.955 ms</td><td>135.13</td><td>64.74</td><td>5000.0000</td><td>2000.0000</td><td>1000.0000</td><td>86.7 MB</td><td>1.57</td>
+</tr><tr><td>AcornDB_FileTrunk_Read</td><td>10000</td><td>26,084.340 ms</td><td>55,876.4203 ms</td><td>8,646.9379 ms</td><td>30,396.843 ms</td><td>167.76</td><td>49.43</td><td>5000.0000</td><td>2000.0000</td><td>-</td><td>87.08 MB</td><td>1.57</td>
+</tr><tr><td>AcornDB_BTreeTrunk_Insert</td><td>10000</td><td>172.588 ms</td><td>16.6762 ms</td><td>4.3308 ms</td><td>172.611 ms</td><td>1.11</td><td>0.03</td><td>3000.0000</td><td>1000.0000</td><td>500.0000</td><td>49.72 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_BTreeTrunk_Read</td><td>10000</td><td>168.803 ms</td><td>6.2070 ms</td><td>0.9605 ms</td><td>169.051 ms</td><td>1.09</td><td>0.01</td><td>3000.0000</td><td>1000.0000</td><td>500.0000</td><td>50.1 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_Memory_Insert_Documents</td><td>10000</td><td>28.096 ms</td><td>0.4689 ms</td><td>0.0726 ms</td><td>28.089 ms</td><td>0.18</td><td>0.00</td><td>3062.5000</td><td>1437.5000</td><td>687.5000</td><td>43.36 MB</td><td>0.78</td>
+</tr><tr><td>SQLite_InMemory_Insert_Documents</td><td>10000</td><td>25.429 ms</td><td>0.4695 ms</td><td>0.1219 ms</td><td>25.430 ms</td><td>0.16</td><td>0.00</td><td>750.0000</td><td>-</td><td>-</td><td>11.98 MB</td><td>0.22</td>
+</tr><tr><td>AcornDB_Memory_Read_ById</td><td>10000</td><td>30.044 ms</td><td>1.0703 ms</td><td>0.2779 ms</td><td>29.912 ms</td><td>0.19</td><td>0.00</td><td>3093.7500</td><td>1375.0000</td><td>656.2500</td><td>43.74 MB</td><td>0.79</td>
+</tr><tr><td>SQLite_InMemory_Read_ById</td><td>10000</td><td>63.465 ms</td><td>4.2181 ms</td><td>0.6528 ms</td><td>63.591 ms</td><td>0.41</td><td>0.00</td><td>1375.0000</td><td>-</td><td>-</td><td>22.67 MB</td><td>0.41</td>
+</tr><tr><td>LiteDB_Insert_Documents</td><td>10000</td><td>570.490 ms</td><td>63.7639 ms</td><td>16.5593 ms</td><td>577.520 ms</td><td>3.67</td><td>0.10</td><td>15000.0000</td><td>2000.0000</td><td>1000.0000</td><td>247.17 MB</td><td>4.46</td>
+</tr><tr><td>LiteDB_Read_ById</td><td>10000</td><td>633.047 ms</td><td>47.3208 ms</td><td>12.2891 ms</td><td>634.870 ms</td><td>4.07</td><td>0.08</td><td>35000.0000</td><td>2000.0000</td><td>1000.0000</td><td>562.25 MB</td><td>10.15</td>
+</tr><tr><td>LiteDB_Update_Documents</td><td>10000</td><td>778.535 ms</td><td>38.6392 ms</td><td>10.0345 ms</td><td>780.087 ms</td><td>5.01</td><td>0.07</td><td>30000.0000</td><td>2000.0000</td><td>1000.0000</td><td>476.41 MB</td><td>8.60</td>
+</tr><tr><td>LiteDB_Delete_Documents</td><td>10000</td><td>985.435 ms</td><td>61.4842 ms</td><td>9.5147 ms</td><td>989.998 ms</td><td>6.34</td><td>0.07</td><td>27000.0000</td><td>2000.0000</td><td>1000.0000</td><td>438.17 MB</td><td>7.91</td>
+</tr><tr><td>LiteDB_Mixed_Workload</td><td>10000</td><td>373.723 ms</td><td>25.1687 ms</td><td>6.5362 ms</td><td>373.303 ms</td><td>2.40</td><td>0.04</td><td>17000.0000</td><td>2000.0000</td><td>1000.0000</td><td>274.04 MB</td><td>4.95</td>
+</tr><tr><td>LiteDB_Scan_All_Documents</td><td>10000</td><td>537.699 ms</td><td>45.1743 ms</td><td>11.7316 ms</td><td>543.870 ms</td><td>3.46</td><td>0.07</td><td>16000.0000</td><td>2000.0000</td><td>1000.0000</td><td>264.1 MB</td><td>4.77</td>
+</tr><tr><td>LiteDB_Scan_With_Filter</td><td>10000</td><td>535.272 ms</td><td>36.5830 ms</td><td>9.5005 ms</td><td>540.806 ms</td><td>3.44</td><td>0.06</td><td>16000.0000</td><td>2000.0000</td><td>1000.0000</td><td>264.46 MB</td><td>4.77</td>
+</tr><tr><td>SQLite_Insert_Documents</td><td>10000</td><td>50.627 ms</td><td>1.6828 ms</td><td>0.4370 ms</td><td>50.602 ms</td><td>0.33</td><td>0.00</td><td>1300.0000</td><td>-</td><td>-</td><td>21.29 MB</td><td>0.38</td>
+</tr><tr><td>SQLite_Read_ById</td><td>10000</td><td>119.333 ms</td><td>1.2836 ms</td><td>0.3334 ms</td><td>119.195 ms</td><td>0.77</td><td>0.01</td><td>1400.0000</td><td>-</td><td>-</td><td>22.74 MB</td><td>0.41</td>
+</tr><tr><td>SQLite_Update_Documents</td><td>10000</td><td>57.609 ms</td><td>1.9542 ms</td><td>0.3024 ms</td><td>57.664 ms</td><td>0.37</td><td>0.00</td><td>1428.5714</td><td>-</td><td>-</td><td>23.81 MB</td><td>0.43</td>
+</tr><tr><td>SQLite_Delete_Documents</td><td>10000</td><td>51.028 ms</td><td>1.2302 ms</td><td>0.3195 ms</td><td>51.030 ms</td><td>0.33</td><td>0.00</td><td>1200.0000</td><td>-</td><td>-</td><td>19.69 MB</td><td>0.36</td>
+</tr><tr><td>SQLite_Mixed_Workload</td><td>10000</td><td>29.386 ms</td><td>0.9824 ms</td><td>0.1520 ms</td><td>29.381 ms</td><td>0.19</td><td>0.00</td><td>656.2500</td><td>-</td><td>-</td><td>10.96 MB</td><td>0.20</td>
+</tr><tr><td>SQLite_Scan_All_Documents</td><td>10000</td><td>34.172 ms</td><td>1.0888 ms</td><td>0.2828 ms</td><td>34.310 ms</td><td>0.22</td><td>0.00</td><td>933.3333</td><td>333.3333</td><td>133.3333</td><td>15.75 MB</td><td>0.28</td>
+</tr><tr><td>SQLite_Scan_With_Filter</td><td>10000</td><td>31.362 ms</td><td>1.1868 ms</td><td>0.3082 ms</td><td>31.386 ms</td><td>0.20</td><td>0.00</td><td>906.2500</td><td>31.2500</td><td>-</td><td>14.93 MB</td><td>0.27</td>
+</tr><tr><td>SQLite_With_Index_Insert</td><td>10000</td><td>31.627 ms</td><td>0.9126 ms</td><td>0.2370 ms</td><td>31.587 ms</td><td>0.20</td><td>0.00</td><td>750.0000</td><td>-</td><td>-</td><td>12.06 MB</td><td>0.22</td>
+</tr><tr><td>SQLite_With_Index_Query</td><td>10000</td><td>37.735 ms</td><td>1.4566 ms</td><td>0.3783 ms</td><td>37.587 ms</td><td>0.24</td><td>0.00</td><td>785.7143</td><td>-</td><td>-</td><td>13.11 MB</td><td>0.24</td>
+</tr><tr><td>AcornDB_BTree_Insert_Documents</td><td>50000</td><td>277.026 ms</td><td>10.5677 ms</td><td>2.7444 ms</td><td>278.296 ms</td><td>1.00</td><td>0.01</td><td>17000.0000</td><td>6000.0000</td><td>2000.0000</td><td>273.7 MB</td><td>1.00</td>
+</tr><tr><td>AcornDB_BTree_Read_ById</td><td>50000</td><td>263.791 ms</td><td>5.2439 ms</td><td>1.3618 ms</td><td>264.122 ms</td><td>0.95</td><td>0.01</td><td>15000.0000</td><td>5000.0000</td><td>2000.0000</td><td>246.9 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_BTree_Update_Documents</td><td>50000</td><td>509.712 ms</td><td>9.7522 ms</td><td>1.5092 ms</td><td>509.864 ms</td><td>1.84</td><td>0.02</td><td>31000.0000</td><td>9000.0000</td><td>3000.0000</td><td>479.74 MB</td><td>1.75</td>
+</tr><tr><td>AcornDB_BTree_Delete_Documents</td><td>50000</td><td>270.366 ms</td><td>4.5545 ms</td><td>1.1828 ms</td><td>270.926 ms</td><td>0.98</td><td>0.01</td><td>16000.0000</td><td>5000.0000</td><td>2000.0000</td><td>262.54 MB</td><td>0.96</td>
+</tr><tr><td>AcornDB_BTree_Mixed_Workload</td><td>50000</td><td>167.295 ms</td><td>8.8643 ms</td><td>2.3020 ms</td><td>168.367 ms</td><td>0.60</td><td>0.01</td><td>9000.0000</td><td>3000.0000</td><td>1000.0000</td><td>160.3 MB</td><td>0.59</td>
+</tr><tr><td>AcornDB_BTree_Scan_All_Documents</td><td>50000</td><td>264.878 ms</td><td>29.9618 ms</td><td>7.7810 ms</td><td>266.547 ms</td><td>0.96</td><td>0.03</td><td>15000.0000</td><td>5000.0000</td><td>2000.0000</td><td>245.19 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_BTree_Scan_With_Filter</td><td>50000</td><td>261.648 ms</td><td>15.1378 ms</td><td>3.9312 ms</td><td>261.309 ms</td><td>0.94</td><td>0.02</td><td>15000.0000</td><td>5000.0000</td><td>2000.0000</td><td>245 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_FileTrunk_Insert</td><td>50000</td><td>91,616.732 ms</td><td>123,806.2139 ms</td><td>32,152.0806 ms</td><td>106,792.004 ms</td><td>330.74</td><td>106.00</td><td>28000.0000</td><td>8000.0000</td><td>3000.0000</td><td>434.15 MB</td><td>1.59</td>
+</tr><tr><td>AcornDB_FileTrunk_Read</td><td>50000</td><td>106,804.311 ms</td><td>236.6389 ms</td><td>61.4544 ms</td><td>106,823.910 ms</td><td>385.57</td><td>3.51</td><td>28000.0000</td><td>8000.0000</td><td>3000.0000</td><td>436.06 MB</td><td>1.59</td>
+</tr><tr><td>AcornDB_BTreeTrunk_Insert</td><td>50000</td><td>629.238 ms</td><td>24.3616 ms</td><td>6.3266 ms</td><td>630.295 ms</td><td>2.27</td><td>0.03</td><td>15000.0000</td><td>5000.0000</td><td>2000.0000</td><td>244.99 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_BTreeTrunk_Read</td><td>50000</td><td>258.848 ms</td><td>10.4894 ms</td><td>2.7241 ms</td><td>258.051 ms</td><td>0.93</td><td>0.01</td><td>15000.0000</td><td>5000.0000</td><td>2000.0000</td><td>246.9 MB</td><td>0.90</td>
+</tr><tr><td>AcornDB_Memory_Insert_Documents</td><td>50000</td><td>159.248 ms</td><td>37.3533 ms</td><td>9.7005 ms</td><td>157.766 ms</td><td>0.57</td><td>0.03</td><td>14000.0000</td><td>5000.0000</td><td>2000.0000</td><td>212.9 MB</td><td>0.78</td>
+</tr><tr><td>SQLite_InMemory_Insert_Documents</td><td>50000</td><td>128.599 ms</td><td>5.7073 ms</td><td>1.4822 ms</td><td>128.015 ms</td><td>0.46</td><td>0.01</td><td>3750.0000</td><td>-</td><td>-</td><td>60.2 MB</td><td>0.22</td>
+</tr><tr><td>AcornDB_Memory_Read_ById</td><td>50000</td><td>162.721 ms</td><td>12.5434 ms</td><td>1.9411 ms</td><td>162.770 ms</td><td>0.59</td><td>0.01</td><td>14250.0000</td><td>5750.0000</td><td>1500.0000</td><td>214.81 MB</td><td>0.78</td>
+</tr><tr><td>SQLite_InMemory_Read_ById</td><td>50000</td><td>320.448 ms</td><td>2.1423 ms</td><td>0.5563 ms</td><td>320.333 ms</td><td>1.16</td><td>0.01</td><td>7000.0000</td><td>-</td><td>-</td><td>113.91 MB</td><td>0.42</td>
+</tr><tr><td>LiteDB_Insert_Documents</td><td>50000</td><td>2,340.339 ms</td><td>192.1073 ms</td><td>49.8896 ms</td><td>2,364.820 ms</td><td>8.45</td><td>0.18</td><td>84000.0000</td><td>2000.0000</td><td>1000.0000</td><td>1338.52 MB</td><td>4.89</td>
+</tr><tr><td>LiteDB_Read_ById</td><td>50000</td><td>2,850.528 ms</td><td>157.8246 ms</td><td>40.9865 ms</td><td>2,834.165 ms</td><td>10.29</td><td>0.16</td><td>198000.0000</td><td>2000.0000</td><td>1000.0000</td><td>3168.74 MB</td><td>11.58</td>
+</tr><tr><td>LiteDB_Update_Documents</td><td>50000</td><td>3,523.817 ms</td><td>351.0396 ms</td><td>91.1639 ms</td><td>3,539.522 ms</td><td>12.72</td><td>0.32</td><td>170000.0000</td><td>2000.0000</td><td>1000.0000</td><td>2717.98 MB</td><td>9.93</td>
+</tr><tr><td>LiteDB_Delete_Documents</td><td>50000</td><td>4,258.811 ms</td><td>244.0682 ms</td><td>63.3837 ms</td><td>4,237.291 ms</td><td>15.37</td><td>0.25</td><td>155000.0000</td><td>2000.0000</td><td>1000.0000</td><td>2473 MB</td><td>9.04</td>
+</tr><tr><td>LiteDB_Mixed_Workload</td><td>50000</td><td>1,651.567 ms</td><td>113.8381 ms</td><td>17.6166 ms</td><td>1,655.642 ms</td><td>5.96</td><td>0.08</td><td>90000.0000</td><td>2000.0000</td><td>1000.0000</td><td>1445.73 MB</td><td>5.28</td>
+</tr><tr><td>LiteDB_Scan_All_Documents</td><td>50000</td><td>2,331.137 ms</td><td>139.6403 ms</td><td>36.2642 ms</td><td>2,342.956 ms</td><td>8.42</td><td>0.14</td><td>89000.0000</td><td>5000.0000</td><td>2000.0000</td><td>1427.33 MB</td><td>5.21</td>
+</tr><tr><td>LiteDB_Scan_With_Filter</td><td>50000</td><td>2,338.327 ms</td><td>172.6772 ms</td><td>44.8437 ms</td><td>2,339.034 ms</td><td>8.44</td><td>0.17</td><td>89000.0000</td><td>3000.0000</td><td>1000.0000</td><td>1429.06 MB</td><td>5.22</td>
+</tr><tr><td>SQLite_Insert_Documents</td><td>50000</td><td>187.875 ms</td><td>3.6807 ms</td><td>0.9559 ms</td><td>188.147 ms</td><td>0.68</td><td>0.01</td><td>6666.6667</td><td>-</td><td>-</td><td>106.74 MB</td><td>0.39</td>
+</tr><tr><td>SQLite_Read_ById</td><td>50000</td><td>531.477 ms</td><td>8.7415 ms</td><td>2.2701 ms</td><td>531.800 ms</td><td>1.92</td><td>0.02</td><td>7000.0000</td><td>-</td><td>-</td><td>114.3 MB</td><td>0.42</td>
+</tr><tr><td>SQLite_Update_Documents</td><td>50000</td><td>281.741 ms</td><td>4.7535 ms</td><td>0.7356 ms</td><td>281.890 ms</td><td>1.02</td><td>0.01</td><td>7000.0000</td><td>-</td><td>-</td><td>119.64 MB</td><td>0.44</td>
+</tr><tr><td>SQLite_Delete_Documents</td><td>50000</td><td>249.971 ms</td><td>15.5745 ms</td><td>4.0447 ms</td><td>248.307 ms</td><td>0.90</td><td>0.02</td><td>6000.0000</td><td>-</td><td>-</td><td>98.73 MB</td><td>0.36</td>
+</tr><tr><td>SQLite_Mixed_Workload</td><td>50000</td><td>142.286 ms</td><td>5.8672 ms</td><td>1.5237 ms</td><td>142.620 ms</td><td>0.51</td><td>0.01</td><td>3333.3333</td><td>-</td><td>-</td><td>54.88 MB</td><td>0.20</td>
+</tr><tr><td>SQLite_Scan_All_Documents</td><td>50000</td><td>164.133 ms</td><td>2.3717 ms</td><td>0.6159 ms</td><td>163.783 ms</td><td>0.59</td><td>0.01</td><td>4500.0000</td><td>500.0000</td><td>-</td><td>79.06 MB</td><td>0.29</td>
+</tr><tr><td>SQLite_Scan_With_Filter</td><td>50000</td><td>154.417 ms</td><td>7.7055 ms</td><td>1.1924 ms</td><td>154.395 ms</td><td>0.56</td><td>0.01</td><td>4750.0000</td><td>1250.0000</td><td>500.0000</td><td>74.97 MB</td><td>0.27</td>
+</tr><tr><td>SQLite_With_Index_Insert</td><td>50000</td><td>151.742 ms</td><td>5.5225 ms</td><td>0.8546 ms</td><td>152.098 ms</td><td>0.55</td><td>0.01</td><td>3750.0000</td><td>-</td><td>-</td><td>60.59 MB</td><td>0.22</td>
+</tr><tr><td>SQLite_With_Index_Query</td><td>50000</td><td>182.623 ms</td><td>4.1208 ms</td><td>1.0702 ms</td><td>182.491 ms</td><td>0.66</td><td>0.01</td><td>4000.0000</td><td>-</td><td>-</td><td>65.81 MB</td><td>0.24</td>
+</tr></tbody></table>
+</body>
+</html>

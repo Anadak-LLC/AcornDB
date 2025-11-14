@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
+using AcornDB.Logging;
 
 namespace AcornDB.Sync
 {
@@ -10,7 +11,7 @@ namespace AcornDB.Sync
     /// Coordinates synchronization across a mesh network of Trees
     /// Handles topology management and prevents sync loops
     /// </summary>
-    public class MeshCoordinator<T>
+    public class MeshCoordinator<T> where T : class
     {
         private readonly Dictionary<string, Tree<T>> _nodes = new();
         private readonly Dictionary<string, List<string>> _topology = new();
@@ -59,7 +60,7 @@ namespace AcornDB.Sync
                 // B → A
                 var tangleBA = new Tangle<T>(treeB, new InProcessBranch<T>(treeA), $"Tangle_{nodeB}→{nodeA}");
 
-                Console.WriteLine($"> 🕸️  Mesh link created: {nodeA} ↔ {nodeB}");
+                AcornLog.Info($"> 🕸️  Mesh link created: {nodeA} ↔ {nodeB}");
             }
         }
 
@@ -80,7 +81,7 @@ namespace AcornDB.Sync
                     }
                 }
 
-                Console.WriteLine($"> 🕸️  Full mesh created with {nodeIds.Count} nodes");
+                AcornLog.Info($"> 🕸️  Full mesh created with {nodeIds.Count} nodes");
             }
         }
 
@@ -99,7 +100,7 @@ namespace AcornDB.Sync
                     ConnectNodes(nodeIds[i], nodeIds[nextIndex]);
                 }
 
-                Console.WriteLine($"> 🔗 Ring topology created with {nodeIds.Count} nodes");
+                AcornLog.Info($"> 🔗 Ring topology created with {nodeIds.Count} nodes");
             }
         }
 
@@ -121,7 +122,7 @@ namespace AcornDB.Sync
                     }
                 }
 
-                Console.WriteLine($"> ⭐ Star topology created with hub: {hubNodeId}");
+                AcornLog.Info($"> ⭐ Star topology created with hub: {hubNodeId}");
             }
         }
 
@@ -139,7 +140,7 @@ namespace AcornDB.Sync
                 }
             }
 
-            Console.WriteLine($"> 🌊 Mesh synchronized: {_nodes.Count} nodes");
+            AcornLog.Info($"> 🌊 Mesh synchronized: {_nodes.Count} nodes");
         }
 
         /// <summary>
@@ -186,26 +187,5 @@ namespace AcornDB.Sync
                 };
             }
         }
-    }
-
-    /// <summary>
-    /// Mesh topology information
-    /// </summary>
-    public class MeshTopology
-    {
-        public int TotalNodes { get; set; }
-        public int TotalConnections { get; set; }
-        public Dictionary<string, List<string>> Connections { get; set; } = new();
-
-        public double AverageDegree => TotalNodes > 0 ? (TotalConnections * 2.0) / TotalNodes : 0;
-    }
-
-    /// <summary>
-    /// Complete mesh network statistics
-    /// </summary>
-    public class MeshNetworkStats
-    {
-        public MeshTopology Topology { get; set; } = new();
-        public Dictionary<string, MeshSyncStats> NodeStats { get; set; } = new();
     }
 }

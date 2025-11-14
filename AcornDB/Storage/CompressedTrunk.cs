@@ -1,16 +1,52 @@
 using System;
+using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using AcornDB.Compression;
+using AcornDB.Storage.Serialization;
 using Newtonsoft.Json;
 
 namespace AcornDB.Storage
 {
     /// <summary>
-    /// Compressed wrapper for any ITrunk implementation
+    /// [DEPRECATED] Compressed wrapper for any ITrunk implementation
     /// Compresses payloads before storage, decompresses on retrieval
+    ///
+    /// ⚠️ IMPORTANT: This class is DEPRECATED and will be REMOVED in v0.6.0.
+    ///
+    /// Why this is deprecated:
+    /// - Old wrapper pattern creates type system complexity (Nut<T> → Nut<CompressedNut>)
+    /// - Cannot dynamically add/remove compression at runtime
+    /// - Difficult to inspect transformation chain
+    /// - Doesn't support policy context or transformation tracking
+    ///
+    /// Migration to IRoot pattern:
+    ///
+    /// OLD CODE:
+    ///   var baseTrunk = new FileTrunk<CompressedNut>();
+    ///   var compressedTrunk = new CompressedTrunk<User>(baseTrunk, new GzipCompressionProvider());
+    ///   var tree = new Tree<User>(compressedTrunk);
+    ///
+    /// NEW CODE (Option 1 - Direct):
+    ///   var trunk = new FileTrunk<User>();
+    ///   trunk.AddRoot(new CompressionRoot(new GzipCompressionProvider(), sequence: 100));
+    ///   var tree = new Tree<User>(trunk);
+    ///
+    /// NEW CODE (Option 2 - Fluent):
+    ///   var trunk = new FileTrunk<User>()
+    ///       .WithCompression(new GzipCompressionProvider());
+    ///   var tree = new Tree<User>(trunk);
+    ///
+    /// NEW CODE (Option 3 - Acorn Builder):
+    ///   var tree = new Acorn<User>()
+    ///       .WithCompression()
+    ///       .Sprout();
+    ///
+    /// See ROOT_ARCHITECTURE.md for complete migration guide.
     /// </summary>
+    [Obsolete("CompressedTrunk is deprecated and will be REMOVED in v0.6.0. Use CompressionRoot with trunk.AddRoot() or trunk.WithCompression() instead. " +
+              "Example: trunk.WithCompression(new GzipCompressionProvider()). See ROOT_ARCHITECTURE.md for migration guide.", true)]
     public class CompressedTrunk<T> : ITrunk<T>
     {
         private readonly ITrunk<CompressedNut> _innerTrunk;
@@ -27,30 +63,42 @@ namespace AcornDB.Storage
             _serializer = serializer ?? new NewtonsoftJsonSerializer();
         }
 
-        public void Save(string id, Nut<T> nut)
+        public void Stash(string id, Nut<T> nut)
         {
             var compressed = CompressNut(nut);
-            _innerTrunk.Save(id, compressed);
+            _innerTrunk.Stash(id, compressed);
         }
 
-        public Nut<T>? Load(string id)
+        [Obsolete("Use Stash() instead. This method will be removed in a future version.")]
+        public void Save(string id, Nut<T> nut) => Stash(id, nut);
+
+        public Nut<T>? Crack(string id)
         {
-            var compressed = _innerTrunk.Load(id);
+            var compressed = _innerTrunk.Crack(id);
             if (compressed == null) return null;
             return DecompressNut(compressed);
         }
 
-        public void Delete(string id)
+        [Obsolete("Use Crack() instead. This method will be removed in a future version.")]
+        public Nut<T>? Load(string id) => Crack(id);
+
+        public void Toss(string id)
         {
-            _innerTrunk.Delete(id);
+            _innerTrunk.Toss(id);
         }
 
-        public IEnumerable<Nut<T>> LoadAll()
+        [Obsolete("Use Toss() instead. This method will be removed in a future version.")]
+        public void Delete(string id) => Toss(id);
+
+        public IEnumerable<Nut<T>> CrackAll()
         {
-            return _innerTrunk.LoadAll()
+            return _innerTrunk.CrackAll()
                 .Select(DecompressNut)
                 .Where(n => n != null)!;
         }
+
+        [Obsolete("Use CrackAll() instead. This method will be removed in a future version.")]
+        public IEnumerable<Nut<T>> LoadAll() => CrackAll();
 
         public IReadOnlyList<Nut<T>> GetHistory(string id)
         {
@@ -74,10 +122,13 @@ namespace AcornDB.Storage
             _innerTrunk.ImportChanges(compressed);
         }
 
-        public ITrunkCapabilities GetCapabilities()
-        {
-            return _innerTrunk.GetCapabilities();
-        }
+        // Delegate to inner trunk's capabilities
+        public ITrunkCapabilities Capabilities => _innerTrunk.Capabilities;
+
+        // Root processors - not supported on wrapper trunks
+        public IReadOnlyList<IRoot> Roots => Array.Empty<IRoot>();
+        public void AddRoot(IRoot root) => throw new NotSupportedException("CompressedTrunk is obsolete. Use CompressionRoot with a modern trunk instead.");
+        public bool RemoveRoot(string name) => false;
 
         private Nut<CompressedNut> CompressNut(Nut<T> nut)
         {
@@ -127,33 +178,9 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️ Failed to decompress nut '{compressedNut.Id}': {ex.Message}");
+                AcornLog.Info($"⚠️ Failed to decompress nut '{compressedNut.Id}': {ex.Message}");
                 return null;
             }
         }
-    }
-
-    /// <summary>
-    /// Wrapper for compressed payload data with metadata
-    /// </summary>
-    public class CompressedNut
-    {
-        public byte[] CompressedData { get; set; } = Array.Empty<byte>();
-        public int OriginalSize { get; set; }
-        public int CompressedSize { get; set; }
-        public string Algorithm { get; set; } = "";
-        public string OriginalType { get; set; } = "";
-
-        /// <summary>
-        /// Compression ratio (e.g., 0.5 = 50% of original size)
-        /// </summary>
-        public double CompressionRatio => OriginalSize > 0
-            ? (double)CompressedSize / OriginalSize
-            : 1.0;
-
-        /// <summary>
-        /// Space saved in bytes
-        /// </summary>
-        public int SpaceSaved => OriginalSize - CompressedSize;
     }
 }

@@ -14,7 +14,7 @@ namespace AcornDB.Reactive
         /// <summary>
         /// Observe all changes to this tree (stash, toss, update)
         /// </summary>
-        public static IObservable<TreeChange<T>> ObserveChanges<T>(this Tree<T> tree)
+        public static IObservable<TreeChange<T>> ObserveChanges<T>(this Tree<T> tree) where T : class
         {
             var changeStream = tree.GetChangeStream();
             return changeStream.AsObservable();
@@ -23,7 +23,7 @@ namespace AcornDB.Reactive
         /// <summary>
         /// Observe only stash (create/update) operations
         /// </summary>
-        public static IObservable<TreeChange<T>> ObserveStash<T>(this Tree<T> tree)
+        public static IObservable<TreeChange<T>> ObserveStash<T>(this Tree<T> tree) where T : class
         {
             return tree.ObserveChanges()
                 .Where(change => change.ChangeType == ChangeType.Stash);
@@ -32,7 +32,7 @@ namespace AcornDB.Reactive
         /// <summary>
         /// Observe only toss (delete) operations
         /// </summary>
-        public static IObservable<TreeChange<T>> ObserveToss<T>(this Tree<T> tree)
+        public static IObservable<TreeChange<T>> ObserveToss<T>(this Tree<T> tree) where T : class
         {
             return tree.ObserveChanges()
                 .Where(change => change.ChangeType == ChangeType.Toss);
@@ -41,7 +41,7 @@ namespace AcornDB.Reactive
         /// <summary>
         /// Observe changes filtered by predicate
         /// </summary>
-        public static IObservable<TreeChange<T>> ObserveWhere<T>(this Tree<T> tree, Func<T, bool> predicate)
+        public static IObservable<TreeChange<T>> ObserveWhere<T>(this Tree<T> tree, Func<T, bool> predicate) where T : class
         {
             return tree.ObserveChanges()
                 .Where(change => change.Item != null && predicate(change.Item));
@@ -50,7 +50,7 @@ namespace AcornDB.Reactive
         /// <summary>
         /// Observe the stream of payloads only (without metadata)
         /// </summary>
-        public static IObservable<T> ObserveItems<T>(this Tree<T> tree)
+        public static IObservable<T> ObserveItems<T>(this Tree<T> tree) where T : class
         {
             return tree.ObserveStash()
                 .Where(change => change.Item != null)
@@ -60,7 +60,7 @@ namespace AcornDB.Reactive
         /// <summary>
         /// Observe changes from a specific node in the mesh
         /// </summary>
-        public static IObservable<TreeChange<T>> ObserveFromNode<T>(this Tree<T> tree, string nodeId)
+        public static IObservable<TreeChange<T>> ObserveFromNode<T>(this Tree<T> tree, string nodeId) where T : class
         {
             return tree.ObserveChanges()
                 .Where(change => change.Nut?.OriginNodeId == nodeId);
@@ -71,7 +71,7 @@ namespace AcornDB.Reactive
         /// </summary>
         public static IObservable<IList<TreeChange<T>>> ObserveBuffered<T>(
             this Tree<T> tree,
-            TimeSpan window)
+            TimeSpan window) where T : class
         {
             return tree.ObserveChanges().Buffer(window);
         }
@@ -81,7 +81,7 @@ namespace AcornDB.Reactive
         /// </summary>
         public static IObservable<TreeChange<T>> ObserveThrottled<T>(
             this Tree<T> tree,
-            TimeSpan throttle)
+            TimeSpan throttle) where T : class
         {
             return tree.ObserveChanges().Throttle(throttle);
         }
@@ -91,33 +91,10 @@ namespace AcornDB.Reactive
         /// </summary>
         public static IObservable<TreeChange<T>> ObserveSampled<T>(
             this Tree<T> tree,
-            TimeSpan interval)
+            TimeSpan interval) where T : class
         {
             return tree.ObserveChanges().Sample(interval);
         }
-    }
-
-    /// <summary>
-    /// Represents a change in a tree
-    /// </summary>
-    public class TreeChange<T>
-    {
-        public ChangeType ChangeType { get; set; }
-        public string Id { get; set; } = "";
-        public T? Item { get; set; }
-        public Nut<T>? Nut { get; set; }
-        public DateTime Timestamp { get; set; } = DateTime.UtcNow;
-        public string? NodeId { get; set; }
-    }
-
-    /// <summary>
-    /// Type of change operation
-    /// </summary>
-    public enum ChangeType
-    {
-        Stash,      // Create or update
-        Toss,       // Delete
-        Squabble    // Conflict resolution
     }
 
     /// <summary>
@@ -128,7 +105,7 @@ namespace AcornDB.Reactive
         private static readonly Dictionary<object, object> _changeStreams = new();
         private static readonly object _lock = new();
 
-        internal static Subject<TreeChange<T>> GetChangeStream<T>(this Tree<T> tree)
+        internal static Subject<TreeChange<T>> GetChangeStream<T>(this Tree<T> tree) where T : class
         {
             lock (_lock)
             {
@@ -145,7 +122,7 @@ namespace AcornDB.Reactive
             }
         }
 
-        private static void HookTreeEvents<T>(Tree<T> tree, Subject<TreeChange<T>> subject)
+        private static void HookTreeEvents<T>(Tree<T> tree, Subject<TreeChange<T>> subject) where T : class
         {
             // Hook into tree's internal events
             tree.OnStashEvent += (id, item, nut) =>

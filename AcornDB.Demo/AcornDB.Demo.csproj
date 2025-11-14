@@ -11,4 +11,8 @@
     <ProjectReference Include="..\AcornDB\AcornDB.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <None Remove="PRODUCTION_FEATURES.md" />
+  </ItemGroup>
+
 </Project>

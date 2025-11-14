@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang='en'>
+<head>
+<meta charset='utf-8' />
+<title>AcornDB.Benchmarks.RedisCacheBenchmarks-20251113-095049</title>
+
+<style type="text/css">
+	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
+	td, th { padding: 6px 13px; border: 1px solid #ddd; text-align: right; }
+	tr { background-color: #fff; border-top: 1px solid #ccc; }
+	tr:nth-child(even) { background: #f8f8f8; }
+</style>
+</head>
+<body>
+<pre><code>
+BenchmarkDotNet v0.15.4, Linux Linux Mint 22.2 (Zara)
+AMD Ryzen 9 7900X 3.01GHz, 1 CPU, 24 logical and 12 physical cores
+.NET SDK 9.0.111
+  [Host]     : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
+  Job-NTRUNJ : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
+</code></pre>
+<pre><code>IterationCount=5  WarmupCount=3  
+</code></pre>
+
+<table>
+<thead><tr><th>Method                        </th><th>OperationCount</th><th>Mean</th><th>Error</th><th>StdDev</th><th>Ratio</th><th>RatioSD</th><th>Gen0</th><th>Gen1</th><th>Gen2</th><th>Allocated</th><th>Alloc Ratio</th>
+</tr>
+</thead><tbody><tr><td>AcornDB_Insert</td><td>1000</td><td>2.478 ms</td><td>0.0665 ms</td><td>0.0173 ms</td><td>1.00</td><td>0.01</td><td>292.9688</td><td>289.0625</td><td>-</td><td>4.71 MB</td><td>1.00</td>
+</tr><tr><td>Redis_Insert</td><td>1000</td><td>40.100 ms</td><td>8.6614 ms</td><td>2.2493 ms</td><td>16.18</td><td>0.84</td><td>76.9231</td><td>-</td><td>-</td><td>1.39 MB</td><td>0.29</td>
+</tr><tr><td>AcornDB_ReadByKey</td><td>1000</td><td>2.358 ms</td><td>0.0525 ms</td><td>0.0136 ms</td><td>0.95</td><td>0.01</td><td>296.8750</td><td>292.9688</td><td>-</td><td>4.75 MB</td><td>1.01</td>
+</tr><tr><td>Redis_ReadByKey</td><td>1000</td><td>70.563 ms</td><td>21.4703 ms</td><td>5.5758 ms</td><td>28.48</td><td>2.06</td><td>125.0000</td><td>-</td><td>-</td><td>3.13 MB</td><td>0.66</td>
+</tr><tr><td>AcornDB_Update</td><td>1000</td><td>4.548 ms</td><td>0.1520 ms</td><td>0.0395 ms</td><td>1.84</td><td>0.02</td><td>585.9375</td><td>578.1250</td><td>-</td><td>9.43 MB</td><td>2.00</td>
+</tr><tr><td>Redis_Update</td><td>1000</td><td>65.987 ms</td><td>9.2253 ms</td><td>1.4276 ms</td><td>26.63</td><td>0.54</td><td>125.0000</td><td>-</td><td>-</td><td>2.77 MB</td><td>0.59</td>
+</tr><tr><td>AcornDB_Delete</td><td>1000</td><td>2.482 ms</td><td>0.0384 ms</td><td>0.0100 ms</td><td>1.00</td><td>0.01</td><td>320.3125</td><td>148.4375</td><td>-</td><td>5.12 MB</td><td>1.09</td>
+</tr><tr><td>Redis_Delete</td><td>1000</td><td>70.562 ms</td><td>16.2180 ms</td><td>4.2118 ms</td><td>28.47</td><td>1.56</td><td>-</td><td>-</td><td>-</td><td>1.54 MB</td><td>0.33</td>
+</tr><tr><td>AcornDB_MixedWorkload_70Read_30Write</td><td>1000</td><td>3.171 ms</td><td>0.1194 ms</td><td>0.0310 ms</td><td>1.28</td><td>0.01</td><td>382.8125</td><td>378.9063</td><td>-</td><td>6.12 MB</td><td>1.30</td>
+</tr><tr><td>Redis_MixedWorkload_70Read_30Write</td><td>1000</td><td>68.632 ms</td><td>28.1772 ms</td><td>4.3605 ms</td><td>27.70</td><td>1.57</td><td>125.0000</td><td>-</td><td>-</td><td>3.02 MB</td><td>0.64</td>
+</tr><tr><td>AcornDB_HotSpot_Access</td><td>1000</td><td>2.379 ms</td><td>0.0228 ms</td><td>0.0059 ms</td><td>0.96</td><td>0.01</td><td>296.8750</td><td>292.9688</td><td>-</td><td>4.75 MB</td><td>1.01</td>
+</tr><tr><td>Redis_HotSpot_Access</td><td>1000</td><td>66.519 ms</td><td>9.1621 ms</td><td>1.4179 ms</td><td>26.84</td><td>0.54</td><td>142.8571</td><td>-</td><td>-</td><td>3.12 MB</td><td>0.66</td>
+</tr><tr><td>AcornDB_BatchInsert</td><td>1000</td><td>2.317 ms</td><td>0.0692 ms</td><td>0.0180 ms</td><td>0.93</td><td>0.01</td><td>292.9688</td><td>289.0625</td><td>-</td><td>4.73 MB</td><td>1.00</td>
+</tr><tr><td>Redis_BatchInsert_Pipeline</td><td>1000</td><td>1.113 ms</td><td>0.1291 ms</td><td>0.0200 ms</td><td>0.45</td><td>0.01</td><td>93.7500</td><td>39.0625</td><td>-</td><td>1.56 MB</td><td>0.33</td>
+</tr><tr><td>AcornDB_ComplexObjects</td><td>1000</td><td>2.967 ms</td><td>0.0865 ms</td><td>0.0134 ms</td><td>1.20</td><td>0.01</td><td>414.0625</td><td>410.1563</td><td>-</td><td>6.65 MB</td><td>1.41</td>
+</tr><tr><td>Redis_ComplexObjects</td><td>1000</td><td>71.024 ms</td><td>13.3512 ms</td><td>3.4673 ms</td><td>28.66</td><td>1.29</td><td>142.8571</td><td>-</td><td>-</td><td>4.4 MB</td><td>0.93</td>
+</tr><tr><td>AcornDB_WithTTL</td><td>1000</td><td>2.271 ms</td><td>0.0277 ms</td><td>0.0072 ms</td><td>0.92</td><td>0.01</td><td>292.9688</td><td>289.0625</td><td>-</td><td>4.71 MB</td><td>1.00</td>
+</tr><tr><td>Redis_WithTTL</td><td>1000</td><td>34.518 ms</td><td>9.5428 ms</td><td>2.4782 ms</td><td>13.93</td><td>0.92</td><td>83.3333</td><td>-</td><td>-</td><td>1.42 MB</td><td>0.30</td>
+</tr><tr><td>AcornDB_Insert</td><td>10000</td><td>36.680 ms</td><td>2.4373 ms</td><td>0.3772 ms</td><td>1.00</td><td>0.01</td><td>3250.0000</td><td>1750.0000</td><td>500.0000</td><td>47.28 MB</td><td>1.00</td>
+</tr><tr><td>Redis_Insert</td><td>10000</td><td>358.625 ms</td><td>115.5089 ms</td><td>29.9973 ms</td><td>9.78</td><td>0.76</td><td>-</td><td>-</td><td>-</td><td>13.95 MB</td><td>0.30</td>
+</tr><tr><td>AcornDB_ReadByKey</td><td>10000</td><td>37.849 ms</td><td>1.9642 ms</td><td>0.5101 ms</td><td>1.03</td><td>0.02</td><td>3615.3846</td><td>2153.8462</td><td>692.3077</td><td>47.67 MB</td><td>1.01</td>
+</tr><tr><td>Redis_ReadByKey</td><td>10000</td><td>714.034 ms</td><td>259.3916 ms</td><td>67.3632 ms</td><td>19.47</td><td>1.69</td><td>1000.0000</td><td>-</td><td>-</td><td>31.48 MB</td><td>0.67</td>
+</tr><tr><td>AcornDB_Update</td><td>10000</td><td>74.000 ms</td><td>4.4325 ms</td><td>1.1511 ms</td><td>2.02</td><td>0.03</td><td>7142.8571</td><td>4142.8571</td><td>1285.7143</td><td>94.57 MB</td><td>2.00</td>
+</tr><tr><td>Redis_Update</td><td>10000</td><td>742.967 ms</td><td>165.3736 ms</td><td>42.9470 ms</td><td>20.26</td><td>1.09</td><td>1000.0000</td><td>-</td><td>-</td><td>27.91 MB</td><td>0.59</td>
+</tr><tr><td>AcornDB_Delete</td><td>10000</td><td>33.522 ms</td><td>0.8307 ms</td><td>0.2157 ms</td><td>0.91</td><td>0.01</td><td>3562.5000</td><td>2437.5000</td><td>937.5000</td><td>51.33 MB</td><td>1.09</td>
+</tr><tr><td>Redis_Delete</td><td>10000</td><td>681.378 ms</td><td>174.1664 ms</td><td>45.2305 ms</td><td>18.58</td><td>1.14</td><td>-</td><td>-</td><td>-</td><td>15.48 MB</td><td>0.33</td>
+</tr><tr><td>AcornDB_MixedWorkload_70Read_30Write</td><td>10000</td><td>49.285 ms</td><td>2.6214 ms</td><td>0.4057 ms</td><td>1.34</td><td>0.02</td><td>4636.3636</td><td>2727.2727</td><td>818.1818</td><td>61.82 MB</td><td>1.31</td>
+</tr><tr><td>Redis_MixedWorkload_70Read_30Write</td><td>10000</td><td>681.199 ms</td><td>249.0450 ms</td><td>38.5400 ms</td><td>18.57</td><td>0.96</td><td>1000.0000</td><td>-</td><td>-</td><td>30.4 MB</td><td>0.64</td>
+</tr><tr><td>AcornDB_HotSpot_Access</td><td>10000</td><td>37.830 ms</td><td>0.9790 ms</td><td>0.1515 ms</td><td>1.03</td><td>0.01</td><td>3571.4286</td><td>2071.4286</td><td>642.8571</td><td>47.67 MB</td><td>1.01</td>
+</tr><tr><td>Redis_HotSpot_Access</td><td>10000</td><td>745.193 ms</td><td>225.8055 ms</td><td>58.6410 ms</td><td>20.32</td><td>1.48</td><td>1000.0000</td><td>-</td><td>-</td><td>31.35 MB</td><td>0.66</td>
+</tr><tr><td>AcornDB_BatchInsert</td><td>10000</td><td>36.709 ms</td><td>1.7614 ms</td><td>0.4574 ms</td><td>1.00</td><td>0.01</td><td>3428.5714</td><td>1571.4286</td><td>500.0000</td><td>47.53 MB</td><td>1.01</td>
+</tr><tr><td>Redis_BatchInsert_Pipeline</td><td>10000</td><td>16.470 ms</td><td>1.9052 ms</td><td>0.4948 ms</td><td>0.45</td><td>0.01</td><td>1250.0000</td><td>1218.7500</td><td>437.5000</td><td>15.93 MB</td><td>0.34</td>
+</tr><tr><td>AcornDB_ComplexObjects</td><td>10000</td><td>51.651 ms</td><td>2.7030 ms</td><td>0.4183 ms</td><td>1.41</td><td>0.02</td><td>5000.0000</td><td>2900.0000</td><td>900.0000</td><td>66.62 MB</td><td>1.41</td>
+</tr><tr><td>Redis_ComplexObjects</td><td>10000</td><td>670.410 ms</td><td>147.6275 ms</td><td>22.8455 ms</td><td>18.28</td><td>0.58</td><td>2000.0000</td><td>-</td><td>-</td><td>44.19 MB</td><td>0.93</td>
+</tr><tr><td>AcornDB_WithTTL</td><td>10000</td><td>36.234 ms</td><td>1.5222 ms</td><td>0.2356 ms</td><td>0.99</td><td>0.01</td><td>3250.0000</td><td>1750.0000</td><td>500.0000</td><td>47.28 MB</td><td>1.00</td>
+</tr><tr><td>Redis_WithTTL</td><td>10000</td><td>349.281 ms</td><td>121.3864 ms</td><td>18.7847 ms</td><td>9.52</td><td>0.47</td><td>-</td><td>-</td><td>-</td><td>14.26 MB</td><td>0.30</td>
+</tr></tbody></table>
+</body>
+</html>

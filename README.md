@@ -408,11 +408,11 @@ Built with acorns and sarcasm by developers who've had enough.
 
 ## 🧾 License
 
-AcornDB is **source-available** software provided by [Anadak LLC](https://www.anadakcorp.com).
+AcornDB is **source-available** software provided by [Anadak LLC](https://www.anadak.ai).
 
 - Free for personal, educational, and non-commercial use under the  
   **[PolyForm Noncommercial License 1.0.0](./LICENSE)**  
 - Commercial use requires a separate license from Anadak LLC. The cost of which will be inversely proportionate to the degree of good you're doing.
-  Contact **[licensing@anadakcorp.com](mailto:licensing@anadakcorp.com)** for details.
+  Contact **[licensing@anadak.ai](mailto:licensing@anadak.ai)** for details.
 
 © 2025 Anadak LLC. All rights reserved.

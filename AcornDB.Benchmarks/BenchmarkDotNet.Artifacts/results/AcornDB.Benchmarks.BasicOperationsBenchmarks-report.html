@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>AcornDB.Benchmarks.BasicOperationsBenchmarks-20251007-011742</title>
+<title>AcornDB.Benchmarks.BasicOperationsBenchmarks-20251113-003739</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -13,23 +13,23 @@
 </head>
 <body>
 <pre><code>
-BenchmarkDotNet v0.15.4, Windows 11 (10.0.26100.6584/24H2/2024Update/HudsonValley)
-AMD Ryzen 9 7900X 4.70GHz, 1 CPU, 24 logical and 12 physical cores
-.NET SDK 9.0.304
-  [Host]     : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
-  Job-NTRUNJ : .NET 9.0.9 (9.0.9, 9.0.925.41916), X64 RyuJIT x86-64-v4
+BenchmarkDotNet v0.15.4, Linux Linux Mint 22.2 (Zara)
+AMD Ryzen 9 7900X 3.01GHz, 1 CPU, 24 logical and 12 physical cores
+.NET SDK 9.0.111
+  [Host]     : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
+  Job-NTRUNJ : .NET 9.0.10 (9.0.10, 9.0.1025.47515), X64 RyuJIT x86-64-v4
 </code></pre>
 <pre><code>IterationCount=5  WarmupCount=3  
 </code></pre>
 
 <table>
-<thead><tr><th>Method                      </th><th>Mean    </th><th>Error    </th><th>StdDev </th><th>Median  </th><th>Gen0</th><th>Gen1</th><th>Allocated</th>
+<thead><tr><th>Method                      </th><th>Mean  </th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Gen1</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>Stash_MemoryTrunk_1000Items</td><td>218.3 &mu;s</td><td>3.57 &mu;s</td><td>0.55 &mu;s</td><td>218.4 &mu;s</td><td>12.6953</td><td>6.1035</td><td>210.94 KB</td>
-</tr><tr><td>Stash_FileTrunk_1000Items</td><td>1,642,575.7 &mu;s</td><td>2,309,442.55 &mu;s</td><td>599,754.90 &mu;s</td><td>2,061,451.1 &mu;s</td><td>-</td><td>-</td><td>4022.38 KB</td>
-</tr><tr><td>Crack_MemoryTrunk_1000Items</td><td>294.7 &mu;s</td><td>1.47 &mu;s</td><td>0.38 &mu;s</td><td>294.7 &mu;s</td><td>15.1367</td><td>7.3242</td><td>250 KB</td>
-</tr><tr><td>Toss_MemoryTrunk_1000Items</td><td>318.9 &mu;s</td><td>6.41 &mu;s</td><td>1.67 &mu;s</td><td>318.9 &mu;s</td><td>15.1367</td><td>4.3945</td><td>250 KB</td>
-</tr><tr><td>StashAndCrack_Mixed_1000Operations</td><td>250.1 &mu;s</td><td>6.00 &mu;s</td><td>1.56 &mu;s</td><td>249.4 &mu;s</td><td>14.1602</td><td>4.3945</td><td>234.38 KB</td>
+</thead><tbody><tr><td>Stash_MemoryTrunk_1000Items</td><td>1.863 ms</td><td>0.0303 ms</td><td>0.0047 ms</td><td>242.1875</td><td>121.0938</td><td>3.86 MB</td>
+</tr><tr><td>Stash_FileTrunk_1000Items</td><td>1,388.674 ms</td><td>24.1529 ms</td><td>6.2724 ms</td><td>-</td><td>-</td><td>8.37 MB</td>
+</tr><tr><td>Crack_MemoryTrunk_1000Items</td><td>1.951 ms</td><td>0.0210 ms</td><td>0.0054 ms</td><td>242.1875</td><td>121.0938</td><td>3.9 MB</td>
+</tr><tr><td>Toss_MemoryTrunk_1000Items</td><td>2.086 ms</td><td>0.0328 ms</td><td>0.0085 ms</td><td>265.6250</td><td>167.9688</td><td>4.27 MB</td>
+</tr><tr><td>StashAndCrack_Mixed_1000Operations</td><td>1.925 ms</td><td>0.0444 ms</td><td>0.0069 ms</td><td>242.1875</td><td>121.0938</td><td>3.89 MB</td>
 </tr></tbody></table>
 </body>
 </html>
