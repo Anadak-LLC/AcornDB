@@ -18,6 +18,7 @@ public class PolicySealTests
 
         Assert.NotNull(seal.Signature);
         Assert.Equal(32, seal.Signature.Length);
+        Assert.True(seal.VerifySignature(_signer));
     }
 
     [Fact]
@@ -57,6 +58,40 @@ public class PolicySealTests
 
         Assert.Throws<ArgumentException>(() =>
             PolicySeal.Create(policy2, time2, seal1, _signer));
+    }
+
+    [Fact]
+    public void Signature_ReturnsClonedArray()
+    {
+        var policy = new TestPolicy("Test");
+        var seal = PolicySeal.Create(policy, DateTime.UtcNow, null, _signer);
+
+        var sig1 = seal.Signature;
+        var sig2 = seal.Signature;
+
+        Assert.NotSame(sig1, sig2);
+        Assert.Equal(sig1, sig2);
+
+        // Modifying returned array doesn't affect seal
+        sig1[0] ^= 0xFF;
+        Assert.NotEqual(sig1, seal.Signature);
+    }
+
+    [Fact]
+    public void PreviousHash_ReturnsClonedArray()
+    {
+        var policy = new TestPolicy("Test");
+        var seal = PolicySeal.Create(policy, DateTime.UtcNow, null, _signer);
+
+        var hash1 = seal.PreviousHash;
+        var hash2 = seal.PreviousHash;
+
+        Assert.NotSame(hash1, hash2);
+        Assert.Equal(hash1, hash2);
+
+        // Modifying returned array doesn't affect seal
+        hash1[0] ^= 0xFF;
+        Assert.NotEqual(hash1, seal.PreviousHash);
     }
 
     private class TestPolicy : IPolicyRule

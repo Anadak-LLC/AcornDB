@@ -51,18 +51,23 @@ public class MemoryPolicyLogTests
     }
 
     [Fact]
-    public void VerifyChain_DetectsTampering_WhenEntryModified()
+    public void VerifyChain_VerifiesSignatures()
     {
         using var log = new MemoryPolicyLog(_signer);
         var time = DateTime.UtcNow;
         log.Append(new TestPolicy("First"), time);
         log.Append(new TestPolicy("Second"), time.AddMinutes(1));
 
-        // Get seals and tamper with one
+        // Get seals and verify each signature individually
         var seals = log.GetAllSeals();
         Assert.Equal(2, seals.Count);
 
-        // Chain should be valid before tampering
+        foreach (var seal in seals)
+        {
+            Assert.True(seal.VerifySignature(_signer));
+        }
+
+        // Full chain verification
         var result = log.VerifyChain();
         Assert.True(result.IsValid);
     }

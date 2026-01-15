@@ -1,6 +1,5 @@
 using System;
 using System.Collections.Generic;
-using System.Linq;
 using System.Threading;
 using AcornDB.Security;
 
@@ -14,7 +13,7 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
     private readonly List<PolicySeal> _seals = new();
     private readonly ReaderWriterLockSlim _lock = new();
     private readonly IPolicySigner _signer;
-    private volatile bool _chainValidated;
+    private ChainValidationResult? _cachedValidation;
 
     public MemoryPolicyLog(IPolicySigner signer)
     {
@@ -39,7 +38,7 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
             var previous = _seals.Count > 0 ? _seals[^1] : null;
             var seal = PolicySeal.Create(policy, effectiveAt, previous, _signer);
             _seals.Add(seal);
-            _chainValidated = false;
+            _cachedValidation = null; // Invalidate cache
             return seal;
         }
         finally { _lock.ExitWriteLock(); }
@@ -52,7 +51,6 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
         {
             if (_seals.Count == 0) return null;
 
-            // Binary search for the latest policy effective at or before timestamp
             var index = BinarySearchPolicyAt(timestamp);
             return index >= 0 ? _seals[index].Policy : null;
         }
@@ -81,34 +79,65 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
     public IReadOnlyList<PolicySeal> GetAllSeals()
     {
         _lock.EnterReadLock();
-        try { return _seals.ToList().AsReadOnly(); }
+        try
+        {
+            var copy = new List<PolicySeal>(_seals.Count);
+            copy.AddRange(_seals);
+            return copy.AsReadOnly();
+        }
         finally { _lock.ExitReadLock(); }
     }
 
     public ChainValidationResult VerifyChain()
     {
-        _lock.EnterReadLock();
+        _lock.EnterUpgradeableReadLock();
         try
         {
-            if (_chainValidated) return ChainValidationResult.Valid();
-            if (_seals.Count == 0) return ChainValidationResult.Valid();
+            // Check cache first
+            var cached = _cachedValidation;
+            if (cached is not null)
+                return cached;
 
-            for (var i = 0; i < _seals.Count; i++)
+            // Validate chain
+            var result = ValidateChainInternal();
+
+            // Cache result if valid (under write lock)
+            if (result.IsValid)
             {
-                var seal = _seals[i];
-                var expectedPrevHash = i == 0 ? new byte[32] : _seals[i - 1].Signature;
-
-                if (!seal.PreviousHash.SequenceEqual(expectedPrevHash))
-                    return ChainValidationResult.Invalid(i, "PreviousHash mismatch");
-
-                if (seal.Index != i)
-                    return ChainValidationResult.Invalid(i, "Index mismatch");
+                _lock.EnterWriteLock();
+                try { _cachedValidation = result; }
+                finally { _lock.ExitWriteLock(); }
             }
 
-            _chainValidated = true;
-            return ChainValidationResult.Valid();
+            return result;
         }
-        finally { _lock.ExitReadLock(); }
+        finally { _lock.ExitUpgradeableReadLock(); }
+    }
+
+    private ChainValidationResult ValidateChainInternal()
+    {
+        if (_seals.Count == 0)
+            return ChainValidationResult.Valid();
+
+        for (var i = 0; i < _seals.Count; i++)
+        {
+            var seal = _seals[i];
+
+            // Verify index
+            if (seal.Index != i)
+                return ChainValidationResult.Invalid(i, "Index mismatch");
+
+            // Verify previous hash linkage
+            var expectedPrevHash = i == 0 ? new byte[32] : _seals[i - 1].Signature;
+            if (!seal.PreviousHashMatches(expectedPrevHash))
+                return ChainValidationResult.Invalid(i, "PreviousHash mismatch");
+
+            // Verify signature
+            if (!seal.VerifySignature(_signer))
+                return ChainValidationResult.Invalid(i, "Signature verification failed");
+        }
+
+        return ChainValidationResult.Valid();
     }
 
     public void Dispose() => _lock.Dispose();

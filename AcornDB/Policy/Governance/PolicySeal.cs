@@ -11,20 +11,32 @@ namespace AcornDB.Policy.Governance;
 /// </summary>
 public sealed record PolicySeal
 {
+    private readonly byte[] _signature;
+    private readonly byte[] _previousHash;
+
     /// <summary>SHA-256 hash of (Content + Version + Timestamp).</summary>
-    public required byte[] Signature { get; init; }
+    public byte[] Signature => (byte[])_signature.Clone();
 
     /// <summary>When this policy became effective.</summary>
-    public required DateTime EffectiveAt { get; init; }
+    public DateTime EffectiveAt { get; }
 
     /// <summary>Hash of the previous entry (0x00... for genesis).</summary>
-    public required byte[] PreviousHash { get; init; }
+    public byte[] PreviousHash => (byte[])_previousHash.Clone();
 
     /// <summary>The sealed policy content.</summary>
-    public required IPolicyRule Policy { get; init; }
+    public IPolicyRule Policy { get; }
 
     /// <summary>Sequential index in the chain (0-based).</summary>
-    public required int Index { get; init; }
+    public int Index { get; }
+
+    private PolicySeal(byte[] signature, DateTime effectiveAt, byte[] previousHash, IPolicyRule policy, int index)
+    {
+        _signature = (byte[])signature.Clone();
+        EffectiveAt = effectiveAt;
+        _previousHash = (byte[])previousHash.Clone();
+        Policy = policy;
+        Index = index;
+    }
 
     /// <summary>
     /// Create a new PolicySeal linked to the chain.
@@ -41,7 +53,7 @@ public sealed record PolicySeal
             throw new ArgumentException("Signer cannot be null.", nameof(signer));
 
         var index = previous?.Index + 1 ?? 0;
-        var previousHash = previous?.Signature ?? new byte[32];
+        var previousHash = previous?._signature ?? new byte[32];
 
         if (previous is not null && effectiveAt < previous.EffectiveAt)
             throw new ArgumentException(
@@ -51,14 +63,49 @@ public sealed record PolicySeal
         var dataToSign = BuildSignatureData(policy, effectiveAt, previousHash, index);
         var signature = signer.Sign(dataToSign);
 
-        return new PolicySeal
+        return new PolicySeal(signature, effectiveAt, previousHash, policy, index);
+    }
+
+    /// <summary>
+    /// Verify this seal's signature is valid.
+    /// </summary>
+    public bool VerifySignature(IPolicySigner signer)
+    {
+        if (signer is null)
+            throw new ArgumentException("Signer cannot be null.", nameof(signer));
+
+        var dataToSign = BuildSignatureData(Policy, EffectiveAt, _previousHash, Index);
+        return signer.Verify(dataToSign, _signature);
+    }
+
+    /// <summary>
+    /// Check if this seal's PreviousHash matches the given signature.
+    /// </summary>
+    internal bool PreviousHashMatches(byte[] expectedPreviousHash)
+    {
+        if (expectedPreviousHash.Length != _previousHash.Length)
+            return false;
+
+        for (var i = 0; i < _previousHash.Length; i++)
         {
-            Signature = signature,
-            EffectiveAt = effectiveAt,
-            PreviousHash = previousHash,
-            Policy = policy,
-            Index = index
-        };
+            if (_previousHash[i] != expectedPreviousHash[i])
+                return false;
+        }
+        return true;
+    }
+
+    /// <summary>
+    /// Reconstruct a PolicySeal from persisted data (internal use only).
+    /// Does not validate signature - caller must verify chain integrity.
+    /// </summary>
+    internal static PolicySeal Reconstruct(
+        byte[] signature,
+        DateTime effectiveAt,
+        byte[] previousHash,
+        IPolicyRule policy,
+        int index)
+    {
+        return new PolicySeal(signature, effectiveAt, previousHash, policy, index);
     }
 
     private static byte[] BuildSignatureData(
