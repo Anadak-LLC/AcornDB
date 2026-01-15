@@ -21,7 +21,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     private readonly ReaderWriterLockSlim _lock = new();
     private readonly List<PolicySeal> _seals = new();
     private readonly JsonSerializerSettings _jsonSettings;
-    private volatile bool _chainValidated;
+    private ChainValidationResult? _cachedValidation;
     private bool _disposed;
 
     /// <summary>
@@ -72,7 +72,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
 
             PersistSeal(seal);
             _seals.Add(seal);
-            _chainValidated = false;
+            _cachedValidation = null;
             return seal;
         }
         finally { _lock.ExitWriteLock(); }
@@ -102,28 +102,48 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     /// <inheritdoc />
     public ChainValidationResult VerifyChain()
     {
-        _lock.EnterReadLock();
+        _lock.EnterUpgradeableReadLock();
         try
         {
-            if (_chainValidated) return ChainValidationResult.Valid();
-            if (_seals.Count == 0) return ChainValidationResult.Valid();
+            var cached = _cachedValidation;
+            if (cached is not null)
+                return cached;
 
-            for (var i = 0; i < _seals.Count; i++)
+            var result = ValidateChainInternal();
+
+            if (result.IsValid)
             {
-                var seal = _seals[i];
-                var expectedPrevHash = i == 0 ? new byte[32] : _seals[i - 1].Signature;
-
-                if (!seal.PreviousHashMatches(expectedPrevHash))
-                    return ChainValidationResult.Invalid(i, "PreviousHash mismatch");
-
-                if (seal.Index != i)
-                    return ChainValidationResult.Invalid(i, "Index mismatch");
+                _lock.EnterWriteLock();
+                try { _cachedValidation = result; }
+                finally { _lock.ExitWriteLock(); }
             }
 
-            _chainValidated = true;
-            return ChainValidationResult.Valid();
+            return result;
         }
-        finally { _lock.ExitReadLock(); }
+        finally { _lock.ExitUpgradeableReadLock(); }
+    }
+
+    private ChainValidationResult ValidateChainInternal()
+    {
+        if (_seals.Count == 0)
+            return ChainValidationResult.Valid();
+
+        for (var i = 0; i < _seals.Count; i++)
+        {
+            var seal = _seals[i];
+
+            if (seal.Index != i)
+                return ChainValidationResult.Invalid(i, "Index mismatch");
+
+            var expectedPrevHash = i == 0 ? new byte[32] : _seals[i - 1].Signature;
+            if (!seal.PreviousHashMatches(expectedPrevHash))
+                return ChainValidationResult.Invalid(i, "PreviousHash mismatch");
+
+            if (!seal.VerifySignature(_signer))
+                return ChainValidationResult.Invalid(i, "Signature verification failed");
+        }
+
+        return ChainValidationResult.Valid();
     }
 
     /// <inheritdoc />
@@ -234,7 +254,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
             File.WriteAllText(_filePath, content);
         }
 
-        _chainValidated = true;
+        _cachedValidation = ChainValidationResult.Valid();
     }
 
     /// <summary>
