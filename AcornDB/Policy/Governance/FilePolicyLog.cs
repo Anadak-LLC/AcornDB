@@ -222,6 +222,12 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
                     entry.Index);
 
                 // Validate chain integrity during load
+                if (seal.Index != _seals.Count)
+                {
+                    AcornLog.Info($"Truncating policy log at index {seal.Index}: index mismatch");
+                    break;
+                }
+
                 var expectedPrevHash = _seals.Count == 0 ? new byte[32] : _seals[^1].Signature;
                 if (!seal.PreviousHashMatches(expectedPrevHash))
                 {
@@ -229,9 +235,10 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
                     break;
                 }
 
-                if (seal.Index != _seals.Count)
+                // Verify cryptographic signature
+                if (!seal.VerifySignature(_signer))
                 {
-                    AcornLog.Info($"Truncating policy log at index {seal.Index}: index mismatch");
+                    AcornLog.Info($"Truncating policy log at index {seal.Index}: signature verification failed");
                     break;
                 }
 

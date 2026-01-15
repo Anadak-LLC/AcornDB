@@ -223,6 +223,45 @@ public class FilePolicyLogTests : IDisposable
         Assert.True(log2.Count < 2);
     }
 
+    [Fact]
+    public void ThreadSafety_ConcurrentReads_Succeed()
+    {
+        // Arrange - create log with entries
+        var baseTime = DateTime.UtcNow;
+        using var log = new FilePolicyLog(_testFilePath, _signer);
+
+        // Add entries sequentially first
+        for (var i = 0; i < 50; i++)
+        {
+            log.Append(new TestPolicy($"Policy{i}"), baseTime.AddMilliseconds(i));
+        }
+
+        // Act - concurrent reads
+        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+        System.Threading.Tasks.Parallel.For(0, 100, i =>
+        {
+            try
+            {
+                var count = log.Count;
+                var seals = log.GetAllSeals();
+                var policy = log.GetPolicyAt(baseTime.AddMilliseconds(i % 50));
+                var result = log.VerifyChain();
+
+                Assert.Equal(50, count);
+                Assert.Equal(50, seals.Count);
+                Assert.NotNull(policy);
+                Assert.True(result.IsValid);
+            }
+            catch (Exception ex)
+            {
+                exceptions.Add(ex);
+            }
+        });
+
+        // Assert
+        Assert.Empty(exceptions);
+    }
+
     private sealed class TestPolicy : IPolicyRule
     {
         public TestPolicy(string name) => Name = name;
