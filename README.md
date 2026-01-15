@@ -177,6 +177,8 @@ grove.Oversee<User>(branch); // Auto-syncs on every change
 | **🗜️ Compression** | Gzip/Brotli compression for storage optimization |
 | **📈 LINQ Support** | `GetAll()` returns `IEnumerable<T>` for LINQ queries |
 | **📜 Full History** | `GetHistory(id)` for version history (Git & DocumentStore trunks) |
+| **🔐 Policy Governance** | Hash-chained PolicyLog with cryptographic verification |
+| **🛡️ Tamper Detection** | SHA-256/Ed25519 signatures for policy integrity |
 
 ### 🔜 Roadmap (Upcoming)
 
@@ -289,6 +291,7 @@ var pgTree = new Acorn<User>()
 - **[Cloud Storage Guide](wiki/CLOUD_STORAGE_GUIDE.md)** - S3, Azure Blob setup
 - **[Dashboard & Visualizer](wiki/Dashboard.md)** - Web UI for grove management
 - **[Cluster & Mesh](wiki/Cluster-&-Mesh.md)** - Distributed sync patterns
+- **[Security Policy Engine](wiki/SECURITY_POLICY_ENGINE.md)** - Hash-chained policy governance
 
 ---
 

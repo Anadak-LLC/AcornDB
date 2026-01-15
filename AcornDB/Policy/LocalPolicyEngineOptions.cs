@@ -23,5 +23,12 @@ namespace AcornDB.Policy
         /// Default: false
         /// </summary>
         public bool VerboseLogging { get; set; } = false;
+
+        /// <summary>
+        /// If true, uses emoji prefixes in log messages (e.g., 🔐, ⚠️).
+        /// Set to false if your log aggregation system has encoding issues with Unicode.
+        /// Default: true
+        /// </summary>
+        public bool UseEmojiInLogs { get; set; } = true;
     }
 }

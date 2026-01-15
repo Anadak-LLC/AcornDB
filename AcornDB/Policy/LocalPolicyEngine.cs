@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
 using AcornDB.Policy.BuiltInRules;
+using AcornDB.Policy.Governance;
 
 namespace AcornDB.Policy
 {
@@ -18,6 +19,7 @@ namespace AcornDB.Policy
         private readonly ConcurrentDictionary<string, IPolicyRule> _policies;
         private readonly ConcurrentDictionary<string, HashSet<string>> _tagPermissions; // tag -> allowed roles
         private readonly LocalPolicyEngineOptions _options;
+        private readonly IPolicyLog? _policyLog;
 
         /// <summary>
         /// Event raised when a policy is evaluated. Extensions can subscribe to this for logging, auditing, etc.
@@ -35,13 +37,59 @@ namespace AcornDB.Policy
         /// Creates a new LocalPolicyEngine with custom options
         /// </summary>
         public LocalPolicyEngine(LocalPolicyEngineOptions options)
+            : this(options, policyLog: null)
+        {
+        }
+
+        /// <summary>
+        /// Creates a new LocalPolicyEngine with custom options and optional policy log.
+        /// When a policy log is provided, policies are loaded from the governance ledger
+        /// after verifying chain integrity.
+        /// </summary>
+        /// <param name="options">Engine configuration options.</param>
+        /// <param name="policyLog">Optional hash-chained policy log for governance.</param>
+        /// <exception cref="ChainIntegrityException">Thrown if policy log chain is invalid.</exception>
+        public LocalPolicyEngine(LocalPolicyEngineOptions options, IPolicyLog? policyLog)
         {
             _policies = new ConcurrentDictionary<string, IPolicyRule>();
             _tagPermissions = new ConcurrentDictionary<string, HashSet<string>>();
             _options = options ?? throw new ArgumentNullException(nameof(options));
+            _policyLog = policyLog;
 
             // Register default policies
             RegisterDefaultPolicies();
+
+            // Load policies from governance ledger if provided
+            if (_policyLog != null)
+            {
+                LoadPoliciesFromLog();
+            }
+        }
+
+        /// <summary>
+        /// Gets the policy log if one was configured.
+        /// </summary>
+        public IPolicyLog? PolicyLog => _policyLog;
+
+        private void LoadPoliciesFromLog()
+        {
+            if (_policyLog == null) return;
+
+            var result = _policyLog.VerifyChain();
+            if (!result.IsValid)
+            {
+                throw new ChainIntegrityException(
+                    result.Details ?? "Policy log chain integrity verification failed",
+                    result.BrokenAtIndex ?? -1);
+            }
+
+            foreach (var seal in _policyLog.GetAllSeals())
+            {
+                RegisterPolicy(seal.Policy);
+            }
+
+            var prefix = _options.UseEmojiInLogs ? "🔐 " : "[POLICY] ";
+            AcornLog.Info($"{prefix}Loaded {_policyLog.Count} policies from governance ledger");
         }
 
         private void RegisterDefaultPolicies()

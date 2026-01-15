@@ -140,6 +140,7 @@ var pgTree = new Acorn<User>()
 - **[[Conflict Resolution]]** - Squabbles, judges, and resolution strategies
 - **[[COMPRESSION_FEATURE]]** - Gzip/Brotli compression for storage optimization
 - **[[Dashboard]]** - AcornVisualizer web UI for grove management
+- **[[SECURITY_POLICY_ENGINE]]** - Hash-chained policy governance with cryptographic verification
 
 ### Reference
 - **[[CHANGELOG]]** - Version history and release notes
