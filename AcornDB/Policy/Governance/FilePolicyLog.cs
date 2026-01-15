@@ -14,6 +14,18 @@ namespace AcornDB.Policy.Governance;
 /// File-based append-only policy log with crash recovery.
 /// Format: One JSON line per PolicySeal (JSONL format).
 /// </summary>
+/// <remarks>
+/// <para>
+/// <b>Security Note:</b> This class uses <c>TypeNameHandling.Auto</c> for JSON serialization
+/// to support polymorphic <see cref="IPolicyRule"/> deserialization. The policy log file should
+/// be protected with appropriate file system permissions (read/write only by the application)
+/// to prevent deserialization attacks via maliciously crafted type names.
+/// </para>
+/// <para>
+/// <b>Durability:</b> Writes are flushed to disk synchronously. For maximum durability in
+/// crash scenarios, ensure the underlying file system supports fsync semantics.
+/// </para>
+/// </remarks>
 public sealed class FilePolicyLog : IPolicyLog, IDisposable
 {
     private readonly string _filePath;
@@ -55,6 +67,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     {
         get
         {
+            ThrowIfDisposed();
             _lock.EnterReadLock();
             try { return _seals.Count; }
             finally { _lock.ExitReadLock(); }
@@ -62,8 +75,13 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     }
 
     /// <inheritdoc />
+    /// <exception cref="ArgumentException">Thrown when effectiveAt is not UTC.</exception>
     public PolicySeal Append(IPolicyRule policy, DateTime effectiveAt)
     {
+        ThrowIfDisposed();
+        if (effectiveAt.Kind != DateTimeKind.Utc)
+            throw new ArgumentException("Timestamp must be UTC.", nameof(effectiveAt));
+
         _lock.EnterWriteLock();
         try
         {
@@ -81,6 +99,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     /// <inheritdoc />
     public IPolicyRule? GetPolicyAt(DateTime timestamp)
     {
+        ThrowIfDisposed();
         _lock.EnterReadLock();
         try
         {
@@ -94,6 +113,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     /// <inheritdoc />
     public IReadOnlyList<PolicySeal> GetAllSeals()
     {
+        ThrowIfDisposed();
         _lock.EnterReadLock();
         try { return _seals.ToList().AsReadOnly(); }
         finally { _lock.ExitReadLock(); }
@@ -102,6 +122,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     /// <inheritdoc />
     public ChainValidationResult VerifyChain()
     {
+        ThrowIfDisposed();
         _lock.EnterUpgradeableReadLock();
         try
         {
@@ -154,6 +175,12 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
         _lock.Dispose();
     }
 
+    private void ThrowIfDisposed()
+    {
+        if (_disposed)
+            throw new ObjectDisposedException(nameof(FilePolicyLog));
+    }
+
     private int BinarySearchPolicyAt(DateTime timestamp)
     {
         int left = 0, right = _seals.Count - 1, result = -1;
@@ -189,7 +216,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
             _filePath, FileMode.Append, FileAccess.Write, FileShare.Read, 4096);
         var bytes = Encoding.UTF8.GetBytes(json + Environment.NewLine);
         stream.Write(bytes, 0, bytes.Length);
-        stream.Flush();
+        stream.Flush(flushToDisk: true);
     }
 
     private void LoadFromFile()
@@ -255,10 +282,17 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
         // Rewrite file with only valid entries if truncation occurred
         if (validLines.Count < lines.Length)
         {
-            var content = string.Join(Environment.NewLine, validLines);
-            if (validLines.Count > 0)
-                content += Environment.NewLine;
-            File.WriteAllText(_filePath, content);
+            try
+            {
+                var content = string.Join(Environment.NewLine, validLines);
+                if (validLines.Count > 0)
+                    content += Environment.NewLine;
+                File.WriteAllText(_filePath, content);
+            }
+            catch (IOException ex)
+            {
+                AcornLog.Error($"Failed to rewrite policy log after truncation: {ex.Message}");
+            }
         }
 
         _cachedValidation = ChainValidationResult.Valid();

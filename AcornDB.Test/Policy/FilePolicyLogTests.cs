@@ -224,6 +224,45 @@ public class FilePolicyLogTests : IDisposable
     }
 
     [Fact]
+    public void Constructor_HandlesEmptyFile()
+    {
+        // Arrange - create empty file
+        File.WriteAllText(_testFilePath, string.Empty);
+
+        // Act
+        using var log = new FilePolicyLog(_testFilePath, _signer);
+
+        // Assert
+        Assert.Equal(0, log.Count);
+        Assert.True(log.VerifyChain().IsValid);
+    }
+
+    [Fact]
+    public void Append_ThrowsAfterDispose()
+    {
+        // Arrange
+        var log = new FilePolicyLog(_testFilePath, _signer);
+        log.Dispose();
+
+        // Act & Assert
+        Assert.Throws<ObjectDisposedException>(() =>
+            log.Append(new TestPolicy("Test"), DateTime.UtcNow));
+    }
+
+    [Fact]
+    public void Append_ThrowsForNonUtcTimestamp()
+    {
+        // Arrange
+        using var log = new FilePolicyLog(_testFilePath, _signer);
+        var localTime = new DateTime(2026, 1, 14, 12, 0, 0, DateTimeKind.Local);
+
+        // Act & Assert
+        var ex = Assert.Throws<ArgumentException>(() =>
+            log.Append(new TestPolicy("Test"), localTime));
+        Assert.Contains("UTC", ex.Message);
+    }
+
+    [Fact]
     public void ThreadSafety_ConcurrentReads_Succeed()
     {
         // Arrange - create log with entries
