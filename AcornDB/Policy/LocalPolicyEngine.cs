@@ -88,7 +88,8 @@ namespace AcornDB.Policy
                 RegisterPolicy(seal.Policy);
             }
 
-            AcornLog.Info($"🔐 Loaded {_policyLog.Count} policies from governance ledger");
+            var prefix = _options.UseEmojiInLogs ? "🔐 " : "[POLICY] ";
+            AcornLog.Info($"{prefix}Loaded {_policyLog.Count} policies from governance ledger");
         }
 
         private void RegisterDefaultPolicies()

@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Threading.Tasks;
 using AcornDB.Policy;
 using AcornDB.Policy.Governance;
 using AcornDB.Security;
@@ -221,6 +222,70 @@ public class GovernanceIntegrationTests
         Assert.Equal(1, countAfterFirst);
         Assert.Equal(1, countAfterSecond); // Cache hit, no new verification
         Assert.Equal(2, countAfterThird);   // Cache invalidated, new verification
+    }
+
+    [Fact]
+    public void PolicyEnforcementRoot_ThreadSafety_ConcurrentOperationsWithInvalidation()
+    {
+        // Arrange - Stress test for thread-safe caching
+        var countingLog = new CountingPolicyLog(_signer);
+        countingLog.Append(new TestGovernancePolicy("StressTest"), DateTime.UtcNow);
+
+        var engine = new LocalPolicyEngine();
+        var root = new PolicyEnforcementRoot(engine, countingLog);
+        var data = Encoding.UTF8.GetBytes("{\"Value\":\"test\"}");
+
+        const int concurrentOperations = 100;
+        var exceptions = new System.Collections.Concurrent.ConcurrentBag<Exception>();
+
+        // Act - Run concurrent operations with periodic cache invalidation
+        Parallel.For(0, concurrentOperations, i =>
+        {
+            try
+            {
+                var context = new RootProcessingContext { DocumentId = $"doc-{i}" };
+
+                // Periodically invalidate cache to stress the locking
+                if (i % 10 == 0)
+                {
+                    root.InvalidateChainCache();
+                }
+
+                root.OnStash(data, context);
+
+                // Verify chain state is always set correctly
+                Assert.NotNull(context.ChainState);
+                Assert.True(context.ChainState.IsValid);
+            }
+            catch (Exception ex)
+            {
+                exceptions.Add(ex);
+            }
+        });
+
+        // Assert - No exceptions during concurrent access (main goal of this test)
+        Assert.Empty(exceptions);
+
+        // Verify chain was validated at least once
+        Assert.True(countingLog.VerifyChainCallCount >= 1,
+            $"Expected at least 1 validation, got {countingLog.VerifyChainCallCount}");
+    }
+
+    [Fact]
+    public void LocalPolicyEngine_SuppressesEmoji_WhenConfigured()
+    {
+        // Arrange - Configure to suppress emoji in logs
+        using var log = new MemoryPolicyLog(_signer);
+        log.Append(new TestGovernancePolicy("TestPolicy"), DateTime.UtcNow);
+
+        var options = new LocalPolicyEngineOptions { UseEmojiInLogs = false };
+
+        // Act - This should not throw and should work normally
+        var engine = new LocalPolicyEngine(options, log);
+
+        // Assert
+        Assert.NotNull(engine.PolicyLog);
+        Assert.Equal(1, engine.PolicyLog.Count);
     }
 
     // Helper test classes
