@@ -2,6 +2,7 @@ using System;
 using AcornDB.Logging;
 using System.Text;
 using AcornDB.Policy;
+using AcornDB.Policy.Governance;
 using AcornDB.Storage.Serialization;
 
 namespace AcornDB.Storage.Roots
@@ -18,6 +19,8 @@ namespace AcornDB.Storage.Roots
         private readonly ISerializer _serializer;
         private readonly PolicyEnforcementMetrics _metrics;
         private readonly PolicyEnforcementOptions _options;
+        private readonly IPolicyLog? _policyLog;
+        private ChainValidationResult? _cachedChainState;
 
         public string Name => "PolicyEnforcement";
         public int Sequence { get; }
@@ -32,13 +35,37 @@ namespace AcornDB.Storage.Roots
             ISerializer? serializer = null,
             int sequence = 10,
             PolicyEnforcementOptions? options = null)
+            : this(policyEngine, policyLog: null, serializer, sequence, options)
+        {
+        }
+
+        /// <summary>
+        /// Creates a PolicyEnforcementRoot with optional policy log for chain verification.
+        /// </summary>
+        /// <param name="policyEngine">Policy engine for evaluation.</param>
+        /// <param name="policyLog">Optional hash-chained policy log for governance verification.</param>
+        /// <param name="serializer">Serializer for deserializing data during validation.</param>
+        /// <param name="sequence">Root sequence in the processing chain.</param>
+        /// <param name="options">Policy enforcement options.</param>
+        public PolicyEnforcementRoot(
+            IPolicyEngine policyEngine,
+            IPolicyLog? policyLog,
+            ISerializer? serializer = null,
+            int sequence = 10,
+            PolicyEnforcementOptions? options = null)
         {
             _policyEngine = policyEngine ?? throw new ArgumentNullException(nameof(policyEngine));
+            _policyLog = policyLog;
             _serializer = serializer ?? new NewtonsoftJsonSerializer();
             Sequence = sequence;
             _options = options ?? new PolicyEnforcementOptions();
             _metrics = new PolicyEnforcementMetrics();
         }
+
+        /// <summary>
+        /// Gets the policy log if one was configured.
+        /// </summary>
+        public IPolicyLog? PolicyLog => _policyLog;
 
         public string GetSignature()
         {
@@ -50,6 +77,9 @@ namespace AcornDB.Storage.Roots
             // Policy enforcement on write
             if (!_options.EnforceOnWrite)
                 return data;
+
+            // Verify chain integrity if policy log is configured
+            VerifyChainIntegrity(context);
 
             try
             {
@@ -108,6 +138,9 @@ namespace AcornDB.Storage.Roots
             if (!_options.EnforceOnRead)
                 return data;
 
+            // Verify chain integrity if policy log is configured
+            VerifyChainIntegrity(context);
+
             try
             {
                 // Temporarily deserialize to validate policies
@@ -162,6 +195,47 @@ namespace AcornDB.Storage.Roots
 
                 return data;
             }
+        }
+
+        /// <summary>
+        /// Verifies policy chain integrity if a policy log is configured.
+        /// Caches the result to avoid re-validating on every operation.
+        /// </summary>
+        /// <param name="context">Processing context to store chain state.</param>
+        /// <exception cref="ChainIntegrityException">Thrown if chain is invalid.</exception>
+        private void VerifyChainIntegrity(RootProcessingContext context)
+        {
+            if (_policyLog == null)
+                return;
+
+            // Use cached result if available
+            if (_cachedChainState != null)
+            {
+                context.ChainState = _cachedChainState;
+                return;
+            }
+
+            // Verify chain and cache result
+            var chainResult = _policyLog.VerifyChain();
+            _cachedChainState = chainResult;
+            context.ChainState = chainResult;
+
+            if (!chainResult.IsValid)
+            {
+                _metrics.RecordError();
+                throw new ChainIntegrityException(
+                    chainResult.Details ?? "Policy chain integrity verification failed",
+                    chainResult.BrokenAtIndex ?? -1);
+            }
+        }
+
+        /// <summary>
+        /// Invalidates the cached chain state, forcing re-verification on next operation.
+        /// Call this after appending to the policy log.
+        /// </summary>
+        public void InvalidateChainCache()
+        {
+            _cachedChainState = null;
         }
     }
 }
