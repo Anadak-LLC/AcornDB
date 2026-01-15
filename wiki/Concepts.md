@@ -326,9 +326,9 @@ The **PolicyLog** is an append-only ledger that stores policy rules with cryptog
 var signer = new Sha256PolicySigner();
 var log = new MemoryPolicyLog(signer);
 
-// Append policies - creates hash chain
-log.Append(new AllowAllRule(), DateTime.UtcNow);
-log.Append(new DenyWriteRule(), DateTime.UtcNow.AddHours(1));
+// Append policies - creates hash chain (use any IPolicyRule implementation)
+log.Append(myPolicyRule, DateTime.UtcNow);
+log.Append(anotherPolicyRule, DateTime.UtcNow.AddHours(1));
 
 // Verify chain integrity
 var result = log.VerifyChain();

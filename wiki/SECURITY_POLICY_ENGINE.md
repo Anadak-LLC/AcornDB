@@ -172,13 +172,14 @@ Chain validation is cached after the first call. The cache invalidates automatic
 For large policy logs, use `MerkleTree` for efficient proofs:
 
 ```csharp
-var tree = MerkleTree.Build(log.GetAllSeals().Select(s => s.Signature).ToList());
+// Build tree from policy seals
+var tree = MerkleTree.FromSeals(log.GetAllSeals());
 
 // Generate proof for a specific entry
 var proof = tree.GenerateProof(entryIndex);
 
-// Verify proof without full chain
-var isValid = tree.VerifyProof(proof, entrySignature, tree.RootHash);
+// Verify proof against tree's root
+var isValid = tree.VerifyProof(proof);
 ```
 
 ---
@@ -204,12 +205,22 @@ Both `MemoryPolicyLog` and `FilePolicyLog` are thread-safe:
 
 ### Metrics
 
-Track performance with `PolicyLogMetrics`:
+Track performance by injecting `PolicyLogMetrics`:
 
 ```csharp
-var metrics = log.GetMetrics();
-Console.WriteLine($"Append time: {metrics.LastAppendMs}ms");
-Console.WriteLine($"Validation time: {metrics.LastValidationMs}ms");
+// Create metrics collector and inject into log
+var metrics = new PolicyLogMetrics();
+var log = new MemoryPolicyLog(signer, metrics);
+
+// ... perform operations ...
+
+// Read metrics
+Console.WriteLine($"Append avg time: {metrics.AppendAvgMs}ms");
+Console.WriteLine($"Validation avg time: {metrics.ChainValidationAvgMs}ms");
+Console.WriteLine($"Cache hit rate: {metrics.ChainValidationCacheHitRate:P0}");
+
+// Or take a snapshot
+var snapshot = metrics.Snapshot();
 ```
 
 ---
