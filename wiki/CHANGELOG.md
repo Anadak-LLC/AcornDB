@@ -1,5 +1,48 @@
 # 📝 Changelog - Recent Improvements
 
+## v0.6.0 - January 14, 2026
+
+### Major Features
+
+#### 🔐 Security Policy Engine
+Hash-chained governance ledger with cryptographic verification for tamper-evident policy management.
+
+**New Components:**
+- `IPolicyLog` - Append-only, hash-chained policy storage interface
+- `MemoryPolicyLog` - In-memory implementation with thread-safe operations
+- `FilePolicyLog` - File-based implementation with crash recovery (JSON Lines format)
+- `PolicySeal` - Immutable, cryptographically sealed policy record
+- `ChainValidationResult` - Result type for chain integrity verification
+- `ChainIntegrityException` - Exception thrown when hash chain is broken
+
+#### 🛡️ Cryptographic Infrastructure
+- `IPolicySigner` - Interface for cryptographic signature operations
+- `Sha256PolicySigner` - SHA-256 hash-based signer using `System.Security.Cryptography`
+- `Ed25519PolicySigner` - Ed25519 signature signer via NSec library
+
+#### 📊 Advanced Features
+- `MerkleTree` - Efficient Merkle tree for proof generation
+- `MerkleProof` - Proof structure for verifying policy existence
+- `PolicyLogMetrics` - Performance metrics tracking for policy operations
+- Policy evaluation caching with configurable TTL
+
+### Integration
+- `LocalPolicyEngine` extended to load policies from `IPolicyLog`
+- `PolicyEnforcementRoot` extended with chain verification on operations
+- `RootProcessingContext` added `ChainState` property for validation state
+
+### Security
+- Timing attack prevention using `CryptographicOperations.FixedTimeEquals()`
+- Constant-time signature comparison in all signers
+- Input validation on all public API methods
+- Fail-closed behavior on chain validation errors
+
+### Documentation
+- Added `wiki/SECURITY_POLICY_ENGINE.md` - Comprehensive guide
+- Updated `wiki/Concepts.md` - Added PolicyLog, PolicySeal, IPolicySigner terms
+
+---
+
 ## v0.5.0 - November 11, 2025
 
 ### Major Improvements
