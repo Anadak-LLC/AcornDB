@@ -94,9 +94,86 @@ public class PolicySealTests
         Assert.NotEqual(hash1, seal.PreviousHash);
     }
 
+    [Fact]
+    public void Create_DifferentTypes_WithSameMetadata_ProduceDifferentSignatures()
+    {
+        // GOV-003: Verify that policy type is included in signature
+        // Two different policy classes with identical Name/Description/Priority
+        // should produce different signatures to prevent type-swapping attacks
+        var policyA = new TestPolicy("Same");
+        var policyB = new AlternateTestPolicy("Same");
+        var timestamp = DateTime.UtcNow;
+
+        var sealA = PolicySeal.Create(policyA, timestamp, null, _signer);
+        var sealB = PolicySeal.Create(policyB, timestamp, null, _signer);
+
+        // Signatures must differ because types are different
+        Assert.NotEqual(sealA.Signature, sealB.Signature);
+    }
+
+    [Fact]
+    public void Create_WithRootChainHash_IncludesInSignature()
+    {
+        // GAP-001: RootChainAtActivation must be included in signature
+        var policy = new TestPolicy("Test");
+        var timestamp = DateTime.UtcNow;
+        var rootChainHashA = new byte[32];
+        var rootChainHashB = new byte[32];
+        rootChainHashB[0] = 0xFF; // Different root chain
+
+        var sealA = PolicySeal.Create(policy, timestamp, null, _signer, rootChainHashA);
+        var sealB = PolicySeal.Create(policy, timestamp, null, _signer, rootChainHashB);
+
+        // Signatures must differ because root chain hashes differ
+        Assert.NotEqual(sealA.Signature, sealB.Signature);
+        Assert.Equal(rootChainHashA, sealA.RootChainHash);
+        Assert.Equal(rootChainHashB, sealB.RootChainHash);
+    }
+
+    [Fact]
+    public void RootChainHash_ReturnsClonedArray()
+    {
+        var policy = new TestPolicy("Test");
+        var rootChainHash = new byte[32];
+        rootChainHash[0] = 0xAB;
+        var seal = PolicySeal.Create(policy, DateTime.UtcNow, null, _signer, rootChainHash);
+
+        var hash1 = seal.RootChainHash;
+        var hash2 = seal.RootChainHash;
+
+        Assert.NotSame(hash1, hash2);
+        Assert.Equal(hash1, hash2);
+
+        // Modifying returned array doesn't affect seal
+        hash1[0] ^= 0xFF;
+        Assert.NotEqual(hash1, seal.RootChainHash);
+    }
+
+    [Fact]
+    public void Create_WithoutRootChainHash_DefaultsToZeros()
+    {
+        var policy = new TestPolicy("Test");
+        var seal = PolicySeal.Create(policy, DateTime.UtcNow, null, _signer);
+
+        Assert.Equal(new byte[32], seal.RootChainHash);
+    }
+
     private class TestPolicy : IPolicyRule
     {
         public TestPolicy(string name) => Name = name;
+        public string Name { get; }
+        public string Description => "Test policy";
+        public int Priority => 50;
+        public PolicyEvaluationResult Evaluate<T>(T entity, PolicyContext context)
+            => PolicyEvaluationResult.Success();
+    }
+
+    /// <summary>
+    /// Alternate policy implementation with identical metadata for testing GOV-003.
+    /// </summary>
+    private class AlternateTestPolicy : IPolicyRule
+    {
+        public AlternateTestPolicy(string name) => Name = name;
         public string Name { get; }
         public string Description => "Test policy";
         public int Priority => 50;

@@ -13,6 +13,7 @@ public sealed record PolicySeal
 {
     private readonly byte[] _signature;
     private readonly byte[] _previousHash;
+    private readonly byte[] _rootChainHash;
 
     /// <summary>SHA-256 hash of (Content + Version + Timestamp).</summary>
     public byte[] Signature => (byte[])_signature.Clone();
@@ -29,23 +30,36 @@ public sealed record PolicySeal
     /// <summary>Sequential index in the chain (0-based).</summary>
     public int Index { get; }
 
-    private PolicySeal(byte[] signature, DateTime effectiveAt, byte[] previousHash, IPolicyRule policy, int index)
+    /// <summary>
+    /// Hash of the Root pipeline configuration at time of sealing.
+    /// Records which transformations (compression, encryption) were active.
+    /// </summary>
+    public byte[] RootChainHash => (byte[])_rootChainHash.Clone();
+
+    private PolicySeal(byte[] signature, DateTime effectiveAt, byte[] previousHash, IPolicyRule policy, int index, byte[] rootChainHash)
     {
         _signature = (byte[])signature.Clone();
         EffectiveAt = effectiveAt;
         _previousHash = (byte[])previousHash.Clone();
         Policy = policy;
         Index = index;
+        _rootChainHash = (byte[])rootChainHash.Clone();
     }
 
     /// <summary>
     /// Create a new PolicySeal linked to the chain.
     /// </summary>
+    /// <param name="policy">The policy rule to seal.</param>
+    /// <param name="effectiveAt">When the policy becomes effective (UTC).</param>
+    /// <param name="previous">Previous seal in the chain (null for genesis).</param>
+    /// <param name="signer">Cryptographic signer for the seal.</param>
+    /// <param name="rootChainHash">Hash of Root pipeline configuration (optional, defaults to zeros).</param>
     public static PolicySeal Create(
         IPolicyRule policy,
         DateTime effectiveAt,
         PolicySeal? previous,
-        IPolicySigner signer)
+        IPolicySigner signer,
+        byte[]? rootChainHash = null)
     {
         if (policy is null)
             throw new ArgumentException("Policy cannot be null.", nameof(policy));
@@ -54,16 +68,17 @@ public sealed record PolicySeal
 
         var index = previous?.Index + 1 ?? 0;
         var previousHash = previous?._signature ?? new byte[32];
+        var chainHash = rootChainHash ?? new byte[32]; // Default to zeros if not provided
 
         if (previous is not null && effectiveAt < previous.EffectiveAt)
             throw new ArgumentException(
                 "EffectiveAt must be >= previous entry's EffectiveAt.",
                 nameof(effectiveAt));
 
-        var dataToSign = BuildSignatureData(policy, effectiveAt, previousHash, index);
+        var dataToSign = BuildSignatureData(policy, effectiveAt, previousHash, index, chainHash);
         var signature = signer.Sign(dataToSign);
 
-        return new PolicySeal(signature, effectiveAt, previousHash, policy, index);
+        return new PolicySeal(signature, effectiveAt, previousHash, policy, index, chainHash);
     }
 
     /// <summary>
@@ -74,7 +89,7 @@ public sealed record PolicySeal
         if (signer is null)
             throw new ArgumentException("Signer cannot be null.", nameof(signer));
 
-        var dataToSign = BuildSignatureData(Policy, EffectiveAt, _previousHash, Index);
+        var dataToSign = BuildSignatureData(Policy, EffectiveAt, _previousHash, Index, _rootChainHash);
         return signer.Verify(dataToSign, _signature);
     }
 
@@ -103,25 +118,29 @@ public sealed record PolicySeal
         DateTime effectiveAt,
         byte[] previousHash,
         IPolicyRule policy,
-        int index)
+        int index,
+        byte[]? rootChainHash = null)
     {
-        return new PolicySeal(signature, effectiveAt, previousHash, policy, index);
+        return new PolicySeal(signature, effectiveAt, previousHash, policy, index, rootChainHash ?? new byte[32]);
     }
 
     private static byte[] BuildSignatureData(
         IPolicyRule policy,
         DateTime effectiveAt,
         byte[] previousHash,
-        int index)
+        int index,
+        byte[] rootChainHash)
     {
         var json = JsonConvert.SerializeObject(new
         {
+            PolicyType = policy.GetType().AssemblyQualifiedName,
             PolicyName = policy.Name,
             PolicyDescription = policy.Description,
             PolicyPriority = policy.Priority,
             EffectiveAt = effectiveAt.ToString("O"),
             PreviousHash = Convert.ToBase64String(previousHash),
-            Index = index
+            Index = index,
+            RootChainHash = Convert.ToBase64String(rootChainHash)
         });
         return Encoding.UTF8.GetBytes(json);
     }

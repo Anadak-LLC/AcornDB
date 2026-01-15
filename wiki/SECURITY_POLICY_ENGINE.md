@@ -50,10 +50,12 @@ A `PolicySeal` is an immutable, cryptographically sealed policy entry:
 
 | Property | Description |
 |----------|-------------|
-| `Signature` | SHA-256 hash of content + timestamp + index |
+| `Signature` | SHA-256 hash of content + timestamp + index + type + root chain |
 | `PreviousHash` | Hash of previous entry (creates chain) |
 | `EffectiveAt` | When the policy became active |
 | `Policy` | The actual `IPolicyRule` |
+| `PolicyType` | Full `AssemblyQualifiedName` (prevents type-swapping) |
+| `RootChainHash` | Hash of Root pipeline configuration at sealing time |
 | `Index` | Sequential position in chain (0-based) |
 
 ### Hash Chain Structure
@@ -61,11 +63,13 @@ A `PolicySeal` is an immutable, cryptographically sealed policy entry:
 ```
 Genesis (Index 0):
   PreviousHash = 0x000...000 (32 zero bytes)
-  Signature = SHA256(Policy + EffectiveAt + Index)
+  RootChainHash = Hash of active Root pipeline (or zeros if not provided)
+  Signature = SHA256(Policy + PolicyType + EffectiveAt + Index + RootChainHash)
 
 Entry N:
   PreviousHash = Hash(Entry N-1)
-  Signature = SHA256(Policy + EffectiveAt + Index)
+  RootChainHash = Hash of active Root pipeline at time of sealing
+  Signature = SHA256(Policy + PolicyType + EffectiveAt + Index + RootChainHash)
 ```
 
 Any modification to an entry breaks all subsequent hashes.
@@ -118,31 +122,46 @@ File format: JSON Lines (one JSON object per line).
 
 ## Integration with LocalPolicyEngine
 
-The `LocalPolicyEngine` can load policies from a `PolicyLog`:
+Use the `GovernedPolicyEngine` decorator to add governance to any policy engine:
 
 ```csharp
 var signer = new Sha256PolicySigner();
 var log = new MemoryPolicyLog(signer);
-log.Append(myPolicyRule, DateTime.UtcNow);
 
+// Create the base policy engine
 var options = new LocalPolicyEngineOptions();
-var engine = new LocalPolicyEngine(options, policyLog: log);
+var baseEngine = new LocalPolicyEngine(options);
 
-// Policies are loaded and chain-verified automatically
+// Wrap with governance decorator
+var engine = new GovernedPolicyEngine(baseEngine, log, signer);
+
+// Add policies through the governed engine (auto-appended to log)
+engine.AppendPolicy(myPolicyRule, DateTime.UtcNow);
+
+// Verify chain integrity
+var result = engine.VerifyChain();
 ```
+
+> **Note:** The old `LocalPolicyEngine(options, policyLog)` constructor is deprecated.
+> Use the decorator pattern above for new code.
 
 ---
 
 ## Integration with Root Pipeline
 
-The `PolicyEnforcementRoot` verifies chain integrity during operations:
+The `PolicyEnforcementRoot` enforces policy during Stash/Crack operations:
 
 ```csharp
+var signer = new Sha256PolicySigner();
 var log = new MemoryPolicyLog(signer);
-var engine = new LocalPolicyEngine(options, log);
+var baseEngine = new LocalPolicyEngine(new LocalPolicyEngineOptions());
+var engine = new GovernedPolicyEngine(baseEngine, log, signer);
 
-var root = new PolicyEnforcementRoot(engine, policyLog: log);
-// Chain verified on first Stash/Crack operation
+var root = new PolicyEnforcementRoot(engine);
+// Policies enforced on Stash/Crack operations
+
+// Chain can be verified through the governed engine
+var chainResult = engine.VerifyChain();
 ```
 
 ---

@@ -4,6 +4,8 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Reflection;
+using System.Security.Cryptography;
+using System.Text;
 using AcornDB.Policy.BuiltInRules;
 using AcornDB.Policy.Governance;
 
@@ -14,12 +16,19 @@ namespace AcornDB.Policy
     /// Part of AcornDB.Core - lightweight, dependency-free, synchronous-safe enforcement.
     /// Thread-safe and designed for local-first, embedded applications.
     /// </summary>
+    /// <remarks>
+    /// <para><b>Evaluation Caching (GAP-003):</b> Policy evaluation results are cached to avoid
+    /// re-evaluating identical contexts. Cache key is SHA256(EntityHash + PolicyVersion).
+    /// Cache is invalidated when policies are registered/unregistered.</para>
+    /// </remarks>
     public class LocalPolicyEngine : IPolicyEngine
     {
         private readonly ConcurrentDictionary<string, IPolicyRule> _policies;
         private readonly ConcurrentDictionary<string, HashSet<string>> _tagPermissions; // tag -> allowed roles
+        private readonly ConcurrentDictionary<string, CachedEvaluationResult> _evaluationCache;
         private readonly LocalPolicyEngineOptions _options;
         private readonly IPolicyLog? _policyLog;
+        private volatile int _policyVersion; // Incremented on policy change to invalidate cache
 
         /// <summary>
         /// Event raised when a policy is evaluated. Extensions can subscribe to this for logging, auditing, etc.
@@ -37,8 +46,16 @@ namespace AcornDB.Policy
         /// Creates a new LocalPolicyEngine with custom options
         /// </summary>
         public LocalPolicyEngine(LocalPolicyEngineOptions options)
-            : this(options, policyLog: null)
         {
+            _policies = new ConcurrentDictionary<string, IPolicyRule>();
+            _tagPermissions = new ConcurrentDictionary<string, HashSet<string>>();
+            _evaluationCache = new ConcurrentDictionary<string, CachedEvaluationResult>();
+            _options = options ?? throw new ArgumentNullException(nameof(options));
+            _policyLog = null;
+            _policyVersion = 0;
+
+            // Register default policies
+            RegisterDefaultPolicies();
         }
 
         /// <summary>
@@ -49,12 +66,19 @@ namespace AcornDB.Policy
         /// <param name="options">Engine configuration options.</param>
         /// <param name="policyLog">Optional hash-chained policy log for governance.</param>
         /// <exception cref="ChainIntegrityException">Thrown if policy log chain is invalid.</exception>
+        /// <remarks>
+        /// Consider using <see cref="Governance.GovernedPolicyEngine"/> decorator instead
+        /// for better separation of concerns between core policy logic and governance.
+        /// </remarks>
+        [Obsolete("Use GovernedPolicyEngine decorator for governance capabilities. This constructor will be removed in v1.0.")]
         public LocalPolicyEngine(LocalPolicyEngineOptions options, IPolicyLog? policyLog)
         {
             _policies = new ConcurrentDictionary<string, IPolicyRule>();
             _tagPermissions = new ConcurrentDictionary<string, HashSet<string>>();
+            _evaluationCache = new ConcurrentDictionary<string, CachedEvaluationResult>();
             _options = options ?? throw new ArgumentNullException(nameof(options));
             _policyLog = policyLog;
+            _policyVersion = 0;
 
             // Register default policies
             RegisterDefaultPolicies();
@@ -69,6 +93,10 @@ namespace AcornDB.Policy
         /// <summary>
         /// Gets the policy log if one was configured.
         /// </summary>
+        /// <remarks>
+        /// Use <see cref="Governance.GovernedPolicyEngine.PolicyLog"/> instead.
+        /// </remarks>
+        [Obsolete("Use GovernedPolicyEngine.PolicyLog instead. This property will be removed in v1.0.")]
         public IPolicyLog? PolicyLog => _policyLog;
 
         private void LoadPoliciesFromLog()
@@ -185,11 +213,14 @@ namespace AcornDB.Policy
                 throw new ArgumentNullException(nameof(policyRule));
 
             _policies[policyRule.Name] = policyRule;
+            InvalidateCache();
         }
 
         public bool UnregisterPolicy(string policyName)
         {
-            return _policies.TryRemove(policyName, out _);
+            var removed = _policies.TryRemove(policyName, out _);
+            if (removed) InvalidateCache();
+            return removed;
         }
 
         public IReadOnlyCollection<IPolicyRule> GetPolicies()
@@ -199,16 +230,27 @@ namespace AcornDB.Policy
 
         public PolicyValidationResult Validate<T>(T entity)
         {
-            var result = new PolicyValidationResult { IsValid = true };
-
             if (entity == null)
             {
-                result.IsValid = false;
-                result.Results.Add(PolicyEvaluationResult.Failure("Entity is null"));
-                return result;
+                var nullResult = new PolicyValidationResult { IsValid = false };
+                nullResult.Results.Add(PolicyEvaluationResult.Failure("Entity is null"));
+                return nullResult;
             }
 
+            // Try to get from cache (GAP-003)
+            var cacheKey = ComputeCacheKey(entity);
+            if (_options.EnableEvaluationCache && 
+                _evaluationCache.TryGetValue(cacheKey, out var cached) &&
+                cached.PolicyVersion == _policyVersion &&
+                DateTime.UtcNow < cached.ExpiresAt)
+            {
+                return cached.Result;
+            }
+
+            // Evaluate policies
+            var result = new PolicyValidationResult { IsValid = true };
             var context = new PolicyContext();
+            
             foreach (var policy in _policies.Values.OrderByDescending(p => p.Priority))
             {
                 var evalResult = policy.Evaluate(entity, context);
@@ -218,6 +260,18 @@ namespace AcornDB.Policy
                 {
                     result.IsValid = false;
                 }
+            }
+
+            // Cache the result (GAP-003)
+            if (_options.EnableEvaluationCache)
+            {
+                var cacheEntry = new CachedEvaluationResult
+                {
+                    Result = result,
+                    PolicyVersion = _policyVersion,
+                    ExpiresAt = DateTime.UtcNow.Add(_options.EvaluationCacheTtl)
+                };
+                _evaluationCache[cacheKey] = cacheEntry;
             }
 
             return result;
@@ -316,5 +370,65 @@ namespace AcornDB.Policy
                 }
             }
         }
+
+        /// <summary>
+        /// Invalidates the evaluation cache. Called when policies change.
+        /// </summary>
+        private void InvalidateCache()
+        {
+            _policyVersion++;
+            _evaluationCache.Clear();
+        }
+
+        /// <summary>
+        /// Computes a cache key for an entity based on its identity and tags.
+        /// </summary>
+        private string ComputeCacheKey<T>(T entity)
+        {
+            var sb = new StringBuilder();
+            sb.Append(typeof(T).FullName);
+            sb.Append('|');
+            sb.Append(entity?.GetHashCode() ?? 0);
+            sb.Append('|');
+            sb.Append(_policyVersion);
+
+            // Include tags if entity is taggable
+            if (entity is IPolicyTaggable taggable && taggable.Tags.Any())
+            {
+                sb.Append('|');
+                sb.Append(string.Join(",", taggable.Tags.OrderBy(t => t)));
+            }
+
+            // Compute SHA256 hash for compact key
+            var bytes = Encoding.UTF8.GetBytes(sb.ToString());
+            var hash = SHA256.HashData(bytes);
+            return Convert.ToBase64String(hash);
+        }
+
+        /// <summary>
+        /// Gets the current cache statistics for monitoring.
+        /// </summary>
+        public (int CacheSize, int PolicyVersion) GetCacheStats()
+        {
+            return (_evaluationCache.Count, _policyVersion);
+        }
+
+        /// <summary>
+        /// Clears the evaluation cache manually.
+        /// </summary>
+        public void ClearCache()
+        {
+            _evaluationCache.Clear();
+        }
+    }
+
+    /// <summary>
+    /// Cached policy evaluation result with expiration.
+    /// </summary>
+    internal sealed class CachedEvaluationResult
+    {
+        public required PolicyValidationResult Result { get; init; }
+        public required int PolicyVersion { get; init; }
+        public required DateTime ExpiresAt { get; init; }
     }
 }
