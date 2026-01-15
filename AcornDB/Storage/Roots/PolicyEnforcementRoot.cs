@@ -1,4 +1,5 @@
 using System;
+using System.Threading;
 using AcornDB.Logging;
 using System.Text;
 using AcornDB.Policy;
@@ -20,7 +21,8 @@ namespace AcornDB.Storage.Roots
         private readonly PolicyEnforcementMetrics _metrics;
         private readonly PolicyEnforcementOptions _options;
         private readonly IPolicyLog? _policyLog;
-        private ChainValidationResult? _cachedChainState;
+        private volatile ChainValidationResult? _cachedChainState;
+        private readonly object _chainValidationLock = new();
 
         public string Name => "PolicyEnforcement";
         public int Sequence { get; }
@@ -200,6 +202,7 @@ namespace AcornDB.Storage.Roots
         /// <summary>
         /// Verifies policy chain integrity if a policy log is configured.
         /// Caches the result to avoid re-validating on every operation.
+        /// Thread-safe: uses double-checked locking pattern.
         /// </summary>
         /// <param name="context">Processing context to store chain state.</param>
         /// <exception cref="ChainIntegrityException">Thrown if chain is invalid.</exception>
@@ -208,24 +211,37 @@ namespace AcornDB.Storage.Roots
             if (_policyLog == null)
                 return;
 
-            // Use cached result if available
-            if (_cachedChainState != null)
+            // Fast path: use cached result if available (volatile read)
+            var cached = _cachedChainState;
+            if (cached != null)
             {
-                context.ChainState = _cachedChainState;
+                context.ChainState = cached;
                 return;
             }
 
-            // Verify chain and cache result
-            var chainResult = _policyLog.VerifyChain();
-            _cachedChainState = chainResult;
-            context.ChainState = chainResult;
-
-            if (!chainResult.IsValid)
+            // Slow path: acquire lock and verify chain
+            lock (_chainValidationLock)
             {
-                _metrics.RecordError();
-                throw new ChainIntegrityException(
-                    chainResult.Details ?? "Policy chain integrity verification failed",
-                    chainResult.BrokenAtIndex ?? -1);
+                // Double-check after acquiring lock
+                cached = _cachedChainState;
+                if (cached != null)
+                {
+                    context.ChainState = cached;
+                    return;
+                }
+
+                // Verify chain and cache result
+                var chainResult = _policyLog.VerifyChain();
+                _cachedChainState = chainResult;
+                context.ChainState = chainResult;
+
+                if (!chainResult.IsValid)
+                {
+                    _metrics.RecordError();
+                    throw new ChainIntegrityException(
+                        chainResult.Details ?? "Policy chain integrity verification failed",
+                        chainResult.BrokenAtIndex ?? -1);
+                }
             }
         }
 

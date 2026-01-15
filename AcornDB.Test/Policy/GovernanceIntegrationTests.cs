@@ -40,7 +40,7 @@ public class GovernanceIntegrationTests
     public void LocalPolicyEngine_ThrowsOnInvalidChain()
     {
         // Arrange - Create a log with tampered chain (simulated via manual seal list)
-        using var log = new TamperedPolicyLog(_signer);
+        using var log = new TamperedPolicyLog();
 
         // Act & Assert
         var ex = Assert.Throws<ChainIntegrityException>(() =>
@@ -174,6 +174,55 @@ public class GovernanceIntegrationTests
         Assert.True(context2.ChainState.IsValid);
     }
 
+    [Fact]
+    public void LocalPolicyEngine_WorksWithEmptyPolicyLog()
+    {
+        // Arrange - Empty policy log (valid chain, zero entries)
+        using var log = new MemoryPolicyLog(_signer);
+
+        // Act
+        var engine = new LocalPolicyEngine(new LocalPolicyEngineOptions(), log);
+
+        // Assert - Should have only default policies
+        Assert.NotNull(engine.PolicyLog);
+        Assert.Equal(0, engine.PolicyLog.Count);
+        var policies = engine.GetPolicies();
+        Assert.True(policies.Count >= 2); // Default TTL and TagAccess policies
+    }
+
+    [Fact]
+    public void PolicyEnforcementRoot_InvalidateChainCache_VerifiesRevalidationOccurs()
+    {
+        // Arrange - Use a counting policy log to track VerifyChain calls
+        var countingLog = new CountingPolicyLog(_signer);
+        countingLog.Append(new TestGovernancePolicy("TestPolicy"), DateTime.UtcNow);
+
+        var engine = new LocalPolicyEngine();
+        var root = new PolicyEnforcementRoot(engine, countingLog);
+        var data = Encoding.UTF8.GetBytes("{\"Value\":\"test\"}");
+
+        // Act - First operation (should verify once)
+        var context1 = new RootProcessingContext { DocumentId = "doc1" };
+        root.OnStash(data, context1);
+        var countAfterFirst = countingLog.VerifyChainCallCount;
+
+        // Second operation (should use cache, no additional verify)
+        var context2 = new RootProcessingContext { DocumentId = "doc2" };
+        root.OnStash(data, context2);
+        var countAfterSecond = countingLog.VerifyChainCallCount;
+
+        // Invalidate and verify again
+        root.InvalidateChainCache();
+        var context3 = new RootProcessingContext { DocumentId = "doc3" };
+        root.OnStash(data, context3);
+        var countAfterThird = countingLog.VerifyChainCallCount;
+
+        // Assert
+        Assert.Equal(1, countAfterFirst);
+        Assert.Equal(1, countAfterSecond); // Cache hit, no new verification
+        Assert.Equal(2, countAfterThird);   // Cache invalidated, new verification
+    }
+
     // Helper test classes
     private class TestGovernancePolicy : IPolicyRule
     {
@@ -201,10 +250,6 @@ public class GovernanceIntegrationTests
     /// </summary>
     private class TamperedPolicyLog : IPolicyLog, IDisposable
     {
-        private readonly IPolicySigner _signer;
-
-        public TamperedPolicyLog(IPolicySigner signer) => _signer = signer;
-
         public int Count => 1;
 
         public PolicySeal Append(IPolicyRule policy, DateTime effectiveAt)
@@ -219,5 +264,35 @@ public class GovernanceIntegrationTests
             => ChainValidationResult.Invalid(0, "Chain integrity compromised - tampering detected");
 
         public void Dispose() { }
+    }
+
+    /// <summary>
+    /// A policy log wrapper that counts VerifyChain calls for testing.
+    /// </summary>
+    private class CountingPolicyLog : IPolicyLog, IDisposable
+    {
+        private readonly MemoryPolicyLog _inner;
+        public int VerifyChainCallCount { get; private set; }
+
+        public CountingPolicyLog(IPolicySigner signer) => _inner = new MemoryPolicyLog(signer);
+
+        public int Count => _inner.Count;
+
+        public PolicySeal Append(IPolicyRule policy, DateTime effectiveAt)
+            => _inner.Append(policy, effectiveAt);
+
+        public IPolicyRule? GetPolicyAt(DateTime timestamp)
+            => _inner.GetPolicyAt(timestamp);
+
+        public System.Collections.Generic.IReadOnlyList<PolicySeal> GetAllSeals()
+            => _inner.GetAllSeals();
+
+        public ChainValidationResult VerifyChain()
+        {
+            VerifyChainCallCount++;
+            return _inner.VerifyChain();
+        }
+
+        public void Dispose() => _inner.Dispose();
     }
 }
