@@ -33,6 +33,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     private readonly ReaderWriterLockSlim _lock = new();
     private readonly List<PolicySeal> _seals = new();
     private readonly JsonSerializerSettings _jsonSettings;
+    private readonly PolicyLogMetrics? _metrics;
     private ChainValidationResult? _cachedValidation;
     private bool _disposed;
 
@@ -41,11 +42,22 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     /// </summary>
     /// <param name="filePath">Path to the policy log file.</param>
     /// <param name="signer">Cryptographic signer for chain integrity.</param>
-    public FilePolicyLog(string filePath, IPolicySigner signer)
+    public FilePolicyLog(string filePath, IPolicySigner signer) : this(filePath, signer, null)
+    {
+    }
+
+    /// <summary>
+    /// Creates a FilePolicyLog with the specified file path, signer, and metrics collector.
+    /// </summary>
+    /// <param name="filePath">Path to the policy log file.</param>
+    /// <param name="signer">Cryptographic signer for chain integrity.</param>
+    /// <param name="metrics">Optional metrics collector for observability.</param>
+    public FilePolicyLog(string filePath, IPolicySigner signer, PolicyLogMetrics? metrics)
     {
         if (string.IsNullOrWhiteSpace(filePath))
             throw new ArgumentException("File path cannot be null or empty.", nameof(filePath));
         _signer = signer ?? throw new ArgumentException("Signer cannot be null.", nameof(signer));
+        _metrics = metrics;
 
         _filePath = filePath;
         _jsonSettings = new JsonSerializerSettings
@@ -82,6 +94,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
         if (effectiveAt.Kind != DateTimeKind.Utc)
             throw new ArgumentException("Timestamp must be UTC.", nameof(effectiveAt));
 
+        var sw = _metrics is not null ? PolicyLogMetrics.StartTimer() : null;
         _lock.EnterWriteLock();
         try
         {
@@ -91,15 +104,25 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
             PersistSeal(seal);
             _seals.Add(seal);
             _cachedValidation = null;
+            _metrics?.SetTotalSeals(_seals.Count);
             return seal;
         }
-        finally { _lock.ExitWriteLock(); }
+        finally
+        {
+            _lock.ExitWriteLock();
+            if (sw is not null)
+            {
+                sw.Stop();
+                _metrics?.RecordAppend(sw.ElapsedMilliseconds);
+            }
+        }
     }
 
     /// <inheritdoc />
     public IPolicyRule? GetPolicyAt(DateTime timestamp)
     {
         ThrowIfDisposed();
+        var sw = _metrics is not null ? PolicyLogMetrics.StartTimer() : null;
         _lock.EnterReadLock();
         try
         {
@@ -107,7 +130,15 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
             var index = BinarySearchPolicyAt(timestamp);
             return index >= 0 ? _seals[index].Policy : null;
         }
-        finally { _lock.ExitReadLock(); }
+        finally
+        {
+            _lock.ExitReadLock();
+            if (sw is not null)
+            {
+                sw.Stop();
+                _metrics?.RecordPolicyLookup(sw.ElapsedMilliseconds);
+            }
+        }
     }
 
     /// <inheritdoc />
@@ -123,12 +154,17 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
     public ChainValidationResult VerifyChain()
     {
         ThrowIfDisposed();
+        var sw = _metrics is not null ? PolicyLogMetrics.StartTimer() : null;
+        var wasCached = false;
         _lock.EnterUpgradeableReadLock();
         try
         {
             var cached = _cachedValidation;
             if (cached is not null)
+            {
+                wasCached = true;
                 return cached;
+            }
 
             var result = ValidateChainInternal();
 
@@ -141,7 +177,15 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
 
             return result;
         }
-        finally { _lock.ExitUpgradeableReadLock(); }
+        finally
+        {
+            _lock.ExitUpgradeableReadLock();
+            if (sw is not null)
+            {
+                sw.Stop();
+                _metrics?.RecordChainValidation(sw.ElapsedMilliseconds, wasCached);
+            }
+        }
     }
 
     private ChainValidationResult ValidateChainInternal()
@@ -296,6 +340,7 @@ public sealed class FilePolicyLog : IPolicyLog, IDisposable
         }
 
         _cachedValidation = ChainValidationResult.Valid();
+        _metrics?.SetTotalSeals(_seals.Count);
     }
 
     /// <summary>

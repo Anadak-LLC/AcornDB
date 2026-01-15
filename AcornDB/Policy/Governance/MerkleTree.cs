@@ -18,6 +18,18 @@ namespace AcornDB.Policy.Governance;
 /// Use case: Prove a specific policy seal exists in the log without
 /// transmitting the entire chain. Proof size is O(log n) hashes.
 /// </para>
+/// <para>
+/// <b>Thread Safety:</b> This class is NOT thread-safe. Concurrent calls to
+/// <see cref="AddLeaf"/> or <see cref="AddLeafHash"/> while calling <see cref="GenerateProof"/>
+/// or accessing <see cref="RootHash"/> may produce incorrect results. Callers must
+/// provide external synchronization if the tree is accessed from multiple threads.
+/// For thread-safe policy storage, use <see cref="MemoryPolicyLog"/> or <see cref="FilePolicyLog"/>.
+/// </para>
+/// <para>
+/// <b>Odd Node Handling:</b> When a level has an odd number of nodes, the last node
+/// is paired with itself (hashed twice) to produce its parent. This is a common
+/// Merkle tree construction approach used in Bitcoin and other blockchain systems.
+/// </para>
 /// </remarks>
 public sealed class MerkleTree
 {

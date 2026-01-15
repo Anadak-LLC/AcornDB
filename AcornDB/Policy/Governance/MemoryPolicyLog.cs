@@ -13,11 +13,26 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
     private readonly List<PolicySeal> _seals = new();
     private readonly ReaderWriterLockSlim _lock = new();
     private readonly IPolicySigner _signer;
+    private readonly PolicyLogMetrics? _metrics;
     private ChainValidationResult? _cachedValidation;
 
-    public MemoryPolicyLog(IPolicySigner signer)
+    /// <summary>
+    /// Creates a new MemoryPolicyLog with the specified signer.
+    /// </summary>
+    /// <param name="signer">Cryptographic signer for chain integrity.</param>
+    public MemoryPolicyLog(IPolicySigner signer) : this(signer, null)
+    {
+    }
+
+    /// <summary>
+    /// Creates a new MemoryPolicyLog with the specified signer and metrics collector.
+    /// </summary>
+    /// <param name="signer">Cryptographic signer for chain integrity.</param>
+    /// <param name="metrics">Optional metrics collector for observability.</param>
+    public MemoryPolicyLog(IPolicySigner signer, PolicyLogMetrics? metrics)
     {
         _signer = signer ?? throw new ArgumentException("Signer cannot be null.", nameof(signer));
+        _metrics = metrics;
     }
 
     public int Count
@@ -32,6 +47,7 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
 
     public PolicySeal Append(IPolicyRule policy, DateTime effectiveAt)
     {
+        var sw = _metrics is not null ? PolicyLogMetrics.StartTimer() : null;
         _lock.EnterWriteLock();
         try
         {
@@ -39,13 +55,23 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
             var seal = PolicySeal.Create(policy, effectiveAt, previous, _signer);
             _seals.Add(seal);
             _cachedValidation = null; // Invalidate cache
+            _metrics?.SetTotalSeals(_seals.Count);
             return seal;
         }
-        finally { _lock.ExitWriteLock(); }
+        finally
+        {
+            _lock.ExitWriteLock();
+            if (sw is not null)
+            {
+                sw.Stop();
+                _metrics?.RecordAppend(sw.ElapsedMilliseconds);
+            }
+        }
     }
 
     public IPolicyRule? GetPolicyAt(DateTime timestamp)
     {
+        var sw = _metrics is not null ? PolicyLogMetrics.StartTimer() : null;
         _lock.EnterReadLock();
         try
         {
@@ -54,7 +80,15 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
             var index = BinarySearchPolicyAt(timestamp);
             return index >= 0 ? _seals[index].Policy : null;
         }
-        finally { _lock.ExitReadLock(); }
+        finally
+        {
+            _lock.ExitReadLock();
+            if (sw is not null)
+            {
+                sw.Stop();
+                _metrics?.RecordPolicyLookup(sw.ElapsedMilliseconds);
+            }
+        }
     }
 
     private int BinarySearchPolicyAt(DateTime timestamp)
@@ -90,13 +124,18 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
 
     public ChainValidationResult VerifyChain()
     {
+        var sw = _metrics is not null ? PolicyLogMetrics.StartTimer() : null;
+        var wasCached = false;
         _lock.EnterUpgradeableReadLock();
         try
         {
             // Check cache first
             var cached = _cachedValidation;
             if (cached is not null)
+            {
+                wasCached = true;
                 return cached;
+            }
 
             // Validate chain
             var result = ValidateChainInternal();
@@ -111,7 +150,15 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
 
             return result;
         }
-        finally { _lock.ExitUpgradeableReadLock(); }
+        finally
+        {
+            _lock.ExitUpgradeableReadLock();
+            if (sw is not null)
+            {
+                sw.Stop();
+                _metrics?.RecordChainValidation(sw.ElapsedMilliseconds, wasCached);
+            }
+        }
     }
 
     private ChainValidationResult ValidateChainInternal()

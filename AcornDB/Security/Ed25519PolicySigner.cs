@@ -75,7 +75,7 @@ public sealed class Ed25519PolicySigner : IPolicySigner
         if (_privateKey is null)
             throw new InvalidOperationException("Cannot sign without a private key. This signer is in verify-only mode.");
 
-        return SignatureAlgorithm.Ed25519.Sign(_privateKey, data);
+        return Ed25519Algorithm.Sign(_privateKey, data);
     }
 
     /// <inheritdoc />
@@ -90,7 +90,7 @@ public sealed class Ed25519PolicySigner : IPolicySigner
         if (signature.Length != 64)
             return false;
 
-        return SignatureAlgorithm.Ed25519.Verify(_publicKey, data, signature);
+        return Ed25519Algorithm.Verify(_publicKey, data, signature);
     }
 
     /// <summary>
