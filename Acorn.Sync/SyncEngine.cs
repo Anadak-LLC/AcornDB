@@ -4,7 +4,7 @@ using System.Threading.Tasks;
 namespace AcornDB.Sync
 {
     /// <summary>
-    /// SyncEngine: the future OakTree cloud replicator, currently a squirrel with WiFi dreams.
+    /// SyncEngine: Cloud replication service for AcornDB.
     /// </summary>
     public class SyncEngine
     {
@@ -17,21 +17,21 @@ namespace AcornDB.Sync
 
         public Task PushChangesAsync()
         {
-            Console.WriteLine($">> [Acorn.Sync] Pushing local nutments to {_remoteEndpoint}...");
-            // TODO: Actually send data over the wire, probably with HTTP, gRPC, or carrier pigeon
+            Console.WriteLine($"[SyncEngine] Pushing local changes to {_remoteEndpoint}...");
+            // TODO: Implement data transmission via HTTP or gRPC
             return Task.CompletedTask;
         }
 
         public Task PullChangesAsync()
         {
-            Console.WriteLine($">> [Acorn.Sync] Pulling latest nutment stash from {_remoteEndpoint}...");
+            Console.WriteLine($"[SyncEngine] Pulling latest changes from {_remoteEndpoint}...");
             // TODO: Receive remote changes and reconcile
             return Task.CompletedTask;
         }
 
         public Task SyncBidirectionalAsync()
         {
-            Console.WriteLine($">> [Acorn.Sync] Full nut shake: two-way sync initiated.");
+            Console.WriteLine($"[SyncEngine] Bidirectional sync initiated.");
             return Task.WhenAll(PushChangesAsync(), PullChangesAsync());
         }
     }

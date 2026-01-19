@@ -98,7 +98,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
+                AcornLog.Warning($"[FileTrunk] Failed to deserialize entry '{id}': {ex.Message}");
                 return null;
             }
         }

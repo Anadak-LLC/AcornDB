@@ -11,7 +11,7 @@
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB.Persistence.RDBMS</Product>
-    <Description>🌰 RDBMS storage providers for AcornDB - SQLite, SQL Server, PostgreSQL, MySQL trunk implementations with full IRoot pipeline support for compression, encryption, and policy enforcement.</Description>
+    <Description>RDBMS storage providers for AcornDB - SQLite, SQL Server, PostgreSQL, MySQL trunk implementations with full IRoot pipeline support for compression, encryption, and policy enforcement.</Description>
     <PackageTags>database;embedded;sql;sqlite;sqlserver;postgresql;mysql;rdbms;acorndb</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>

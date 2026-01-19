@@ -316,7 +316,7 @@ namespace AcornDB.Storage
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Info($"⚠️ Failed to deserialize log entry: {ex.Message}");
+                    AcornLog.Warning($"[DocumentStoreTrunk] Failed to deserialize log entry: {ex.Message}");
                 }
             }
         }
@@ -334,7 +334,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                AcornLog.Error($"⚠️ ERROR: DocumentStoreTrunk failed to flush during disposal: {ex.Message}");
+                AcornLog.Error($"[DocumentStoreTrunk] Failed to flush during disposal: {ex.Message}");
                 // Don't rethrow - disposal must succeed to release resources
             }
 

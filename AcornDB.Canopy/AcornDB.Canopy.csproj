@@ -11,7 +11,7 @@
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB.Canopy</Product>
-    <Description>🌲 AcornDB.Canopy - SignalR hub and real-time visualization extensions for AcornDB. Adds Hardwood HTTP server, live sync orchestration, and real-time grove monitoring capabilities.</Description>
+    <Description>AcornDB.Canopy - SignalR hub and real-time visualization extensions for AcornDB. Adds Hardwood HTTP server, live sync orchestration, and real-time grove monitoring capabilities.</Description>
     <PackageTags>acorndb;signalr;realtime;websockets;monitoring;visualization;http-server</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>

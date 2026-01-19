@@ -53,7 +53,7 @@ public static class BlogApp
         var postTree = grove.GetTree<BlogPost>()!;
         var commentTree = grove.GetTree<Comment>()!;
 
-        AnsiConsole.MarkupLine("[dim]✓ Initialized with Grove (posts + comments)[/]");
+        AnsiConsole.MarkupLine("[dim][OK] Initialized with Grove (posts + comments)[/]");
         AnsiConsole.WriteLine();
 
         while (true)
@@ -127,7 +127,7 @@ public static class BlogApp
         postTree.Stash(postId, post);
 
         var panel = new Panel(
-            new Markup($"[green]✓ Post created:[/] [white]{Markup.Escape(title)}[/]\n[yellow]ID: {postId}[/]"))
+            new Markup($"[green][OK] Post created:[/] [white]{Markup.Escape(title)}[/]\n[yellow]ID: {postId}[/]"))
         {
             Border = BoxBorder.Rounded,
             BorderStyle = Style.Parse("green"),
@@ -204,7 +204,7 @@ public static class BlogApp
         var post = postTree.Crack(postId);
         if (post == null)
         {
-            AnsiConsole.MarkupLine("[red]✗ Post not found.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Post not found.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -278,7 +278,7 @@ public static class BlogApp
         var post = postTree.Crack(postId);
         if (post == null)
         {
-            AnsiConsole.MarkupLine("[red]✗ Post not found.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Post not found.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -296,7 +296,7 @@ public static class BlogApp
 
         commentTree.Stash(commentId, comment);
 
-        AnsiConsole.MarkupLine("[green]✓ Comment added successfully![/]");
+        AnsiConsole.MarkupLine("[green][OK] Comment added successfully![/]");
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");

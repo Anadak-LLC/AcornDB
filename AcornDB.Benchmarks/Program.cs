@@ -9,7 +9,7 @@ namespace AcornDB.Benchmarks
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine("🌰 AcornDB Performance Benchmarks");
+            Console.WriteLine("AcornDB Performance Benchmarks");
             Console.WriteLine("==================================\n");
 
             if (args.Length > 0 && args[0] == "--help")
@@ -71,7 +71,7 @@ namespace AcornDB.Benchmarks
             var summary5 = BenchmarkRunner.Run<CompetitiveBenchmarks>();
             var summary6 = BenchmarkRunner.Run<DeltaSyncBenchmarks>();
 
-            Console.WriteLine("\n✅ All benchmarks completed!");
+            Console.WriteLine("\nAll benchmarks completed.");
             Console.WriteLine("\nResults saved to: ./BenchmarkDotNet.Artifacts/results/");
         }
 

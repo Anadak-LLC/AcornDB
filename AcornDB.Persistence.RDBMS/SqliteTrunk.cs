@@ -58,11 +58,7 @@ namespace AcornDB.Persistence.RDBMS
 
             EnsureDatabase();
 
-            AcornLog.Info($"💾 SqliteTrunk initialized:");
-            AcornLog.Info($"   Database: {databasePath}");
-            AcornLog.Info($"   Table: {_tableName}");
-            AcornLog.Info($"   WAL Mode: Enabled");
-            AcornLog.Info($"   Batch Size: {BATCH_SIZE}");
+            AcornLog.Info($"[SqliteTrunk] Initialized: Database={databasePath}, Table={_tableName}, WAL=Enabled, BatchSize={BATCH_SIZE}");
         }
 
         private void EnsureDatabase()
@@ -166,7 +162,7 @@ namespace AcornDB.Persistence.RDBMS
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Info($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
+                    AcornLog.Warning($"[SqliteTrunk] Failed to deserialize entry '{id}': {ex.Message}");
                     return null;
                 }
             }
@@ -262,7 +258,7 @@ namespace AcornDB.Persistence.RDBMS
             // Force flush
             await FlushBatchAsync();
 
-            AcornLog.Info($"   💾 Imported {changesList.Count} nuts to SQLite");
+            AcornLog.Info($"[SqliteTrunk] Imported {changesList.Count} entries");
         }
 
         /// <summary>
@@ -371,7 +367,7 @@ namespace AcornDB.Persistence.RDBMS
                 }
 
                 await transaction.CommitAsync();
-                AcornLog.Info($"   💾 Flushed {batch.Count} nuts to SQLite");
+                AcornLog.Info($"[SqliteTrunk] Flushed {batch.Count} entries");
             }
             catch
             {
@@ -460,7 +456,7 @@ namespace AcornDB.Persistence.RDBMS
             command.CommandText = $"DROP INDEX IF EXISTS {indexName}";
             command.ExecuteNonQuery();
 
-            AcornLog.Info($"✓ Dropped SQLite index: {indexName}");
+            AcornLog.Info($"[SqliteTrunk] Dropped index: {indexName}");
         }
 
         /// <summary>

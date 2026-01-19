@@ -13,7 +13,7 @@ namespace AcornDB.Storage
     /// [DEPRECATED] Compressed wrapper for any ITrunk implementation
     /// Compresses payloads before storage, decompresses on retrieval
     ///
-    /// ⚠️ IMPORTANT: This class is DEPRECATED and will be REMOVED in v0.6.0.
+    /// IMPORTANT: This class is DEPRECATED and will be REMOVED in v0.6.0.
     ///
     /// Why this is deprecated:
     /// - Old wrapper pattern creates type system complexity (Nut<T> → Nut<CompressedNut>)
@@ -178,7 +178,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"⚠️ Failed to decompress nut '{compressedNut.Id}': {ex.Message}");
+                AcornLog.Warning($"[CompressedTrunk] Failed to decompress nut '{compressedNut.Id}': {ex.Message}");
                 return null;
             }
         }

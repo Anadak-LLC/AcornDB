@@ -21,7 +21,7 @@
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB.Persistence.DataLake</Product>
-    <Description>🌰 Data Lake persistence for AcornDB - Apache Parquet and TieredTrunk with full IRoot pipeline support. Enables compression, encryption, policy enforcement on columnar storage with hot/cold tiering capabilities.</Description>
+    <Description>Data Lake persistence for AcornDB - Apache Parquet and TieredTrunk with full IRoot pipeline support. Enables compression, encryption, policy enforcement on columnar storage with hot/cold tiering capabilities.</Description>
     <PackageTags>acorndb;datalake;parquet;analytics;columnar;s3;azure;data-lake;storage;persistence;database;tiered</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>

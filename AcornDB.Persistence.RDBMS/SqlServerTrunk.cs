@@ -238,7 +238,7 @@ namespace AcornDB.Persistence.RDBMS
             // Force flush
             await FlushBatchAsync();
 
-            AcornLog.Info($"   💾 Imported {incomingList.Count} nuts to SQL Server");
+            AcornLog.Info($"[SqlServerTrunk] Imported {incomingList.Count} entries");
         }
 
         protected override async Task WriteToStorageAsync(string id, byte[] processedBytes, DateTime timestamp, int version)
@@ -265,7 +265,7 @@ namespace AcornDB.Persistence.RDBMS
                 }
 
                 await transaction.CommitAsync();
-                AcornLog.Info($"   💾 Flushed {batch.Count} nuts to SQL Server");
+                AcornLog.Info($"[SqlServerTrunk] Flushed {batch.Count} entries");
             }
             catch
             {

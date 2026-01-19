@@ -11,7 +11,7 @@ namespace AcornDB.Git
 {
     /// <summary>
     /// Git-backed trunk where every Stash() is a commit and history is preserved via Git.
-    /// 🌰 Peak nuttiness: Your database IS your Git history!
+    /// Your database IS your Git history.
     /// Extends TrunkBase to support IRoot pipeline (compression, encryption, policy enforcement).
     /// </summary>
     /// <typeparam name="T">Payload type</typeparam>
@@ -48,9 +48,9 @@ namespace AcornDB.Git
             // Initialize or open the repo
             _git.InitOrOpenRepository(repoPath);
 
-            AcornLog.Info($"🐿️ GitHubTrunk initialized at: {_git.RepositoryPath}");
-            AcornLog.Info($"   Author: {_authorName} <{_authorEmail}>");
-            AcornLog.Info($"   Auto-push: {_autoPush}");
+            AcornLog.Info($"[GitHubTrunk] Initialized at: {_git.RepositoryPath}");
+            AcornLog.Info($"[GitHubTrunk]   Author: {_authorName} <{_authorEmail}>");
+            AcornLog.Info($"[GitHubTrunk]   Auto-push: {_autoPush}");
         }
 
         public override void Stash(string id, Nut<T> nut)
@@ -68,7 +68,7 @@ namespace AcornDB.Git
             var commitMessage = $"Stash: {id} at {nut.Timestamp:yyyy-MM-dd HH:mm:ss}";
             var commitSha = _git.CommitFile(fileName, commitMessage, _authorName, _authorEmail);
 
-            AcornLog.Info($"   ✓ Committed {id} → {commitSha[..7]}");
+            AcornLog.Info($"[GitHubTrunk] Committed {id} -> {commitSha[..7]}");
 
             // Auto-push if enabled and remote exists
             if (_autoPush && _git.HasRemote())
@@ -76,11 +76,11 @@ namespace AcornDB.Git
                 try
                 {
                     _git.Push();
-                    AcornLog.Info($"   ↑ Pushed to remote");
+                    AcornLog.Info($"[GitHubTrunk] Pushed to remote");
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Error($"   ⚠ Push failed: {ex.Message}");
+                    AcornLog.Error($"[GitHubTrunk] Push failed: {ex.Message}");
                 }
             }
         }
@@ -116,7 +116,7 @@ namespace AcornDB.Git
             var commitMessage = $"Toss: {id} at {DateTime.UtcNow:yyyy-MM-dd HH:mm:ss}";
             var commitSha = _git.DeleteFile(fileName, commitMessage, _authorName, _authorEmail);
 
-            AcornLog.Info($"   ✓ Deleted {id} → {commitSha[..7]}");
+            AcornLog.Info($"[GitHubTrunk] Deleted {id} -> {commitSha[..7]}");
 
             // Auto-push if enabled
             if (_autoPush && _git.HasRemote())
@@ -124,11 +124,11 @@ namespace AcornDB.Git
                 try
                 {
                     _git.Push();
-                    AcornLog.Info($"   ↑ Pushed deletion to remote");
+                    AcornLog.Info($"[GitHubTrunk] Pushed deletion to remote");
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Info($"   ⚠ Push failed: {ex.Message}");
+                    AcornLog.Warning($"[GitHubTrunk] Push failed: {ex.Message}");
                 }
             }
         }
@@ -156,7 +156,7 @@ namespace AcornDB.Git
                     }
                     catch (Exception ex)
                     {
-                        AcornLog.Info($"   ⚠ Failed to deserialize {file}: {ex.Message}");
+                        AcornLog.Warning($"[GitHubTrunk] Failed to deserialize {file}: {ex.Message}");
                     }
                 }
             }
@@ -190,7 +190,7 @@ namespace AcornDB.Git
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Info($"   ⚠ Failed to read {fileName} at {commit.Sha[..7]}: {ex.Message}");
+                    AcornLog.Warning($"[GitHubTrunk] Failed to read {fileName} at {commit.Sha[..7]}: {ex.Message}");
                 }
             }
 
@@ -213,7 +213,7 @@ namespace AcornDB.Git
                 Stash(nut.Id, nut);
             }
 
-            AcornLog.Info($"   ✓ Imported {changes.Count()} nuts");
+            AcornLog.Info($"[GitHubTrunk] Imported {changes.Count()} entries");
         }
 
         // ITrunkCapabilities implementation
@@ -232,7 +232,7 @@ namespace AcornDB.Git
         public void Push(string remoteName = "origin", string branch = "main")
         {
             _git.Push(remoteName, branch);
-            AcornLog.Info($"   ↑ Pushed to {remoteName}/{branch}");
+            AcornLog.Info($"[GitHubTrunk] Pushed to {remoteName}/{branch}");
         }
 
         /// <summary>
@@ -241,7 +241,7 @@ namespace AcornDB.Git
         public void Pull(string remoteName = "origin", string branch = "main")
         {
             _git.Pull(remoteName, branch);
-            AcornLog.Info($"   ↓ Pulled from {remoteName}/{branch}");
+            AcornLog.Info($"[GitHubTrunk] Pulled from {remoteName}/{branch}");
         }
 
         /// <summary>

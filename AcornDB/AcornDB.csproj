@@ -11,7 +11,7 @@
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB</Product>
-    <Description>🌰 AcornDB - A distributed, embeddable, reactive object database for .NET. Local-first persistence with mesh sync, LRU cache eviction, TTL enforcement, pluggable storage backends, and zero configuration. Perfect for desktop apps, IoT devices, and edge workloads.</Description>
+    <Description>AcornDB - A distributed, embeddable, reactive object database for .NET. Local-first persistence with mesh sync, LRU cache eviction, TTL enforcement, pluggable storage backends, and zero configuration. Perfect for desktop apps, IoT devices, and edge workloads.</Description>
     <PackageTags>database;embedded;nosql;document-db;local-first;offline-sync;reactive;iot;edge;storage;versioning;mesh;distributed;cache;lru;git;resilience</PackageTags>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <RepositoryUrl>https://github.com/Anadak-LLC/AcornDB</RepositoryUrl>

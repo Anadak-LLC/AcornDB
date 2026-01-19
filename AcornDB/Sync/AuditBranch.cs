@@ -108,7 +108,7 @@ namespace AcornDB.Sync
                 Details = $"{action} on key '{leaf.Key}' from tree {leaf.OriginTreeId} (hop {leaf.HopCount})"
             });
 
-            AcornLog.Info($"> 📝 AUDIT [{BranchId}]: {action} - {leaf.Key} from {leaf.OriginTreeId}");
+            AcornLog.Info($"[AuditBranch] [{BranchId}]: {action} - {leaf.Key} from {leaf.OriginTreeId}");
         }
 
         private void ThrowIfDisposed()
@@ -127,7 +127,7 @@ namespace AcornDB.Sync
                 return;
 
             _isDisposed = true;
-            AcornLog.Info($"> 📝 AuditBranch {BranchId} disposed ({_auditLog.Count} entries logged)");
+            AcornLog.Info($"[AuditBranch] {BranchId} disposed ({_auditLog.Count} entries logged)");
             _auditLog.Clear();
             GC.SuppressFinalize(this);
         }

@@ -55,7 +55,7 @@ namespace AcornDB.Metrics
         {
             if (_listener != null)
             {
-                AcornLog.Info($"⚠️ Metrics server already running on port {_port}");
+                AcornLog.Warning($"[MetricsServer] Already running on port {_port}");
                 return;
             }
 
@@ -68,14 +68,14 @@ namespace AcornDB.Metrics
                 _cancellationTokenSource = new CancellationTokenSource();
                 _listenerTask = Task.Run(() => ListenAsync(_cancellationTokenSource.Token));
 
-                AcornLog.Info($"📊 Metrics server started on http://localhost:{_port}{_path}");
-                AcornLog.Info($"   Prometheus: http://localhost:{_port}{_path}");
-                AcornLog.Info($"   JSON:       http://localhost:{_port}{_path}?format=json");
-                AcornLog.Info($"   Health:     http://localhost:{_port}/health");
+                AcornLog.Info($"[MetricsServer] Started on http://localhost:{_port}{_path}");
+                AcornLog.Info($"[MetricsServer]   Prometheus: http://localhost:{_port}{_path}");
+                AcornLog.Info($"[MetricsServer]   JSON:       http://localhost:{_port}{_path}?format=json");
+                AcornLog.Info($"[MetricsServer]   Health:     http://localhost:{_port}/health");
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"❌ Failed to start metrics server: {ex.Message}");
+                AcornLog.Error($"[MetricsServer] Failed to start: {ex.Message}");
                 _listener?.Stop();
                 _listener = null;
             }
@@ -88,7 +88,7 @@ namespace AcornDB.Metrics
         {
             if (_listener == null) return;
 
-            AcornLog.Info($"🛑 Stopping metrics server on port {_port}");
+            AcornLog.Info($"[MetricsServer] Stopping on port {_port}");
 
             _cancellationTokenSource?.Cancel();
             _listener.Stop();
@@ -116,7 +116,7 @@ namespace AcornDB.Metrics
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Info($"⚠️ Error in metrics server: {ex.Message}");
+                    AcornLog.Warning($"[MetricsServer] Error: {ex.Message}");
                 }
             }
         }
@@ -179,7 +179,7 @@ namespace AcornDB.Metrics
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"⚠️ Error handling request: {ex.Message}");
+                AcornLog.Warning($"[MetricsServer] Error handling request: {ex.Message}");
             }
         }
 

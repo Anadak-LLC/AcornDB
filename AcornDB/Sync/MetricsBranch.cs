@@ -221,7 +221,7 @@ namespace AcornDB.Sync
             _isDisposed = true;
 
             var summary = GetSummary();
-            AcornLog.Info($"> 📊 MetricsBranch {BranchId} disposed - {summary.TotalOperations} operations tracked");
+            AcornLog.Info($"[MetricsBranch] {BranchId} disposed - {summary.TotalOperations} operations tracked");
 
             GC.SuppressFinalize(this);
         }

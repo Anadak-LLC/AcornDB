@@ -11,7 +11,7 @@ namespace AcornDB.Cli
     {
         static void Main(string[] args)
         {
-            Console.WriteLine("🌰 AcornDB CLI v0.5.0-alpha");
+            Console.WriteLine("AcornDB CLI v0.5.0-alpha");
             Console.WriteLine();
 
             if (args.Length == 0)
@@ -53,7 +53,7 @@ namespace AcornDB.Cli
                         ShowHelp();
                         break;
                     default:
-                        Console.WriteLine($"❌ Unknown command: {command}");
+                        Console.WriteLine($"Error: Unknown command: {command}");
                         Console.WriteLine("Run 'acorn help' for usage information");
                         Environment.Exit(1);
                         break;
@@ -61,7 +61,7 @@ namespace AcornDB.Cli
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"❌ Error: {ex.Message}");
+                Console.WriteLine($"Error: {ex.Message}");
                 Environment.Exit(1);
             }
         }
@@ -93,7 +93,7 @@ namespace AcornDB.Cli
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("❌ Usage: acorn new <path>");
+                Console.WriteLine("Usage: acorn new <path>");
                 Environment.Exit(1);
             }
 
@@ -101,20 +101,20 @@ namespace AcornDB.Cli
 
             if (Directory.Exists(path))
             {
-                Console.WriteLine($"❌ Directory already exists: {path}");
+                Console.WriteLine($"Error: Directory already exists: {path}");
                 Environment.Exit(1);
             }
 
             Directory.CreateDirectory(path);
-            Console.WriteLine($"✅ Created new grove at: {path}");
-            Console.WriteLine($"📁 Grove ready for use!");
+            Console.WriteLine($"Created new grove at: {path}");
+            Console.WriteLine($"Grove ready for use.");
         }
 
         static void InspectCommand(string[] args)
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("❌ Usage: acorn inspect <path>");
+                Console.WriteLine("Usage: acorn inspect <path>");
                 Environment.Exit(1);
             }
 
@@ -122,7 +122,7 @@ namespace AcornDB.Cli
 
             if (!Directory.Exists(path))
             {
-                Console.WriteLine($"❌ Grove not found: {path}");
+                Console.WriteLine($"Error: Grove not found: {path}");
                 Environment.Exit(1);
             }
 
@@ -131,10 +131,10 @@ namespace AcornDB.Cli
             // Try to load any trees from the path
             var treeFiles = Directory.GetFiles(path, "*.acorn", SearchOption.AllDirectories);
 
-            Console.WriteLine($"📊 Grove Inspection: {path}");
-            Console.WriteLine($"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-            Console.WriteLine($"📁 Path: {Path.GetFullPath(path)}");
-            Console.WriteLine($"🌳 Tree files found: {treeFiles.Length}");
+            Console.WriteLine($"Grove Inspection: {path}");
+            Console.WriteLine($"------------------------------------");
+            Console.WriteLine($"Path: {Path.GetFullPath(path)}");
+            Console.WriteLine($"Tree files found: {treeFiles.Length}");
 
             if (treeFiles.Length > 0)
             {
@@ -160,7 +160,7 @@ namespace AcornDB.Cli
             // Show available trunk types and their capabilities
             Console.WriteLine();
             Console.WriteLine("Available Trunk Types:");
-            Console.WriteLine("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+            Console.WriteLine("------------------------------------");
             ShowTrunkCapabilities("FileTrunk", history: false, sync: true, durable: true, async: false,
                 "Simple file-based storage");
             ShowTrunkCapabilities("BTreeTrunk", history: false, sync: true, durable: true, async: false,
@@ -179,17 +179,17 @@ namespace AcornDB.Cli
         {
             Console.WriteLine($"\n  {name}");
             Console.WriteLine($"    {description}");
-            Console.WriteLine($"    History: {(history ? "✓" : "✗")}  " +
-                              $"Sync: {(sync ? "✓" : "✗")}  " +
-                              $"Durable: {(durable ? "✓" : "✗")}  " +
-                              $"Async: {(async ? "✓" : "✗")}");
+            Console.WriteLine($"    History: {(history ? "Yes" : "No")}  " +
+                              $"Sync: {(sync ? "Yes" : "No")}  " +
+                              $"Durable: {(durable ? "Yes" : "No")}  " +
+                              $"Async: {(async ? "Yes" : "No")}");
         }
 
         static void SyncCommand(string[] args)
         {
             if (args.Length < 2)
             {
-                Console.WriteLine("❌ Usage: acorn sync <path> <url>");
+                Console.WriteLine("Usage: acorn sync <path> <url>");
                 Environment.Exit(1);
             }
 
@@ -198,24 +198,24 @@ namespace AcornDB.Cli
 
             if (!Directory.Exists(path))
             {
-                Console.WriteLine($"❌ Grove not found: {path}");
+                Console.WriteLine($"Error: Grove not found: {path}");
                 Environment.Exit(1);
             }
 
-            Console.WriteLine($"🔄 Syncing grove at {path} with {url}...");
+            Console.WriteLine($"Syncing grove at {path} with {url}...");
 
             var grove = new Grove();
             grove.EntangleAll(url);
             grove.ShakeAll();
 
-            Console.WriteLine($"✅ Sync complete!");
+            Console.WriteLine($"Sync complete.");
         }
 
         static void ExportCommand(string[] args)
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("❌ Usage: acorn export <path> [output-file]");
+                Console.WriteLine("Usage: acorn export <path> [output-file]");
                 Environment.Exit(1);
             }
 
@@ -224,23 +224,23 @@ namespace AcornDB.Cli
 
             if (!Directory.Exists(path))
             {
-                Console.WriteLine($"❌ Grove not found: {path}");
+                Console.WriteLine($"Error: Grove not found: {path}");
                 Environment.Exit(1);
             }
 
-            Console.WriteLine($"📤 Exporting grove from {path}...");
+            Console.WriteLine($"Exporting grove from {path}...");
 
             // Export logic would go here
             // For now, just create a placeholder
 
-            Console.WriteLine($"✅ Exported to: {outputFile}");
+            Console.WriteLine($"Exported to: {outputFile}");
         }
 
         static void DiscoverCommand(string[] args)
         {
             var port = args.Length > 0 && int.TryParse(args[0], out var p) ? p : 5000;
 
-            Console.WriteLine($"🌳 Starting Canopy network discovery on port {port}...");
+            Console.WriteLine($"Starting Canopy network discovery on port {port}...");
             Console.WriteLine($"Press Ctrl+C to stop");
             Console.WriteLine();
 
@@ -260,13 +260,13 @@ namespace AcornDB.Cli
                     if (nodes.Any())
                     {
                         Console.Clear();
-                        Console.WriteLine($"🌳 Canopy Discovery - Found {nodes.Count} nodes");
-                        Console.WriteLine($"━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
+                        Console.WriteLine($"Canopy Discovery - Found {nodes.Count} nodes");
+                        Console.WriteLine($"------------------------------------");
 
                         foreach (var node in nodes)
                         {
                             var age = (DateTime.UtcNow - node.LastSeen).TotalSeconds;
-                            var status = age < 10 ? "🟢 Active" : "🟡 Stale";
+                            var status = age < 10 ? "[Active]" : "[Stale]";
                             Console.WriteLine($"{status} {node.RemoteUrl}");
                             Console.WriteLine($"  Trees: {node.TreeCount} | Types: {string.Join(", ", node.TreeTypes.Take(3))}");
                             Console.WriteLine($"  Last seen: {age:F0}s ago");
@@ -294,7 +294,7 @@ namespace AcornDB.Cli
         {
             if (args.Length == 0)
             {
-                Console.WriteLine("❌ Usage: acorn mesh <path>");
+                Console.WriteLine("Usage: acorn mesh <path>");
                 Environment.Exit(1);
             }
 
@@ -302,11 +302,11 @@ namespace AcornDB.Cli
 
             if (!Directory.Exists(path))
             {
-                Console.WriteLine($"❌ Grove not found: {path}");
+                Console.WriteLine($"Error: Grove not found: {path}");
                 Environment.Exit(1);
             }
 
-            Console.WriteLine($"🕸️  Creating mesh network from grove at {path}...");
+            Console.WriteLine($"Creating mesh network from grove at {path}...");
             Console.WriteLine($"This will discover and connect to all nearby AcornDB nodes.");
             Console.WriteLine();
 
@@ -315,7 +315,7 @@ namespace AcornDB.Cli
 
             canopy.StartDiscovery(autoConnect: true); // Auto-connect enabled
 
-            Console.WriteLine($"✅ Mesh discovery started!");
+            Console.WriteLine($"Mesh discovery started.");
             Console.WriteLine($"Press Ctrl+C to stop");
 
             Console.CancelKeyPress += (s, e) =>
@@ -332,7 +332,7 @@ namespace AcornDB.Cli
         {
             if (args.Length < 2)
             {
-                Console.WriteLine("❌ Usage: acorn migrate <from> <to>");
+                Console.WriteLine("Usage: acorn migrate <from> <to>");
                 Console.WriteLine();
                 Console.WriteLine("Trunk specifications:");
                 Console.WriteLine("  file:<path>           FileTrunk - simple file-based storage");
@@ -351,7 +351,7 @@ namespace AcornDB.Cli
             var fromSpec = args[0];
             var toSpec = args[1];
 
-            Console.WriteLine($"🔄 Migrating data from {fromSpec} to {toSpec}...");
+            Console.WriteLine($"Migrating data from {fromSpec} to {toSpec}...");
             Console.WriteLine();
 
             // Parse trunk specifications
@@ -362,13 +362,13 @@ namespace AcornDB.Cli
             // Note: We'll use a generic approach with dynamic type
             // For a real implementation, you'd need to specify the type parameter <T>
 
-            Console.WriteLine($"📤 Source trunk: {fromType} at {fromPath ?? "memory"}");
-            Console.WriteLine($"📥 Destination trunk: {toType} at {toPath ?? "memory"}");
+            Console.WriteLine($"Source trunk: {fromType} at {fromPath ?? "memory"}");
+            Console.WriteLine($"Destination trunk: {toType} at {toPath ?? "memory"}");
             Console.WriteLine();
 
             // For demo purposes, show what would be migrated
             // In a real implementation, you'd need to handle the generic type <T>
-            Console.WriteLine("⚠️  Migration requires type specification. Use the following pattern:");
+            Console.WriteLine("Note: Migration requires type specification. Use the following pattern:");
             Console.WriteLine();
             Console.WriteLine("    var sourceTrunk = new FileTrunk<MyType>(\"" + fromPath + "\");");
             Console.WriteLine("    var destTrunk = new BTreeTrunk<MyType>(\"" + toPath + "\");");
@@ -378,9 +378,9 @@ namespace AcornDB.Cli
             Console.WriteLine("        destTrunk.Save(nut.Id, nut);");
             Console.WriteLine("    }");
             Console.WriteLine();
-            Console.WriteLine("💡 Tip: Use Tree.Entangle() for type-safe migration in code.");
+            Console.WriteLine("Tip: Use Tree.Entangle() for type-safe migration in code.");
             Console.WriteLine();
-            Console.WriteLine("✅ Migration complete!");
+            Console.WriteLine("Migration complete.");
         }
 
         static (string type, string? path) ParseTrunkSpec(string spec)
@@ -393,7 +393,7 @@ namespace AcornDB.Cli
             var parts = spec.Split(':', 2);
             if (parts.Length != 2)
             {
-                Console.WriteLine($"❌ Invalid trunk specification: {spec}");
+                Console.WriteLine($"Error: Invalid trunk specification: {spec}");
                 Console.WriteLine("   Expected format: <type>:<path> or 'memory'");
                 Environment.Exit(1);
             }
@@ -404,7 +404,7 @@ namespace AcornDB.Cli
             var validTypes = new[] { "file", "btree", "git", "documentstore", "memory" };
             if (!validTypes.Contains(type))
             {
-                Console.WriteLine($"❌ Unknown trunk type: {type}");
+                Console.WriteLine($"Error: Unknown trunk type: {type}");
                 Console.WriteLine($"   Valid types: {string.Join(", ", validTypes)}");
                 Environment.Exit(1);
             }

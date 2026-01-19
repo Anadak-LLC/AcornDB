@@ -81,13 +81,7 @@ namespace AcornDB.Persistence.Cloud
             }
 
             var info = _cloudStorage.GetInfo();
-            AcornLog.Info($"☁️ CloudTrunk initialized:");
-            AcornLog.Info($"   Provider: {info.ProviderName}");
-            AcornLog.Info($"   Bucket: {info.BucketName}");
-            AcornLog.Info($"   Prefix: {_prefix}");
-            AcornLog.Info($"   Compression: {(_enableCompression ? "Enabled" : "Disabled")}");
-            AcornLog.Info($"   Local Cache: {(_enableLocalCache ? "Enabled" : "Disabled")}");
-            AcornLog.Info($"   Batch Size: {_batchSize}");
+            AcornLog.Info($"[CloudTrunk] Initialized: Provider={info.ProviderName}, Bucket={info.BucketName}, Prefix={_prefix}, Compression={(_enableCompression ? "Enabled" : "Disabled")}, LocalCache={(_enableLocalCache ? "Enabled" : "Disabled")}, BatchSize={_batchSize}");
         }
 
         // Synchronous methods - use sparingly, prefer async versions
@@ -166,7 +160,7 @@ namespace AcornDB.Persistence.Cloud
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"⚠️ Failed to deserialize nut '{id}': {ex.Message}");
+                AcornLog.Warning($"[CloudTrunk] Failed to deserialize entry '{id}': {ex.Message}");
                 return null;
             }
 
@@ -198,7 +192,7 @@ namespace AcornDB.Persistence.Cloud
 
             var key = GetKey(id);
             await _cloudStorage.DeleteAsync(key);
-            AcornLog.Info($"   ☁️ Deleted {id} from cloud");
+            AcornLog.Info($"[CloudTrunk] Deleted entry '{id}'");
         }
 
         [Obsolete("Use TossAsync() instead. This method will be removed in a future version.")]
@@ -253,7 +247,7 @@ namespace AcornDB.Persistence.Cloud
                     }
                     catch (Exception ex)
                     {
-                        AcornLog.Info($"   ⚠ Failed to load {key}: {ex.Message}");
+                        AcornLog.Warning($"[CloudTrunk] Failed to load '{key}': {ex.Message}");
                     }
                 });
 
@@ -308,7 +302,7 @@ namespace AcornDB.Persistence.Cloud
             // Force flush
             await FlushBatchAsync();
 
-            AcornLog.Info($"   ☁️ Imported {changesList.Count} nuts to cloud");
+            AcornLog.Info($"[CloudTrunk] Imported {changesList.Count} entries");
         }
 
         public ITrunkCapabilities GetCapabilities()
@@ -377,12 +371,12 @@ namespace AcornDB.Persistence.Cloud
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Info($"   ⚠ Failed to upload {write.Id}: {ex.Message}");
+                    AcornLog.Warning($"[CloudTrunk] Failed to upload '{write.Id}': {ex.Message}");
                 }
             });
 
             await Task.WhenAll(uploadTasks);
-            AcornLog.Info($"   ☁️ Flushed {batch.Count} nuts to cloud");
+            AcornLog.Info($"[CloudTrunk] Flushed {batch.Count} entries");
         }
 
         /// <summary>

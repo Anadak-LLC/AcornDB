@@ -14,17 +14,17 @@ namespace AcornDB.Logging
 
         public void Warning(string message)
         {
-            Console.WriteLine($"⚠️  {message}");
+            Console.WriteLine($"[WARN] {message}");
         }
 
         public void Error(string message)
         {
-            Console.Error.WriteLine($"❌ {message}");
+            Console.Error.WriteLine($"[ERROR] {message}");
         }
 
         public void Error(string message, Exception ex)
         {
-            Console.Error.WriteLine($"❌ {message}: {ex.Message}");
+            Console.Error.WriteLine($"[ERROR] {message}: {ex.Message}");
         }
     }
 }

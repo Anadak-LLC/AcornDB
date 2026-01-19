@@ -202,7 +202,7 @@ namespace AcornDB.Storage
             lock (_lock)
             {
                 EnsureInitialized();
-                var catalog = "🌳 Nursery Catalog - Available Trunk Types:\n";
+                var catalog = "Nursery Catalog - Available Trunk Types:\n";
 
                 foreach (var metadata in GetAllMetadata().OrderBy(m => m.Category).ThenBy(m => m.TypeId))
                 {
