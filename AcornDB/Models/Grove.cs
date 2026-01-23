@@ -20,7 +20,7 @@ namespace AcornDB.Models
         {
             var id = $"{typeof(T).FullName}#{_nextTreeId++}";
             _trees[id] = tree;
-            AcornLog.Info($"> 🌳 Grove planted Tree<{typeof(T).Name}> with ID '{id}'");
+            AcornLog.Info($"[Grove] Registered Tree<{typeof(T).Name}> with ID '{id}'");
             return id;
         }
 
@@ -30,7 +30,7 @@ namespace AcornDB.Models
         public void Plant<T>(Tree<T> tree, string id) where T : class
         {
             _trees[id] = tree;
-            AcornLog.Info($"> 🌳 Grove planted Tree<{typeof(T).Name}> with ID '{id}'");
+            AcornLog.Info($"[Grove] Registered Tree<{typeof(T).Name}> with ID '{id}'");
         }
 
         /// <summary>
@@ -72,11 +72,11 @@ namespace AcornDB.Models
         {
             var tree = GetTree<T>();
             if (tree == null)
-                throw new InvalidOperationException($"🌰 Tree<{typeof(T).Name}> not found in Grove.");
+                throw new InvalidOperationException($"Tree<{typeof(T).Name}> not found in Grove.");
 
             var tangle = new Tangle<T>(tree, branch, tangleId);
             _tangles.Add(tangle);
-            AcornLog.Info($"> 🪢 Grove entangled Tree<{typeof(T).Name}> with branch '{branch.RemoteUrl}'");
+            AcornLog.Info($"[Grove] Connected Tree<{typeof(T).Name}> to branch '{branch.RemoteUrl}'");
             return tangle;
         }
 
@@ -84,18 +84,18 @@ namespace AcornDB.Models
         {
             var tree = GetTree<T>(treeId);
             if (tree == null)
-                throw new InvalidOperationException($"🌰 Tree<{typeof(T).Name}> with ID '{treeId}' not found in Grove.");
+                throw new InvalidOperationException($"Tree<{typeof(T).Name}> with ID '{treeId}' not found in Grove.");
 
             var tangle = new Tangle<T>(tree, branch, tangleId);
             _tangles.Add(tangle);
-            AcornLog.Info($"> 🪢 Grove entangled Tree<{typeof(T).Name}>[{treeId}] with branch '{branch.RemoteUrl}'");
+            AcornLog.Info($"[Grove] Connected Tree<{typeof(T).Name}>[{treeId}] to branch '{branch.RemoteUrl}'");
             return tangle;
         }
 
         public void Oversee<T>(Branch branch, string id) where T : class
         {
             Entangle<T>(branch, id);
-            AcornLog.Info($">Grove is overseeing Tangle '{id}' for Tree<{typeof(T).Name}>");
+            AcornLog.Info($"[Grove] Overseeing Tangle '{id}' for Tree<{typeof(T).Name}>");
         }
 
         /// <summary>
@@ -105,7 +105,7 @@ namespace AcornDB.Models
         {
             if (_tangles.Remove(tangle))
             {
-                AcornLog.Info($"> 🔓 Grove detangled tangle");
+                AcornLog.Info($"[Grove] Disconnected tangle");
                 tangle?.Dispose();
             }
         }
@@ -115,19 +115,19 @@ namespace AcornDB.Models
         /// </summary>
         public void DetangleAll()
         {
-            AcornLog.Info("> 🔓 Grove detangling all tangles...");
+            AcornLog.Info("[Grove] Disconnecting all tangles...");
             foreach (var tangle in _tangles.ToList())
             {
                 if (tangle is IDisposable disposable)
                     disposable.Dispose();
             }
             _tangles.Clear();
-            AcornLog.Info("> 🔓 All grove entanglements cleared!");
+            AcornLog.Info("[Grove] All connections cleared");
         }
 
         public void ShakeAll()
         {
-            AcornLog.Info("> 🍃 Grove is shaking all tangles...");
+            AcornLog.Info("[Grove] Syncing all tangles...");
             foreach (var tangle in _tangles)
             {
                 if (tangle is IDisposable disposable)
@@ -141,7 +141,7 @@ namespace AcornDB.Models
         /// </summary>
         public void EntangleAll(string remoteUrl)
         {
-            AcornLog.Info($"> 🌐 Grove entangling all trees with {remoteUrl}");
+            AcornLog.Info($"[Grove] Connecting all trees to {remoteUrl}");
 
             var branch = new Branch(remoteUrl);
 
@@ -164,11 +164,11 @@ namespace AcornDB.Models
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Error($"> ⚠️ Failed to entangle Tree<{genericArg.Name}>: {ex.Message}");
+                    AcornLog.Error($"[Grove] Failed to connect Tree<{genericArg.Name}>: {ex.Message}");
                 }
             }
 
-            AcornLog.Info($"> ✅ Grove entangled {_trees.Count} trees with {remoteUrl}");
+            AcornLog.Info($"[Grove] Connected {_trees.Count} trees to {remoteUrl}");
         }
 
         /// <summary>
@@ -179,7 +179,7 @@ namespace AcornDB.Models
         /// <returns>Number of tangles created</returns>
         public int EntangleAll(bool bidirectional = true)
         {
-            AcornLog.Info($"> 🕸️ Grove creating {(bidirectional ? "bidirectional" : "unidirectional")} mesh entanglement...");
+            AcornLog.Info($"[Grove] Creating {(bidirectional ? "bidirectional" : "unidirectional")} mesh connection...");
 
             var trees = _trees.ToList();
             var tangleCount = 0;
@@ -220,18 +220,18 @@ namespace AcornDB.Models
                             {
                                 _tangles.Add(tangle);
                                 tangleCount++;
-                                AcornLog.Info($">   🪢 {genericArg1.Name} [{tree1.Key}] ↔ [{tree2.Key}]");
+                                AcornLog.Info($"[Grove]   {genericArg1.Name} [{tree1.Key}] <-> [{tree2.Key}]");
                             }
                         }
                         catch (Exception ex)
                         {
-                            AcornLog.Error($">   ⚠️ Failed to entangle {tree1.Key} ↔ {tree2.Key}: {ex.Message}");
+                            AcornLog.Error($"[Grove] Failed to connect {tree1.Key} <-> {tree2.Key}: {ex.Message}");
                         }
                     }
                 }
             }
 
-            AcornLog.Info($"> ✅ Grove mesh complete: {tangleCount} tangles created for {trees.Count} trees");
+            AcornLog.Info($"[Grove] Mesh complete: {tangleCount} tangles created for {trees.Count} trees");
             return tangleCount;
         }
 

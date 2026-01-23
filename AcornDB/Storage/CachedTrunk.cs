@@ -41,10 +41,10 @@ namespace AcornDB.Storage
             _options = options ?? CacheOptions.Default;
 
             var backingCaps = _backingStore.Capabilities;
-            AcornLog.Info($"💾 CachedTrunk initialized:");
-            AcornLog.Info($"   Backing Store: {backingCaps.TrunkType}");
-            AcornLog.Info($"   Cache TTL: {(_options.TimeToLive?.TotalSeconds.ToString("F0") + "s" ?? "Infinite")}");
-            AcornLog.Info($"   Max Cache Size: {(_options.MaxCacheSize?.ToString() ?? "Unlimited")}");
+            AcornLog.Info($"[CachedTrunk] Initialized:");
+            AcornLog.Info($"[CachedTrunk]   Backing Store: {backingCaps.TrunkType}");
+            AcornLog.Info($"[CachedTrunk]   Cache TTL: {(_options.TimeToLive?.TotalSeconds.ToString("F0") + "s" ?? "Infinite")}");
+            AcornLog.Info($"[CachedTrunk]   Max Cache Size: {(_options.MaxCacheSize?.ToString() ?? "Unlimited")}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

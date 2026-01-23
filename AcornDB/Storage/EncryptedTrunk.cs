@@ -13,7 +13,7 @@ namespace AcornDB.Storage
     /// [DEPRECATED] Encrypted wrapper for any ITrunk implementation
     /// Encrypts payloads before storage, decrypts on retrieval
     ///
-    /// ⚠️ IMPORTANT: This class is DEPRECATED and will be REMOVED in v0.6.0.
+    /// IMPORTANT: This class is DEPRECATED and will be REMOVED in v0.6.0.
     ///
     /// Why this is deprecated:
     /// - Old wrapper pattern creates type system complexity (Nut<T> → Nut<EncryptedNut>)
@@ -176,7 +176,7 @@ namespace AcornDB.Storage
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"⚠️ Failed to decrypt nut '{encryptedNut.Id}': {ex.Message}");
+                AcornLog.Warning($"[EncryptedTrunk] Failed to decrypt nut '{encryptedNut.Id}': {ex.Message}");
                 return null;
             }
         }

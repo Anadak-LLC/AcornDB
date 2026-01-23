@@ -73,7 +73,7 @@ public static class MetricsMonitoringApp
         MetricsCollector.Instance.RegisterTree("SensorTree", typeof(SensorReading).Name);
         MetricsCollector.Instance.RegisterTree("EventTree", typeof(SystemEvent).Name);
 
-        AnsiConsole.MarkupLine("[dim]✓ Initialized metrics tracking for 2 trees[/]");
+        AnsiConsole.MarkupLine("[dim][OK] Initialized metrics tracking for 2 trees[/]");
         AnsiConsole.WriteLine();
 
         while (true)
@@ -171,7 +171,7 @@ public static class MetricsMonitoringApp
                 }
             });
 
-        AnsiConsole.MarkupLine("[green]✓ Simulation complete - 20 sensor readings recorded[/]");
+        AnsiConsole.MarkupLine("[green][OK] Simulation complete - 20 sensor readings recorded[/]");
         AnsiConsole.MarkupLine("[dim]  Metrics have been updated with operation timings[/]");
 
         AnsiConsole.WriteLine();
@@ -227,7 +227,7 @@ public static class MetricsMonitoringApp
                 }
             });
 
-        AnsiConsole.MarkupLine("[green]✓ Simulation complete - 15 system events recorded[/]");
+        AnsiConsole.MarkupLine("[green][OK] Simulation complete - 15 system events recorded[/]");
         AnsiConsole.MarkupLine("[dim]  Metrics have been updated with operation timings[/]");
 
         AnsiConsole.WriteLine();
@@ -575,7 +575,7 @@ public static class MetricsMonitoringApp
         AnsiConsole.Write(resultsTable);
 
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine("[green]✓ Load test complete - check metrics for performance data[/]");
+        AnsiConsole.MarkupLine("[green][OK] Load test complete - check metrics for performance data[/]");
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");

@@ -15,7 +15,7 @@ public static class ProductionFeaturesDemo
 {
     public static async Task RunAllDemos()
     {
-        Console.WriteLine("🚀 AcornDB Production Features Demo (v0.4-v0.6)");
+        Console.WriteLine("AcornDB Production Features Demo (v0.4-v0.6)");
         Console.WriteLine("================================================\n");
 
         // Start metrics server first
@@ -36,14 +36,14 @@ public static class ProductionFeaturesDemo
             metricsServer?.Dispose();
         }
 
-        Console.WriteLine("\n✅ All production features demos complete!");
+        Console.WriteLine("\nAll production features demos complete.");
     }
 
     private static MetricsServer? StartMetricsServer()
     {
         try
         {
-            Console.WriteLine("📊 Starting Metrics Server");
+            Console.WriteLine("Starting Metrics Server");
             Console.WriteLine("---------------------------");
             var server = new MetricsServer(port: 9090);
             server.Start();
@@ -52,7 +52,7 @@ public static class ProductionFeaturesDemo
         }
         catch (Exception ex)
         {
-            Console.WriteLine($"⚠️ Could not start metrics server: {ex.Message}");
+            Console.WriteLine($"Warning: Could not start metrics server: {ex.Message}");
             Console.WriteLine("   (This is OK - metrics will still be collected)\n");
             return null;
         }
@@ -60,7 +60,7 @@ public static class ProductionFeaturesDemo
 
     private static async Task Demo1_BranchBatching()
     {
-        Console.WriteLine("📦 Demo 1: Branch Batching (Optimized Network Sync)");
+        Console.WriteLine("Demo 1: Branch Batching (Optimized Network Sync)");
         Console.WriteLine("---------------------------------------------------");
         Console.WriteLine("Batching groups multiple push/delete operations to reduce network overhead.\n");
 
@@ -69,9 +69,9 @@ public static class ProductionFeaturesDemo
             .WithBatching(batchSize: 5, batchTimeoutMs: 100)
             .WithSyncMode(SyncMode.PushOnly);
 
-        Console.WriteLine("  ✓ Branch configured with batching (batch size: 5, timeout: 100ms)");
-        Console.WriteLine("  ℹ️ Operations are queued and sent in batches automatically");
-        Console.WriteLine("  ℹ️ Reduces network calls from N requests to N/batchSize requests\n");
+        Console.WriteLine("  Branch configured with batching (batch size: 5, timeout: 100ms)");
+        Console.WriteLine("  Operations are queued and sent in batches automatically");
+        Console.WriteLine("  Reduces network calls from N requests to N/batchSize requests\n");
 
         // Simulate multiple operations
         var tree = new Tree<DemoUser>(new MemoryTrunk<DemoUser>());
@@ -82,15 +82,15 @@ public static class ProductionFeaturesDemo
             tree.Stash($"user{i}", new DemoUser($"User {i}", $"user{i}@example.com"));
         }
 
-        Console.WriteLine($"  ✓ Queued 12 stash operations");
-        Console.WriteLine($"  ✓ Will be sent as 3 batches (5 + 5 + 2) instead of 12 individual requests");
+        Console.WriteLine($"  Queued 12 stash operations");
+        Console.WriteLine($"  Will be sent as 3 batches (5 + 5 + 2) instead of 12 individual requests");
 
         // Flush remaining operations
         branch.FlushBatch();
-        Console.WriteLine($"  ✓ Flushed remaining batched operations\n");
+        Console.WriteLine($"  Flushed remaining batched operations\n");
 
         var stats = branch.GetStats();
-        Console.WriteLine($"  📊 Branch Stats:");
+        Console.WriteLine($"  Branch Stats:");
         Console.WriteLine($"     - Total operations: {stats.TotalOperations}");
         Console.WriteLine($"     - Batching: Enabled\n");
 
@@ -99,7 +99,7 @@ public static class ProductionFeaturesDemo
 
     private static async Task Demo2_ResilientTrunkRetry()
     {
-        Console.WriteLine("🔄 Demo 2: ResilientTrunk with Retry Logic");
+        Console.WriteLine("Demo 2: ResilientTrunk with Retry Logic");
         Console.WriteLine("------------------------------------------");
         Console.WriteLine("Automatic retry with exponential backoff for transient failures.\n");
 
@@ -115,23 +115,23 @@ public static class ProductionFeaturesDemo
 
         var tree = new Tree<DemoUser>(resilientTrunk);
 
-        Console.WriteLine("  ℹ️ Simulating 30% failure rate with automatic retry...\n");
+        Console.WriteLine("  Simulating 30% failure rate with automatic retry...\n");
 
         for (int i = 0; i < 5; i++)
         {
             try
             {
                 tree.Stash($"user{i}", new DemoUser($"Resilient User {i}", $"user{i}@example.com"));
-                Console.WriteLine($"  ✓ Successfully saved user{i}");
+                Console.WriteLine($"  Successfully saved user{i}");
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"  ❌ Failed to save user{i}: {ex.Message}");
+                Console.WriteLine($"  Failed to save user{i}: {ex.Message}");
             }
         }
 
         var stats = resilientTrunk.GetStats();
-        Console.WriteLine($"\n  📊 Resilience Stats:");
+        Console.WriteLine($"\n  Resilience Stats:");
         Console.WriteLine($"     - Total retries: {stats.TotalRetries}");
         Console.WriteLine($"     - Circuit state: {stats.CircuitState}");
         Console.WriteLine($"     - Healthy: {stats.IsHealthy}\n");
@@ -141,7 +141,7 @@ public static class ProductionFeaturesDemo
 
     private static async Task Demo3_ResilientTrunkFallback()
     {
-        Console.WriteLine("🔀 Demo 3: ResilientTrunk with Fallback");
+        Console.WriteLine("Demo 3: ResilientTrunk with Fallback");
         Console.WriteLine("---------------------------------------");
         Console.WriteLine("Graceful degradation: falls back to secondary trunk if primary fails.\n");
 
@@ -156,29 +156,29 @@ public static class ProductionFeaturesDemo
 
         var tree = new Tree<DemoUser>(resilientTrunk);
 
-        Console.WriteLine("  ℹ️ Primary trunk configured to always fail...");
-        Console.WriteLine("  ℹ️ Fallback to in-memory trunk enabled\n");
+        Console.WriteLine("  Primary trunk configured to always fail...");
+        Console.WriteLine("  Fallback to in-memory trunk enabled\n");
 
         tree.Stash("alice", new DemoUser("Alice", "alice@example.com"));
         tree.Stash("bob", new DemoUser("Bob", "bob@example.com"));
 
-        Console.WriteLine($"  ✓ Data saved via fallback trunk");
-        Console.WriteLine($"  ✓ Application continues to function despite primary failure");
+        Console.WriteLine($"  Data saved via fallback trunk");
+        Console.WriteLine($"  Application continues to function despite primary failure");
 
         var alice = tree.Crack("alice");
-        Console.WriteLine($"  ✓ Retrieved: {alice?.Name} ({alice?.Email})\n");
+        Console.WriteLine($"  Retrieved: {alice?.Name} ({alice?.Email})\n");
 
         var stats = resilientTrunk.GetStats();
-        Console.WriteLine($"  📊 Resilience Stats:");
+        Console.WriteLine($"  Resilience Stats:");
         Console.WriteLine($"     - Total fallbacks: {stats.TotalFallbacks}");
-        Console.WriteLine($"     - System remains operational: ✓\n");
+        Console.WriteLine($"     - System remains operational: Yes\n");
 
         resilientTrunk.Dispose();
     }
 
     private static async Task Demo4_CircuitBreaker()
     {
-        Console.WriteLine("⚡ Demo 4: Circuit Breaker Pattern");
+        Console.WriteLine("Demo 4: Circuit Breaker Pattern");
         Console.WriteLine("----------------------------------");
         Console.WriteLine("Prevents cascading failures by 'opening' after repeated failures.\n");
 
@@ -198,8 +198,8 @@ public static class ProductionFeaturesDemo
 
         var tree = new Tree<DemoUser>(resilientTrunk);
 
-        Console.WriteLine("  ℹ️ Circuit breaker threshold: 3 failures");
-        Console.WriteLine("  ℹ️ Simulating 80% failure rate...\n");
+        Console.WriteLine("  Circuit breaker threshold: 3 failures");
+        Console.WriteLine("  Simulating 80% failure rate...\n");
 
         // Trigger multiple failures to open circuit
         for (int i = 0; i < 8; i++)
@@ -216,7 +216,7 @@ public static class ProductionFeaturesDemo
         }
 
         var finalStats = resilientTrunk.GetStats();
-        Console.WriteLine($"\n  📊 Final Circuit Breaker State:");
+        Console.WriteLine($"\n  Final Circuit Breaker State:");
         Console.WriteLine($"     - State: {finalStats.CircuitState}");
         Console.WriteLine($"     - Total failures: {finalStats.FailureCount}");
         Console.WriteLine($"     - Circuit breaker trips: {finalStats.CircuitBreakerTrips}");
@@ -224,7 +224,7 @@ public static class ProductionFeaturesDemo
 
         if (finalStats.CircuitState == CircuitBreakerState.Open)
         {
-            Console.WriteLine($"     ⚡ Circuit OPEN - automatically using fallback to prevent cascading failures\n");
+            Console.WriteLine($"     Circuit OPEN - automatically using fallback to prevent cascading failures\n");
         }
 
         resilientTrunk.Dispose();
@@ -232,7 +232,7 @@ public static class ProductionFeaturesDemo
 
     private static async Task Demo5_MetricsCollection()
     {
-        Console.WriteLine("📊 Demo 5: Metrics Collection");
+        Console.WriteLine("Demo 5: Metrics Collection");
         Console.WriteLine("-----------------------------");
         Console.WriteLine("Comprehensive observability with Prometheus/OpenTelemetry metrics.\n");
 
@@ -243,12 +243,12 @@ public static class ProductionFeaturesDemo
             instance: "demo-instance-1"
         );
 
-        Console.WriteLine("  ✓ Configured metrics labels (environment, region, instance)");
+        Console.WriteLine("  Configured metrics labels (environment, region, instance)");
 
         // Perform operations to generate metrics
         var tree = new Tree<DemoUser>(new MemoryTrunk<DemoUser>());
 
-        Console.WriteLine("  ℹ️ Performing operations to generate metrics...\n");
+        Console.WriteLine("  Performing operations to generate metrics...\n");
 
         for (int i = 0; i < 10; i++)
         {
@@ -258,7 +258,7 @@ public static class ProductionFeaturesDemo
             MetricsCollector.Instance.RecordStash("DemoUser", duration);
         }
 
-        Console.WriteLine($"  ✓ Recorded 10 stash operations");
+        Console.WriteLine($"  Recorded 10 stash operations");
 
         for (int i = 0; i < 10; i++)
         {
@@ -270,11 +270,11 @@ public static class ProductionFeaturesDemo
             MetricsCollector.Instance.RecordCrack("DemoUser", duration, cacheHit);
         }
 
-        Console.WriteLine($"  ✓ Recorded 10 crack operations");
-        Console.WriteLine($"  ✓ Recorded cache hit/miss statistics\n");
+        Console.WriteLine($"  Recorded 10 crack operations");
+        Console.WriteLine($"  Recorded cache hit/miss statistics\n");
 
         // Display current metrics
-        Console.WriteLine("  📈 Current Metrics Summary:");
+        Console.WriteLine("  Current Metrics Summary:");
         Console.WriteLine("     Operations:");
         Console.WriteLine($"       - Stash: 10");
         Console.WriteLine($"       - Crack: 10");
@@ -285,11 +285,11 @@ public static class ProductionFeaturesDemo
 
     private static void Demo6_ViewMetrics()
     {
-        Console.WriteLine("🔍 Demo 6: View Metrics Output");
+        Console.WriteLine("Demo 6: View Metrics Output");
         Console.WriteLine("------------------------------");
         Console.WriteLine("Metrics available in multiple formats:\n");
 
-        Console.WriteLine("  📊 Prometheus Format (text):");
+        Console.WriteLine("  Prometheus Format (text):");
         Console.WriteLine("  " + new string('-', 60));
         var prometheusMetrics = MetricsCollector.Instance.ExportPrometheus();
         var prometheusLines = prometheusMetrics.Split('\n').Take(10);
@@ -301,7 +301,7 @@ public static class ProductionFeaturesDemo
         Console.WriteLine("  ... (truncated for brevity) ...");
         Console.WriteLine();
 
-        Console.WriteLine("  📊 OpenTelemetry Format (JSON):");
+        Console.WriteLine("  OpenTelemetry Format (JSON):");
         Console.WriteLine("  " + new string('-', 60));
         var jsonMetrics = MetricsCollector.Instance.ExportJson();
         var formattedJson = System.Text.Json.JsonSerializer.Serialize(
@@ -316,7 +316,7 @@ public static class ProductionFeaturesDemo
         Console.WriteLine("  ... (truncated for brevity) ...");
         Console.WriteLine();
 
-        Console.WriteLine("  🌐 Live Endpoints:");
+        Console.WriteLine("  Live Endpoints:");
         Console.WriteLine("     - Prometheus: http://localhost:9090/metrics");
         Console.WriteLine("     - JSON:       http://localhost:9090/metrics?format=json");
         Console.WriteLine("     - Health:     http://localhost:9090/health");

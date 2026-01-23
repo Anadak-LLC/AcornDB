@@ -337,7 +337,7 @@ namespace AcornDB.Persistence.Cloud
                 }
             }
 
-            AcornLog.Info($"   💾 Imported {incomingList.Count} nuts to DynamoDB");
+            AcornLog.Info($"[DynamoDbTrunk] Imported {incomingList.Count} entries");
         }
 
         /// <summary>
@@ -381,7 +381,7 @@ namespace AcornDB.Persistence.Cloud
                 }
             }
 
-            AcornLog.Info($"   💾 Flushed {batch.Count} nuts to DynamoDB");
+            AcornLog.Info($"[DynamoDbTrunk] Flushed {batch.Count} entries");
         }
 
         /// <summary>

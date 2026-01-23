@@ -60,14 +60,7 @@ namespace AcornDB.Persistence.DataLake
                 );
             }
 
-            AcornLog.Info($"TieredTrunk initialized:");
-            AcornLog.Info($"   Hot Tier: {GetTrunkType(_hotTrunk)}");
-            AcornLog.Info($"   Cold Tier: {GetTrunkType(_coldTrunk)}");
-            AcornLog.Info($"   Auto-Tiering: {(_options.AutoTiering ? "Enabled" : "Disabled")}");
-            if (_options.ArchiveAfter.HasValue)
-            {
-                AcornLog.Info($"   Archive After: {_options.ArchiveAfter.Value.TotalDays:F0} days");
-            }
+            AcornLog.Info($"[TieredTrunk] Initialized: HotTier={GetTrunkType(_hotTrunk)}, ColdTier={GetTrunkType(_coldTrunk)}, AutoTiering={(_options.AutoTiering ? "Enabled" : "Disabled")}{(_options.ArchiveAfter.HasValue ? $", ArchiveAfter={_options.ArchiveAfter.Value.TotalDays:F0}days" : "")}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -188,7 +181,7 @@ namespace AcornDB.Persistence.DataLake
                 return;
             }
 
-            AcornLog.Info($"Tiering {oldNuts.Count} nuts from hot to cold storage...");
+            AcornLog.Info($"[TieredTrunk] Tiering {oldNuts.Count} entries from hot to cold storage");
 
             // Move to cold tier
             _coldTrunk.ImportChanges(oldNuts);
@@ -199,7 +192,7 @@ namespace AcornDB.Persistence.DataLake
                 _hotTrunk.Toss(nut.Id);
             }
 
-            AcornLog.Info($"Tiered {oldNuts.Count} nuts to cold storage");
+            AcornLog.Info($"[TieredTrunk] Tiered {oldNuts.Count} entries to cold storage");
         }
 
         /// <summary>

@@ -62,7 +62,7 @@ public static class CollaborativeNotesApp
             .WithSyncMode(SyncMode.Bidirectional)
             .WithDeltaSync(true);
 
-        AnsiConsole.MarkupLine("[dim]✓ Branch configured (local simulation mode)[/]");
+        AnsiConsole.MarkupLine("[dim][OK] Branch configured (local simulation mode)[/]");
         AnsiConsole.WriteLine();
 
         while (true)
@@ -125,7 +125,7 @@ public static class CollaborativeNotesApp
             existing = tree.Crack(noteId);
             if (existing == null)
             {
-                AnsiConsole.MarkupLine("[red]✗ Note not found.[/]");
+                AnsiConsole.MarkupLine("[red][FAIL] Note not found.[/]");
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
                 Console.ReadKey(true);
@@ -162,7 +162,7 @@ public static class CollaborativeNotesApp
 
         tree.Stash(noteId, note);
 
-        AnsiConsole.MarkupLine($"[green]✓ Note saved:[/] [yellow]{noteId}[/] [olive](v{version})[/]");
+        AnsiConsole.MarkupLine($"[green][OK] Note saved:[/] [yellow]{noteId}[/] [olive](v{version})[/]");
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
@@ -231,7 +231,7 @@ public static class CollaborativeNotesApp
         var note = tree.Crack(noteId);
         if (note == null)
         {
-            AnsiConsole.MarkupLine("[red]✗ Note not found.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Note not found.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -302,7 +302,7 @@ public static class CollaborativeNotesApp
             1
         );
         localTree.Stash(noteId, note1);
-        AnsiConsole.MarkupLine($"[green]✓[/] [dim]User 1 created note:[/] [yellow]{noteId}[/]");
+        AnsiConsole.MarkupLine($"[green][OK][/] [dim]User 1 created note:[/] [yellow]{noteId}[/]");
 
         // Simulate delay
         System.Threading.Thread.Sleep(100);
@@ -316,7 +316,7 @@ public static class CollaborativeNotesApp
             1
         );
         remoteTree.Stash(noteId, note2);
-        AnsiConsole.MarkupLine($"[green]✓[/] [dim]User 2 created conflicting note:[/] [yellow]{noteId}[/]");
+        AnsiConsole.MarkupLine($"[green][OK][/] [dim]User 2 created conflicting note:[/] [yellow]{noteId}[/]");
         AnsiConsole.WriteLine();
 
         var conflictPanel = new Panel(
@@ -357,18 +357,18 @@ public static class CollaborativeNotesApp
                             Timestamp = remoteVersion.ModifiedAt
                         };
                         localTree.Squabble(noteId, remoteNut, ConflictDirection.PreferRemote);
-                        ctx.Status("[green]✓ Remote version won (newer timestamp)[/]");
+                        ctx.Status("[green][OK] Remote version won (newer timestamp)[/]");
                     }
                     else
                     {
                         // Local wins
-                        ctx.Status("[green]✓ Local version won (newer timestamp)[/]");
+                        ctx.Status("[green][OK] Local version won (newer timestamp)[/]");
                     }
                 }
             });
 
         AnsiConsole.WriteLine();
-        AnsiConsole.MarkupLine($"[green]✓[/] Note [yellow]{noteId}[/] now has consistent content.");
+        AnsiConsole.MarkupLine($"[green][OK][/] Note [yellow]{noteId}[/] now has consistent content.");
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
@@ -424,7 +424,7 @@ public static class CollaborativeNotesApp
         table.AddRow("  [dim]Total Pulled[/]", $"[olive]{stats.TotalPulled}[/]");
         table.AddRow("  [dim]Total Conflicts[/]", $"[yellow]{stats.TotalConflicts}[/]");
         table.AddEmptyRow();
-        table.AddRow("[dim]Delta Sync[/]", stats.DeltaSyncEnabled ? "[green]✓ Enabled[/]" : "[dim]Disabled[/]");
+        table.AddRow("[dim]Delta Sync[/]", stats.DeltaSyncEnabled ? "[green][OK] Enabled[/]" : "[dim]Disabled[/]");
         table.AddRow("[dim]Last Sync[/]",
             stats.HasSynced ? $"[dim]{stats.LastSyncTimestamp:g}[/]" : "[dim]Never[/]");
 

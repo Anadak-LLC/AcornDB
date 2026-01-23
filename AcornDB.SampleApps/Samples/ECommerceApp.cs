@@ -66,7 +66,7 @@ public static class ECommerceApp
         // In-memory cart (doesn't need persistence)
         var cart = new List<CartItem>();
 
-        AnsiConsole.MarkupLine("[dim]✓ Initialized with Grove + LRU caching[/]");
+        AnsiConsole.MarkupLine("[dim][OK] Initialized with Grove + LRU caching[/]");
         AnsiConsole.WriteLine();
 
         // Seed some sample products if empty
@@ -144,7 +144,7 @@ public static class ECommerceApp
             tree.Stash($"prod-{i + 1:D3}", products[i]);
         }
 
-        AnsiConsole.MarkupLine("[dim]  ✓ Seeded 8 sample products[/]");
+        AnsiConsole.MarkupLine("[dim]  [OK] Seeded 8 sample products[/]");
     }
 
     private static void BrowseProducts(Tree<Product> tree)
@@ -197,7 +197,7 @@ public static class ECommerceApp
         var product = tree.Crack(productId);
         if (product == null)
         {
-            AnsiConsole.MarkupLine("[red]✗ Product not found.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Product not found.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -236,7 +236,7 @@ public static class ECommerceApp
         var product = tree.Crack(productId);
         if (product == null)
         {
-            AnsiConsole.MarkupLine("[red]✗ Product not found.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Product not found.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -245,7 +245,7 @@ public static class ECommerceApp
 
         if (product.Stock <= 0)
         {
-            AnsiConsole.MarkupLine("[red]✗ Product is out of stock.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Product is out of stock.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -256,7 +256,7 @@ public static class ECommerceApp
 
         if (quantity <= 0)
         {
-            AnsiConsole.MarkupLine("[red]✗ Invalid quantity.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Invalid quantity.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -265,7 +265,7 @@ public static class ECommerceApp
 
         if (quantity > product.Stock)
         {
-            AnsiConsole.MarkupLine($"[red]✗ Only {product.Stock} available.[/]");
+            AnsiConsole.MarkupLine($"[red][FAIL] Only {product.Stock} available.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -280,7 +280,7 @@ public static class ECommerceApp
         }
 
         cart.Add(new CartItem(productId, quantity));
-        AnsiConsole.MarkupLine($"[green]✓ Added {quantity}x {Markup.Escape(product.Name)} to cart[/]");
+        AnsiConsole.MarkupLine($"[green][OK] Added {quantity}x {Markup.Escape(product.Name)} to cart[/]");
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
@@ -348,7 +348,7 @@ public static class ECommerceApp
 
         if (!cart.Any())
         {
-            AnsiConsole.MarkupLine("[red]✗ Cart is empty.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Cart is empty.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -364,7 +364,7 @@ public static class ECommerceApp
             var product = tree.Crack(item.ProductId);
             if (product == null)
             {
-                AnsiConsole.MarkupLine($"[red]✗ Error: Product {item.ProductId} not found.[/]");
+                AnsiConsole.MarkupLine($"[red][FAIL] Error: Product {item.ProductId} not found.[/]");
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
                 Console.ReadKey(true);
@@ -373,7 +373,7 @@ public static class ECommerceApp
 
             if (product.Stock < item.Quantity)
             {
-                AnsiConsole.MarkupLine($"[red]✗ Error: Insufficient stock for {Markup.Escape(product.Name)}[/]");
+                AnsiConsole.MarkupLine($"[red][FAIL] Error: Insufficient stock for {Markup.Escape(product.Name)}[/]");
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
                 Console.ReadKey(true);
@@ -400,7 +400,7 @@ public static class ECommerceApp
 
         var successPanel = new Panel(
             new Markup(
-                $"[green bold]✓ Order placed successfully![/]\n\n" +
+                $"[green bold][OK] Order placed successfully![/]\n\n" +
                 $"[dim]Order ID:[/] [yellow]{orderId}[/]\n" +
                 $"[dim]Total:[/] [green]${total:F2}[/]"))
         {
@@ -485,7 +485,7 @@ public static class ECommerceApp
             existing = tree.Crack(productId);
             if (existing == null)
             {
-                AnsiConsole.MarkupLine("[red]✗ Product not found.[/]");
+                AnsiConsole.MarkupLine("[red][FAIL] Product not found.[/]");
                 AnsiConsole.WriteLine();
                 AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
                 Console.ReadKey(true);
@@ -522,7 +522,7 @@ public static class ECommerceApp
         var product = new Product(name, desc, price, stock, category);
         tree.Stash(productId, product);
 
-        AnsiConsole.MarkupLine($"[green]✓ Product {(existing == null ? "created" : "updated")}:[/] [yellow]{productId}[/]");
+        AnsiConsole.MarkupLine($"[green][OK] Product {(existing == null ? "created" : "updated")}:[/] [yellow]{productId}[/]");
 
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");

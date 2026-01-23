@@ -40,7 +40,7 @@ public static class TodoListApp
         var trunk = new DocumentStoreTrunk<TodoItem>("data/sample-todos");
         var tree = new Tree<TodoItem>(trunk);
 
-        AnsiConsole.MarkupLine("[dim]✓ Initialized with DocumentStore (full history tracking)[/]");
+        AnsiConsole.MarkupLine("[dim][OK] Initialized with DocumentStore (full history tracking)[/]");
         AnsiConsole.WriteLine();
 
         while (true)
@@ -104,7 +104,7 @@ public static class TodoListApp
 
         tree.Stash(id, todo);
 
-        AnsiConsole.MarkupLine($"[green]✓[/] Todo created with ID: [yellow]{id}[/]");
+        AnsiConsole.MarkupLine($"[green][OK][/] Todo created with ID: [yellow]{id}[/]");
         AnsiConsole.WriteLine();
         AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
         Console.ReadKey(true);
@@ -141,7 +141,7 @@ public static class TodoListApp
         foreach (var nut in todos)
         {
             var todo = nut.Payload;
-            var status = todo.IsCompleted ? "[green]✓[/]" : "[grey]○[/]";
+            var status = todo.IsCompleted ? "[green][DONE][/]" : "[grey][ ][/]";
             var priorityStars = new string('*', todo.Priority);
             var titleColor = todo.IsCompleted ? "dim" : "white";
             var descPreview = todo.Description.Length > 50
@@ -180,7 +180,7 @@ public static class TodoListApp
         var todo = tree.Crack(id);
         if (todo == null)
         {
-            AnsiConsole.MarkupLine("[red]✗ Todo not found.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Todo not found.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -189,7 +189,7 @@ public static class TodoListApp
 
         if (todo.IsCompleted)
         {
-            AnsiConsole.MarkupLine("[yellow]⚠[/] Todo is already completed.");
+            AnsiConsole.MarkupLine("[yellow]![/] Todo is already completed.");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -200,7 +200,7 @@ public static class TodoListApp
         tree.Stash(id, updated);
 
         var panel = new Panel(
-            new Markup($"[green]✓ Completed:[/] [white]{Markup.Escape(todo.Title)}[/]"))
+            new Markup($"[green][OK] Completed:[/] [white]{Markup.Escape(todo.Title)}[/]"))
         {
             Border = BoxBorder.Rounded,
             BorderStyle = Style.Parse("green"),
@@ -223,7 +223,7 @@ public static class TodoListApp
         var todo = tree.Crack(id);
         if (todo == null)
         {
-            AnsiConsole.MarkupLine("[red]✗ Todo not found.[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] Todo not found.[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);
@@ -235,7 +235,7 @@ public static class TodoListApp
         if (confirm)
         {
             tree.Toss(id);
-            AnsiConsole.MarkupLine($"[red]✓ Deleted:[/] {Markup.Escape(todo.Title)}");
+            AnsiConsole.MarkupLine($"[red][OK] Deleted:[/] {Markup.Escape(todo.Title)}");
         }
         else
         {
@@ -257,7 +257,7 @@ public static class TodoListApp
         var history = tree.GetHistory(id);
         if (!history.Any())
         {
-            AnsiConsole.MarkupLine("[red]✗ No history found (todo doesn't exist or has no history).[/]");
+            AnsiConsole.MarkupLine("[red][FAIL] No history found (todo doesn't exist or has no history).[/]");
             AnsiConsole.WriteLine();
             AnsiConsole.MarkupLine("[dim]Press any key to continue...[/]");
             Console.ReadKey(true);

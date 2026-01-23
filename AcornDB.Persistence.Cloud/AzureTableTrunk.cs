@@ -206,7 +206,7 @@ namespace AcornDB.Persistence.Cloud
             // Write using TrunkBase batch infrastructure
             await WriteBatchToStorageAsync(pendingWrites);
 
-            AcornLog.Info($"   💾 Imported {incomingList.Count} nuts to Azure Table Storage");
+            AcornLog.Info($"[AzureTableTrunk] Imported {incomingList.Count} entries");
         }
 
         protected override async Task WriteBatchToStorageAsync(List<PendingWrite> batch)

@@ -61,20 +61,20 @@ namespace AcornDB.Storage
             try
             {
                 var primaryCaps = _primaryTrunk.Capabilities;
-                AcornLog.Info($"🛡️ ResilientTrunk initialized:");
-                AcornLog.Info($"   Primary: {primaryCaps?.TrunkType ?? "Unknown"}");
+                AcornLog.Info($"[ResilientTrunk] Initialized:");
+                AcornLog.Info($"[ResilientTrunk]   Primary: {primaryCaps?.TrunkType ?? "Unknown"}");
                 if (_fallbackTrunk != null)
                 {
                     var fallbackCaps = _fallbackTrunk.Capabilities;
-                    AcornLog.Info($"   Fallback: {fallbackCaps?.TrunkType ?? "Unknown"}");
+                    AcornLog.Info($"[ResilientTrunk]   Fallback: {fallbackCaps?.TrunkType ?? "Unknown"}");
                 }
-                AcornLog.Info($"   Max Retries: {_options.MaxRetries}");
-                AcornLog.Info($"   Circuit Breaker: {(_options.EnableCircuitBreaker ? "Enabled" : "Disabled")}");
+                AcornLog.Info($"[ResilientTrunk]   Max Retries: {_options.MaxRetries}");
+                AcornLog.Info($"[ResilientTrunk]   Circuit Breaker: {(_options.EnableCircuitBreaker ? "Enabled" : "Disabled")}");
             }
             catch (Exception ex)
             {
                 // If capabilities check fails, just log and continue
-                AcornLog.Info($"🛡️ ResilientTrunk initialized (capabilities unavailable: {ex.Message})");
+                AcornLog.Info($"[ResilientTrunk] Initialized (capabilities unavailable: {ex.Message})");
             }
         }
 
@@ -183,14 +183,14 @@ namespace AcornDB.Storage
                 if (DateTime.UtcNow - _circuitOpenedAt >= _options.CircuitBreakerTimeout)
                 {
                     _circuitState = CircuitBreakerState.HalfOpen;
-                    AcornLog.Info($"🔄 Circuit breaker transitioning to Half-Open state");
+                    AcornLog.Info($"[ResilientTrunk] Circuit breaker transitioning to Half-Open state");
                 }
                 else
                 {
                     // Circuit is open, use fallback immediately
                     if (fallbackOperation != null)
                     {
-                        AcornLog.Info($"⚡ Circuit OPEN - using fallback for {operationName}");
+                        AcornLog.Info($"[ResilientTrunk] Circuit OPEN - using fallback for {operationName}");
                         _totalFallbacks++;
                         return fallbackOperation();
                     }
@@ -211,7 +211,7 @@ namespace AcornDB.Storage
                     {
                         _circuitState = CircuitBreakerState.Closed;
                         _failureCount = 0;
-                        AcornLog.Info($"✅ Circuit breaker CLOSED after successful operation");
+                        AcornLog.Info($"[ResilientTrunk] Circuit breaker CLOSED after successful operation");
                     }
 
                     return result;
@@ -233,7 +233,7 @@ namespace AcornDB.Storage
                     {
                         _totalRetries++;
                         var delay = CalculateRetryDelay(attempt);
-                        AcornLog.Info($"⚠️ {operationName} failed (attempt {attempt + 1}/{_options.MaxRetries + 1}), retrying in {delay}ms: {ex.Message}");
+                        AcornLog.Warning($"[ResilientTrunk] {operationName} failed (attempt {attempt + 1}/{_options.MaxRetries + 1}), retrying in {delay}ms: {ex.Message}");
                         System.Threading.Thread.Sleep(delay);
                     }
                 }
@@ -248,7 +248,7 @@ namespace AcornDB.Storage
                     _circuitState = CircuitBreakerState.Open;
                     _circuitOpenedAt = DateTime.UtcNow;
                     _circuitBreakerTrips++;
-                    AcornLog.Info($"🔴 Circuit breaker OPENED after {_failureCount} failures");
+                    AcornLog.Warning($"[ResilientTrunk] Circuit breaker OPENED after {_failureCount} failures");
                 }
             }
 
@@ -257,13 +257,13 @@ namespace AcornDB.Storage
             {
                 try
                 {
-                    AcornLog.Info($"🔄 Primary trunk failed, using fallback for {operationName}");
+                    AcornLog.Info($"[ResilientTrunk] Primary trunk failed, using fallback for {operationName}");
                     _totalFallbacks++;
                     return fallbackOperation();
                 }
                 catch (Exception fallbackEx)
                 {
-                    AcornLog.Info($"❌ Fallback trunk also failed for {operationName}: {fallbackEx.Message}");
+                    AcornLog.Error($"[ResilientTrunk] Fallback trunk also failed for {operationName}: {fallbackEx.Message}");
                     throw new AggregateException(
                         $"Both primary and fallback trunks failed for {operationName}",
                         lastException!,
@@ -364,7 +364,7 @@ namespace AcornDB.Storage
             _circuitState = CircuitBreakerState.Closed;
             _failureCount = 0;
             _circuitOpenedAt = DateTime.MinValue;
-            AcornLog.Info($"🔄 Circuit breaker manually reset to CLOSED");
+            AcornLog.Info($"[ResilientTrunk] Circuit breaker manually reset to CLOSED");
         }
 
         // ITrunkCapabilities implementation - forward to primary trunk with custom TrunkType

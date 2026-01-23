@@ -143,7 +143,7 @@ namespace AcornDB
                     catch (Exception ex)
                     {
                         // Log other index update failures but don't break the stash operation
-                        AcornLog.Error($"⚠️ Failed to update index '{index.Name}' during stash: {ex.Message}");
+                        AcornLog.Error($"[Tree] Failed to update index '{index.Name}' during stash: {ex.Message}");
                     }
                 }
             }
@@ -166,7 +166,7 @@ namespace AcornDB
                     catch (Exception ex)
                     {
                         // Log index update failure but don't break the toss operation
-                        AcornLog.Error($"⚠️ Failed to update index '{index.Name}' during toss: {ex.Message}");
+                        AcornLog.Error($"[Tree] Failed to update index '{index.Name}' during toss: {ex.Message}");
                     }
                 }
             }
@@ -190,7 +190,7 @@ namespace AcornDB
                     }
                     catch (Exception ex)
                     {
-                        AcornLog.Error($"⚠️ Failed to rebuild index '{index.Name}': {ex.Message}");
+                        AcornLog.Error($"[Tree] Failed to rebuild index '{index.Name}': {ex.Message}");
                     }
                 }
             }

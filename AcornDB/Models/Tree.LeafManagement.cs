@@ -29,28 +29,28 @@ namespace AcornDB
             // 1. Already processed this exact leaf?
             if (_processedLeaves.ContainsKey(leaf.LeafId))
             {
-                AcornLog.Info($"> 🍃 Leaf {leaf.LeafId} already processed, skipping");
+                AcornLog.Info($"[Tree] Leaf {leaf.LeafId} already processed, skipping");
                 return;
             }
 
             // 2. Are we the origin? (Don't loop back to ourselves)
             if (leaf.OriginTreeId == TreeId)
             {
-                AcornLog.Info($"> 🍃 Leaf {leaf.LeafId} originated from us, skipping");
+                AcornLog.Info($"[Tree] Leaf {leaf.LeafId} originated from us, skipping");
                 return;
             }
 
             // 3. Already visited this tree? (Path tracking)
             if (leaf.HasVisited(TreeId))
             {
-                AcornLog.Info($"> 🍃 Leaf {leaf.LeafId} already visited this tree, skipping");
+                AcornLog.Info($"[Tree] Leaf {leaf.LeafId} already visited this tree, skipping");
                 return;
             }
 
             // 4. Exceeded hop limit? (Safety mechanism)
             if (leaf.IsExpired(MaxLeafHops))
             {
-                AcornLog.Info($"> 🍃 Leaf {leaf.LeafId} exceeded hop limit ({MaxLeafHops}), dropping");
+                AcornLog.Info($"[Tree] Leaf {leaf.LeafId} exceeded hop limit ({MaxLeafHops}), dropping");
                 return;
             }
 
@@ -86,21 +86,21 @@ namespace AcornDB
                     {
                         // Use Squabble for incoming stashes (handles conflicts)
                         Squabble(leaf.Key, leaf.Data);
-                        AcornLog.Info($"> 🍃 Applied stash leaf: {leaf.Key}");
+                        AcornLog.Info($"[Tree] Applied stash leaf: {leaf.Key}");
                     }
                     break;
 
                 case LeafType.Toss:
                     // Delete locally without propagating (propagate=false)
                     Toss(leaf.Key, propagate: false);
-                    AcornLog.Info($"> 🍃 Applied toss leaf: {leaf.Key}");
+                    AcornLog.Info($"[Tree] Applied toss leaf: {leaf.Key}");
                     break;
 
                 case LeafType.Squabble:
                     if (leaf.Data != null)
                     {
                         Squabble(leaf.Key, leaf.Data);
-                        AcornLog.Info($"> 🍃 Applied squabble leaf: {leaf.Key}");
+                        AcornLog.Info($"[Tree] Applied conflict leaf: {leaf.Key}");
                     }
                     break;
 
@@ -109,7 +109,7 @@ namespace AcornDB
                     {
                         // Update is like stash but for existing items
                         Squabble(leaf.Key, leaf.Data);
-                        AcornLog.Info($"> 🍃 Applied update leaf: {leaf.Key}");
+                        AcornLog.Info($"[Tree] Applied update leaf: {leaf.Key}");
                     }
                     break;
             }
@@ -142,7 +142,7 @@ namespace AcornDB
                     var remoteTreeId = branch.GetRemoteTreeId();
                     if (remoteTreeId != null && remoteTreeId == leaf.OriginTreeId)
                     {
-                        AcornLog.Info($"> 🍃 Skipping branch {branch.BranchId} (would send to origin)");
+                        AcornLog.Info($"[Tree] Skipping branch {branch.BranchId} (would send to origin)");
                         continue;
                     }
 
@@ -163,7 +163,7 @@ namespace AcornDB
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Error($"> ⚠️ Failed to propagate leaf to branch {branch.BranchId}: {ex.Message}");
+                    AcornLog.Error($"[Tree] Failed to propagate leaf to branch {branch.BranchId}: {ex.Message}");
                 }
             }
         }

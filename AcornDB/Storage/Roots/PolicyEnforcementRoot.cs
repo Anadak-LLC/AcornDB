@@ -73,7 +73,7 @@ namespace AcornDB.Storage.Roots
                         }
 
                         // If not throwing, log and continue
-                        AcornLog.Info($"⚠️ Policy violation on write (allowed by config): {validationResult.FailureReason}");
+                        AcornLog.Warning($"[PolicyEnforcement] Policy violation on write (allowed by config): {validationResult.FailureReason}");
                     }
                     else
                     {
@@ -93,7 +93,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                AcornLog.Info($"⚠️ Policy enforcement failed on write for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Error($"[PolicyEnforcement] Policy enforcement failed on write for document '{context.DocumentId}': {ex.Message}");
 
                 if (_options.ThrowOnPolicyViolation)
                     throw;
@@ -133,12 +133,12 @@ namespace AcornDB.Storage.Roots
                         if (_options.ReturnNullOnTTLExpired &&
                             validationResult.FailureReason?.Contains("expired", StringComparison.OrdinalIgnoreCase) == true)
                         {
-                            AcornLog.Info($"⚠️ Document '{context.DocumentId}' expired, returning null");
+                            AcornLog.Info($"[PolicyEnforcement] Document '{context.DocumentId}' expired, returning null");
                             return Array.Empty<byte>(); // Signal to trunk that data is expired
                         }
 
                         // If not throwing, log and continue
-                        AcornLog.Info($"⚠️ Policy violation on read (allowed by config): {validationResult.FailureReason}");
+                        AcornLog.Warning($"[PolicyEnforcement] Policy violation on read (allowed by config): {validationResult.FailureReason}");
                     }
                     else
                     {
@@ -155,7 +155,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                AcornLog.Info($"⚠️ Policy enforcement failed on read for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Error($"[PolicyEnforcement] Policy enforcement failed on read for document '{context.DocumentId}': {ex.Message}");
 
                 if (_options.ThrowOnPolicyViolation)
                     throw;

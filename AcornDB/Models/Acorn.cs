@@ -135,8 +135,8 @@ namespace AcornDB.Models
         }
 
         /// <summary>
-        /// Use Git-backed storage where every Stash() is a commit!
-        /// 🐿️ Peak nuttiness: Your database IS your Git history!
+        /// Use Git-backed storage where every Stash() is a commit.
+        /// Your database IS your Git history.
         /// </summary>
         /// <param name="repoPath">Path to Git repository (will be created if doesn't exist)</param>
         /// <param name="authorName">Git author name for commits</param>

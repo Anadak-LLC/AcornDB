@@ -18,26 +18,26 @@ namespace AcornDB.SampleApps.Samples
     {
         public static void Run()
         {
-            Console.WriteLine("🌰 AcornDB - IRoot Pipeline Demo");
+            Console.WriteLine("AcornDB - IRoot Pipeline Demo");
             Console.WriteLine("================================\n");
 
             // Example 1: Basic compression and encryption
-            Console.WriteLine("📦 Example 1: Compression + Encryption Pipeline");
+            Console.WriteLine("Example 1: Compression + Encryption Pipeline");
             DemoCompressionAndEncryption();
 
             Console.WriteLine("\n" + new string('=', 80) + "\n");
 
             // Example 2: Policy enforcement with TTL
-            Console.WriteLine("🔒 Example 2: Policy Enforcement with TTL");
+            Console.WriteLine("Example 2: Policy Enforcement with TTL");
             DemoPolicyEnforcement();
 
             Console.WriteLine("\n" + new string('=', 80) + "\n");
 
             // Example 3: Complete governed storage
-            Console.WriteLine("🏛️ Example 3: Complete Governed Storage Stack");
+            Console.WriteLine("Example 3: Complete Governed Storage Stack");
             DemoGovernedStorage();
 
-            Console.WriteLine("\n✅ Demo complete!");
+            Console.WriteLine("\nDemo complete!");
         }
 
         private static void DemoCompressionAndEncryption()
@@ -63,14 +63,14 @@ namespace AcornDB.SampleApps.Samples
                 Version = 1
             });
 
-            Console.WriteLine($"✓ Stored document '{doc.Title}' with compression + encryption");
+            Console.WriteLine($"[OK] Stored document '{doc.Title}' with compression + encryption");
 
             // Inspect the root chain
             Console.WriteLine($"  Active roots: {string.Join(" → ", trunk.Roots.Select(r => r.Name))}");
 
             // Load it back (automatically decompressed and decrypted)
             var loaded = trunk.Load(doc.Id);
-            Console.WriteLine($"✓ Loaded document: '{loaded?.Payload.Title}'");
+            Console.WriteLine($"[OK] Loaded document: '{loaded?.Payload.Title}'");
             Console.WriteLine($"  Content matches: {loaded?.Payload.Content == doc.Content}");
         }
 
@@ -83,7 +83,7 @@ namespace AcornDB.SampleApps.Samples
             var trunk = new MemoryTrunk<SensitiveDocument>()
                 .WithPolicyEnforcement(policyEngine, options: PolicyEnforcementOptions.Strict);
 
-            Console.WriteLine("✓ Created trunk with strict policy enforcement");
+            Console.WriteLine("[OK] Created trunk with strict policy enforcement");
 
             // Store document with TTL
             var doc = new SensitiveDocument
@@ -102,11 +102,11 @@ namespace AcornDB.SampleApps.Samples
                 Version = 1
             });
 
-            Console.WriteLine($"✓ Stored document with TTL: expires at {doc.ExpiresAt:HH:mm:ss}");
+            Console.WriteLine($"[OK] Stored document with TTL: expires at {doc.ExpiresAt:HH:mm:ss}");
 
             // Load immediately (should work)
             var loaded = trunk.Load(doc.Id);
-            Console.WriteLine($"✓ Loaded immediately: '{loaded?.Payload.Title}'");
+            Console.WriteLine($"[OK] Loaded immediately: '{loaded?.Payload.Title}'");
 
             // Wait for expiration
             Console.WriteLine("  Waiting 3 seconds for TTL expiration...");
@@ -118,12 +118,12 @@ namespace AcornDB.SampleApps.Samples
                 var expired = trunk.Load(doc.Id);
                 if (expired == null)
                 {
-                    Console.WriteLine("✓ Document correctly returned null after TTL expiration");
+                    Console.WriteLine("[OK] Document correctly returned null after TTL expiration");
                 }
             }
             catch (PolicyViolationException ex)
             {
-                Console.WriteLine($"✓ Policy enforcement blocked access: {ex.Message}");
+                Console.WriteLine($"[OK] Policy enforcement blocked access: {ex.Message}");
             }
         }
 
@@ -137,7 +137,7 @@ namespace AcornDB.SampleApps.Samples
                 .WithCompression(new GzipCompressionProvider(), sequence: 100)
                 .WithEncryption(AesEncryptionProvider.FromPassword("classified", "salt"), sequence: 200);
 
-            Console.WriteLine("✓ Created governed storage with 3-layer pipeline:");
+            Console.WriteLine("[OK] Created governed storage with 3-layer pipeline:");
             Console.WriteLine($"  {string.Join(" → ", trunk.Roots.Select(r => $"{r.Name}({r.Sequence})"))}");
 
             // Store classified document
@@ -159,13 +159,13 @@ namespace AcornDB.SampleApps.Samples
                 Version = 1
             });
 
-            Console.WriteLine($"✓ Stored classified document: '{doc.Title}'");
+            Console.WriteLine($"[OK] Stored classified document: '{doc.Title}'");
             Console.WriteLine($"  Classification: {doc.ClassificationLevel}");
             Console.WriteLine($"  Tags: {string.Join(", ", doc.Tags)}");
 
             // Load it back (passes through all 3 layers in reverse)
             var loaded = trunk.Load(doc.Id);
-            Console.WriteLine($"✓ Successfully loaded through full pipeline");
+            Console.WriteLine($"[OK] Successfully loaded through full pipeline");
             Console.WriteLine($"  Title: '{loaded?.Payload.Title}'");
 
             // Show metrics
@@ -174,11 +174,11 @@ namespace AcornDB.SampleApps.Samples
             var policyRoot = trunk.Roots.FirstOrDefault(r => r.Name == "PolicyEnforcement") as PolicyEnforcementRoot;
 
             if (compressionRoot != null)
-                Console.WriteLine($"\n📊 Compression Metrics: {compressionRoot.Metrics}");
+                Console.WriteLine($"\nCompression Metrics: {compressionRoot.Metrics}");
             if (encryptionRoot != null)
-                Console.WriteLine($"📊 Encryption Metrics: {encryptionRoot.Metrics}");
+                Console.WriteLine($"Encryption Metrics: {encryptionRoot.Metrics}");
             if (policyRoot != null)
-                Console.WriteLine($"📊 Policy Metrics: {policyRoot.Metrics}");
+                Console.WriteLine($"Policy Metrics: {policyRoot.Metrics}");
         }
 
         // Sample data models

@@ -125,12 +125,12 @@ public static class ResilientCacheApp
             {
                 var entry = new CacheEntry($"key-{i}", $"value-{i}", DateTime.UtcNow);
                 tree.Stash($"entry-{i}", entry);
-                table.AddRow($"[dim]{i + 1}[/]", $"[dim]Saved entry-{i}[/]", "[green]✓ Success[/]");
+                table.AddRow($"[dim]{i + 1}[/]", $"[dim]Saved entry-{i}[/]", "[green][OK] Success[/]");
                 successCount++;
             }
             catch (Exception ex)
             {
-                table.AddRow($"[dim]{i + 1}[/]", $"[dim]Saved entry-{i}[/]", $"[red]✗ {Markup.Escape(ex.Message)}[/]");
+                table.AddRow($"[dim]{i + 1}[/]", $"[dim]Saved entry-{i}[/]", $"[red][FAIL] {Markup.Escape(ex.Message)}[/]");
             }
 
             await Task.Delay(50);
@@ -147,7 +147,7 @@ public static class ResilientCacheApp
                 $"[dim]Success Rate:[/] [green]{successCount}/10 ({successCount * 10}%)[/]\n" +
                 $"[dim]Total Retries:[/] [yellow]{stats.TotalRetries}[/]\n" +
                 $"[dim]Circuit State:[/] [olive]{stats.CircuitState}[/]\n\n" +
-                $"[green]✓ With retry logic, most operations succeed despite failures![/]"))
+                $"[green][OK] With retry logic, most operations succeed despite failures![/]"))
         {
             Border = BoxBorder.Rounded,
             BorderStyle = Style.Parse("green"),
@@ -194,7 +194,7 @@ public static class ResilientCacheApp
                 {
                     var entry = new CacheEntry($"key-{i}", $"value-{i}", DateTime.UtcNow);
                     tree.Stash($"entry-{i}", entry);
-                    ctx.Status($"[green]✓ Saved entry-{i} (via fallback)[/]");
+                    ctx.Status($"[green][OK] Saved entry-{i} (via fallback)[/]");
                     await Task.Delay(200);
                 }
             });
@@ -223,8 +223,8 @@ public static class ResilientCacheApp
             new Markup(
                 $"[tan bold]Resilience Statistics[/]\n\n" +
                 $"[dim]Total Fallbacks:[/] [yellow]{stats.TotalFallbacks}[/]\n" +
-                $"[dim]System Healthy:[/] {(stats.IsHealthy ? "[green]✓ Yes[/]" : "[red]✗ No[/]")}\n\n" +
-                $"[green]✓ Application continues functioning despite primary failure![/]"))
+                $"[dim]System Healthy:[/] {(stats.IsHealthy ? "[green][OK] Yes[/]" : "[red][FAIL] No[/]")}\n\n" +
+                $"[green][OK] Application continues functioning despite primary failure![/]"))
         {
             Border = BoxBorder.Rounded,
             BorderStyle = Style.Parse("green"),
@@ -311,7 +311,7 @@ public static class ResilientCacheApp
                 $"[dim]Fallbacks:[/] [olive]{finalStats.TotalFallbacks}[/]\n\n" +
                 (finalStats.CircuitState == CircuitBreakerState.Open
                     ? "[red]Circuit OPEN - Automatically using fallback to prevent cascading failures![/]"
-                    : "[green]✓ Circuit operational[/]")))
+                    : "[green][OK] Circuit operational[/]")))
         {
             Border = BoxBorder.Rounded,
             BorderStyle = Style.Parse(stateColor2),
@@ -340,8 +340,8 @@ public static class ResilientCacheApp
 
         var initPanel = new Panel(
             new Markup(
-                $"[green]✓ Cache initialized[/] [dim]with {failureRate * 100:F0}% simulated failure rate[/]\n" +
-                $"[green]✓ Resilience:[/] [dim]3 retries, fallback enabled, circuit breaker active[/]"))
+                $"[green][OK] Cache initialized[/] [dim]with {failureRate * 100:F0}% simulated failure rate[/]\n" +
+                $"[green][OK] Resilience:[/] [dim]3 retries, fallback enabled, circuit breaker active[/]"))
         {
             Border = BoxBorder.Rounded,
             BorderStyle = Style.Parse("green"),
@@ -375,11 +375,11 @@ public static class ResilientCacheApp
                     try
                     {
                         tree.Stash(key, new CacheEntry(key, value, DateTime.UtcNow));
-                        AnsiConsole.MarkupLine("[green]✓ Cached successfully[/]");
+                        AnsiConsole.MarkupLine("[green][OK] Cached successfully[/]");
                     }
                     catch (Exception ex)
                     {
-                        AnsiConsole.MarkupLine($"[red]✗ Failed: {Markup.Escape(ex.Message)}[/]");
+                        AnsiConsole.MarkupLine($"[red][FAIL] Failed: {Markup.Escape(ex.Message)}[/]");
                     }
                     break;
 
@@ -408,7 +408,7 @@ public static class ResilientCacheApp
                     }
                     catch (Exception ex)
                     {
-                        AnsiConsole.MarkupLine($"[red]✗ Failed: {Markup.Escape(ex.Message)}[/]");
+                        AnsiConsole.MarkupLine($"[red][FAIL] Failed: {Markup.Escape(ex.Message)}[/]");
                     }
                     break;
 
@@ -458,14 +458,14 @@ public static class ResilientCacheApp
                     statsTable.AddRow("[dim]Total Fallbacks[/]", $"[olive]{stats.TotalFallbacks}[/]");
                     statsTable.AddRow("[dim]Circuit Trips[/]", $"[red]{stats.CircuitBreakerTrips}[/]");
                     statsTable.AddRow("[dim]Failure Count[/]", $"[yellow]{stats.FailureCount}[/]");
-                    statsTable.AddRow("[dim]Healthy[/]", stats.IsHealthy ? "[green]✓ Yes[/]" : "[red]✗ No[/]");
+                    statsTable.AddRow("[dim]Healthy[/]", stats.IsHealthy ? "[green][OK] Yes[/]" : "[red][FAIL] No[/]");
 
                     AnsiConsole.Write(statsTable);
                     break;
 
                 case "Reset Circuit Breaker":
                     resilientTrunk.ResetCircuitBreaker();
-                    AnsiConsole.MarkupLine("[green]✓ Circuit breaker reset to CLOSED state[/]");
+                    AnsiConsole.MarkupLine("[green][OK] Circuit breaker reset to CLOSED state[/]");
                     break;
 
                 case "Back":

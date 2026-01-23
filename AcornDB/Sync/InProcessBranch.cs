@@ -28,7 +28,7 @@ namespace AcornDB.Sync
         {
             if (typeof(TItem) != typeof(T))
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch: Type mismatch - expected {typeof(T).Name}, got {typeof(TItem).Name}");
+                AcornLog.Error($"[InProcessBranch] Type mismatch - expected {typeof(T).Name}, got {typeof(TItem).Name}");
                 return;
             }
 
@@ -43,7 +43,7 @@ namespace AcornDB.Sync
             }
             catch (Exception ex)
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch push failed: {ex.Message}");
+                AcornLog.Error($"[InProcessBranch] Push failed: {ex.Message}");
             }
         }
 
@@ -51,7 +51,7 @@ namespace AcornDB.Sync
         {
             if (typeof(TItem) != typeof(T))
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch: Type mismatch during delete - expected {typeof(T).Name}, got {typeof(TItem).Name}");
+                AcornLog.Error($"[InProcessBranch] Type mismatch during delete - expected {typeof(T).Name}, got {typeof(TItem).Name}");
                 return;
             }
 
@@ -59,11 +59,11 @@ namespace AcornDB.Sync
             {
                 // Delete directly on target tree without propagating (propagate=false prevents loops)
                 _targetTree.Toss(id, propagate: false);
-                AcornLog.Info($"> 🔄 InProcessBranch: Deleted '{id}' from target tree");
+                AcornLog.Info($"[InProcessBranch] Deleted '{id}' from target tree");
             }
             catch (Exception ex)
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch delete failed: {ex.Message}");
+                AcornLog.Error($"[InProcessBranch] Delete failed: {ex.Message}");
             }
         }
 
@@ -76,7 +76,7 @@ namespace AcornDB.Sync
         {
             if (typeof(TLeaf) != typeof(T))
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch: Type mismatch for leaf - expected {typeof(T).Name}, got {typeof(TLeaf).Name}");
+                AcornLog.Error($"[InProcessBranch] Type mismatch for leaf - expected {typeof(T).Name}, got {typeof(TLeaf).Name}");
                 return;
             }
 
@@ -91,7 +91,7 @@ namespace AcornDB.Sync
             }
             catch (Exception ex)
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch OnStash failed: {ex.Message}");
+                AcornLog.Error($"[InProcessBranch] OnStash failed: {ex.Message}");
             }
         }
 
@@ -102,7 +102,7 @@ namespace AcornDB.Sync
         {
             if (typeof(TLeaf) != typeof(T))
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch: Type mismatch for leaf - expected {typeof(T).Name}, got {typeof(TLeaf).Name}");
+                AcornLog.Error($"[InProcessBranch] Type mismatch for leaf - expected {typeof(T).Name}, got {typeof(TLeaf).Name}");
                 return;
             }
 
@@ -116,7 +116,7 @@ namespace AcornDB.Sync
             }
             catch (Exception ex)
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch OnToss failed: {ex.Message}");
+                AcornLog.Error($"[InProcessBranch] OnToss failed: {ex.Message}");
             }
         }
 
@@ -127,7 +127,7 @@ namespace AcornDB.Sync
         {
             if (typeof(TLeaf) != typeof(T))
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch: Type mismatch for leaf - expected {typeof(T).Name}, got {typeof(TLeaf).Name}");
+                AcornLog.Error($"[InProcessBranch] Type mismatch for leaf - expected {typeof(T).Name}, got {typeof(TLeaf).Name}");
                 return;
             }
 
@@ -141,7 +141,7 @@ namespace AcornDB.Sync
             }
             catch (Exception ex)
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch OnSquabble failed: {ex.Message}");
+                AcornLog.Error($"[InProcessBranch] OnSquabble failed: {ex.Message}");
             }
         }
 
@@ -149,7 +149,7 @@ namespace AcornDB.Sync
         {
             if (typeof(TItem) != typeof(T))
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch: Type mismatch during shake");
+                AcornLog.Error($"[InProcessBranch] Type mismatch during shake");
                 return;
             }
 
@@ -164,7 +164,7 @@ namespace AcornDB.Sync
             }
             catch (Exception ex)
             {
-                AcornLog.Error($"> ⚠️ InProcessBranch shake failed: {ex.Message}");
+                AcornLog.Error($"[InProcessBranch] Shake failed: {ex.Message}");
             }
 
             await Task.CompletedTask;
