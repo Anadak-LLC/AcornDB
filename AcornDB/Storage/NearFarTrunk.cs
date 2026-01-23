@@ -57,11 +57,11 @@ namespace AcornDB.Storage
             _backingStore = backingStore ?? throw new ArgumentNullException(nameof(backingStore));
             _options = options ?? NearFarOptions.Default;
 
-            AcornLog.Info($"🔄 NearFarTrunk initialized:");
-            AcornLog.Info($"   Near Cache: {GetTrunkType(_nearCache)} (local)");
-            AcornLog.Info($"   Far Cache: {GetTrunkType(_farCache)} (distributed)");
-            AcornLog.Info($"   Backing Store: {GetTrunkType(_backingStore)}");
-            AcornLog.Info($"   Write Strategy: {_options.WriteStrategy}");
+            AcornLog.Info($"[NearFarTrunk] Initialized:");
+            AcornLog.Info($"[NearFarTrunk]   Near Cache: {GetTrunkType(_nearCache)} (local)");
+            AcornLog.Info($"[NearFarTrunk]   Far Cache: {GetTrunkType(_farCache)} (distributed)");
+            AcornLog.Info($"[NearFarTrunk]   Backing Store: {GetTrunkType(_backingStore)}");
+            AcornLog.Info($"[NearFarTrunk]   Write Strategy: {_options.WriteStrategy}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

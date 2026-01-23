@@ -66,7 +66,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                AcornLog.Info($"⚠️ Encryption failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Error($"[EncryptionRoot] Encryption failed for document '{context.DocumentId}': {ex.Message}");
                 throw new InvalidOperationException($"Failed to encrypt data", ex);
             }
         }
@@ -92,7 +92,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                AcornLog.Info($"⚠️ Decryption failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Error($"[EncryptionRoot] Decryption failed for document '{context.DocumentId}': {ex.Message}");
                 throw new InvalidOperationException($"Failed to decrypt data", ex);
             }
         }

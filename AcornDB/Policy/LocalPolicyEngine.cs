@@ -236,7 +236,7 @@ namespace AcornDB.Policy
                     case "DENY":
                         throw new PolicyViolationException($"Access denied: {target}");
                     case "WARN":
-                        AcornLog.Info($"� Policy warning: {target}");
+                        AcornLog.Warning($"[PolicyEngine] {target}");
                         break;
                 }
             }

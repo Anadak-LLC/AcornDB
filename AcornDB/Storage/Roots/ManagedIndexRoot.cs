@@ -8,7 +8,7 @@ namespace AcornDB.Storage.Roots
     /// [DEPRECATED] Root processor that tracks index metadata and provides hooks for index-aware operations.
     /// This root operates at sequence 50 (pre-compression) to access uncompressed document data.
     ///
-    /// ⚠️ IMPORTANT: This class is DEPRECATED and will be removed in v0.6.0.
+    /// IMPORTANT: This class is DEPRECATED and will be removed in v0.6.0.
     ///
     /// Reason for deprecation:
     /// - Does not actually manage indexes (indexes are managed at Tree level in Tree.IndexManagement.cs)
@@ -68,7 +68,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                AcornLog.Info($"⚠️ Index root processing failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Warning($"[ManagedIndexRoot] Processing failed for document '{context.DocumentId}': {ex.Message}");
                 // Don't throw - indexing failures shouldn't break writes
                 return data;
             }
@@ -93,7 +93,7 @@ namespace AcornDB.Storage.Roots
             catch (Exception ex)
             {
                 _metrics.RecordError();
-                AcornLog.Info($"⚠️ Index root retrieval failed for document '{context.DocumentId}': {ex.Message}");
+                AcornLog.Warning($"[ManagedIndexRoot] Retrieval failed for document '{context.DocumentId}': {ex.Message}");
                 // Don't throw - indexing failures shouldn't break reads
                 return data;
             }

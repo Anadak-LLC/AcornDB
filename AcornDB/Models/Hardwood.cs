@@ -18,7 +18,7 @@ namespace AcornDB.Models
         // Basic Grow implementation - can be enhanced in Canopy project
         public void Grow(Grove grove)
         {
-            AcornLog.Info($"🌳 Hardwood growing on port {Port}...");
+            AcornLog.Info($"[Hardwood] Starting server on port {Port}...");
             // Extended implementation in HardwoodServer.cs (Canopy project)
         }
     }

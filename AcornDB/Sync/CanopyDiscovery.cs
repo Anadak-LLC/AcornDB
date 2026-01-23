@@ -53,7 +53,7 @@ namespace AcornDB.Sync
             // Start listening
             Task.Run(async () => await ListenForNodes(autoConnect, token), token);
 
-            AcornLog.Info($"> 🌳 Canopy discovery started on port {DiscoveryPort}");
+            AcornLog.Info($"[CanopyDiscovery] Discovery started on port {DiscoveryPort}");
         }
 
         /// <summary>
@@ -63,7 +63,7 @@ namespace AcornDB.Sync
         {
             _cancellationSource?.Cancel();
             _udpClient?.Close();
-            AcornLog.Info($"> 🌳 Canopy discovery stopped");
+            AcornLog.Info($"[CanopyDiscovery] Discovery stopped");
         }
 
         private async Task BroadcastPresence(CancellationToken token)
@@ -97,7 +97,7 @@ namespace AcornDB.Sync
                 }
                 catch (Exception ex)
                 {
-                    AcornLog.Info($"> ⚠️ Canopy broadcast error: {ex.Message}");
+                    AcornLog.Warning($"[CanopyDiscovery] Broadcast error: {ex.Message}");
                 }
             }
         }
@@ -142,7 +142,7 @@ namespace AcornDB.Sync
 
                             if (autoConnect && node.DiscoveredAt == DateTime.UtcNow)
                             {
-                                AcornLog.Info($"> 🌳 Canopy: Discovered {nodeKey} ({node.TreeCount} trees)");
+                                AcornLog.Info($"[CanopyDiscovery] Discovered {nodeKey} ({node.TreeCount} trees)");
                                 ConnectToNode(node);
                             }
                         }
@@ -155,7 +155,7 @@ namespace AcornDB.Sync
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"> ⚠️ Canopy listener error: {ex.Message}");
+                AcornLog.Error($"[CanopyDiscovery] Listener error: {ex.Message}");
             }
         }
 
@@ -164,11 +164,11 @@ namespace AcornDB.Sync
             try
             {
                 _localGrove.EntangleAll(node.RemoteUrl);
-                AcornLog.Info($"> 🔗 Auto-connected to {node.RemoteUrl}");
+                AcornLog.Info($"[CanopyDiscovery] Auto-connected to {node.RemoteUrl}");
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"> ⚠️ Failed to connect to {node.RemoteUrl}: {ex.Message}");
+                AcornLog.Warning($"[CanopyDiscovery] Failed to connect to {node.RemoteUrl}: {ex.Message}");
             }
         }
 
@@ -218,7 +218,7 @@ namespace AcornDB.Sync
             foreach (var key in staleKeys)
             {
                 _discoveredNodes.TryRemove(key, out _);
-                AcornLog.Info($"> 🌳 Removed stale node: {key}");
+                AcornLog.Info($"[CanopyDiscovery] Removed stale node: {key}");
             }
         }
     }

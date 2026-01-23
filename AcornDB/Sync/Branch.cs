@@ -172,16 +172,16 @@ namespace AcornDB.Sync
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    AcornLog.Info($"> Failed to delete nut {id} from {RemoteUrl}: {response.StatusCode}");
+                    AcornLog.Warning($"[Branch] Failed to delete nut {id} from {RemoteUrl}: {response.StatusCode}");
                 }
                 else
                 {
-                    AcornLog.Info($"> Nut {id} deleted from {RemoteUrl}.");
+                    AcornLog.Info($"[Branch] Nut {id} deleted from {RemoteUrl}");
                 }
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"> Branch delete failed: {ex.Message}");
+                AcornLog.Error($"[Branch] Delete failed: {ex.Message}");
             }
         }
 
@@ -199,16 +199,16 @@ namespace AcornDB.Sync
 
                 if (!response.IsSuccessStatusCode)
                 {
-                    AcornLog.Info($"> Failed to push nut {id} to {RemoteUrl}: {response.StatusCode}");
+                    AcornLog.Warning($"[Branch] Failed to push nut {id} to {RemoteUrl}: {response.StatusCode}");
                 }
                 else
                 {
-                    AcornLog.Info($"> Nut {id} synced to {RemoteUrl}.");
+                    AcornLog.Info($"[Branch] Nut {id} synced to {RemoteUrl}");
                 }
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"> Branch push failed: {ex.Message}");
+                AcornLog.Error($"[Branch] Push failed: {ex.Message}");
             }
         }
 
@@ -241,19 +241,19 @@ namespace AcornDB.Sync
                     // If delta sync failed, fallback to full sync
                     if (useDelta)
                     {
-                        AcornLog.Info($"> Delta sync failed from {RemoteUrl}: {response.StatusCode}, falling back to full sync");
+                        AcornLog.Warning($"[Branch] Delta sync failed from {RemoteUrl}: {response.StatusCode}, falling back to full sync");
                         endpoint = $"{RemoteUrl}/bark/{treeName}/export";
                         response = await _httpClient.GetAsync(endpoint);
 
                         if (!response.IsSuccessStatusCode)
                         {
-                            AcornLog.Info($"> Failed to shake branch from {RemoteUrl}: {response.StatusCode}");
+                            AcornLog.Warning($"[Branch] Failed to shake branch from {RemoteUrl}: {response.StatusCode}");
                             return;
                         }
                     }
                     else
                     {
-                        AcornLog.Info($"> Failed to shake branch from {RemoteUrl}: {response.StatusCode}");
+                        AcornLog.Warning($"[Branch] Failed to shake branch from {RemoteUrl}: {response.StatusCode}");
                         return;
                     }
                 }
@@ -286,11 +286,11 @@ namespace AcornDB.Sync
                 _lastSyncTimestamp = DateTime.UtcNow;
 
                 var syncType = useDelta ? "delta" : (isFirstSync ? "initial" : "full");
-                AcornLog.Info($"> Shake complete ({syncType}): {nuts.Count} nuts received from {RemoteUrl}");
+                AcornLog.Info($"[Branch] Shake complete ({syncType}): {nuts.Count} nuts received from {RemoteUrl}");
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"> Branch shake failed: {ex.Message}");
+                AcornLog.Error($"[Branch] Shake failed: {ex.Message}");
             }
         }
 
@@ -395,11 +395,11 @@ namespace AcornDB.Sync
                         var response = await _httpClient.PostAsync(endpoint, content);
                         if (response.IsSuccessStatusCode)
                         {
-                            AcornLog.Info($"> Batch push: {nuts.Count} nuts synced to {RemoteUrl}");
+                            AcornLog.Info($"[Branch] Batch push: {nuts.Count} nuts synced to {RemoteUrl}");
                         }
                         else
                         {
-                            AcornLog.Info($"> Batch push failed: {response.StatusCode}");
+                            AcornLog.Warning($"[Branch] Batch push failed: {response.StatusCode}");
                         }
                     }
                     else if (operationType == BatchOperationType.Delete)
@@ -413,18 +413,18 @@ namespace AcornDB.Sync
                         var response = await _httpClient.PostAsync(endpoint, content);
                         if (response.IsSuccessStatusCode)
                         {
-                            AcornLog.Info($"> Batch delete: {ids.Count} nuts deleted from {RemoteUrl}");
+                            AcornLog.Info($"[Branch] Batch delete: {ids.Count} nuts deleted from {RemoteUrl}");
                         }
                         else
                         {
-                            AcornLog.Info($"> Batch delete failed: {response.StatusCode}");
+                            AcornLog.Warning($"[Branch] Batch delete failed: {response.StatusCode}");
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                AcornLog.Info($"> Batch send failed: {ex.Message}");
+                AcornLog.Error($"[Branch] Batch send failed: {ex.Message}");
             }
         }
 
@@ -475,7 +475,7 @@ namespace AcornDB.Sync
         {
             if (!_isDisposed)
             {
-                AcornLog.Info($"> 🪓 Branch to {RemoteUrl} snapped!");
+                AcornLog.Info($"[Branch] Connection to {RemoteUrl} disconnected");
             }
             Dispose();
         }

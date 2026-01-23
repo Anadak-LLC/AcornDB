@@ -67,14 +67,14 @@ namespace AcornDB.Benchmarks
                 _redisDb = _redis.GetDatabase();
                 _redisDb.StringSet("test", "test"); // Verify connection
                 _redisAvailable = true;
-                Console.WriteLine("✅ Redis connection established");
+                Console.WriteLine("Redis connection established");
             }
             catch (Exception ex)
             {
                 _redisAvailable = false;
                 _redis = null;  // Ensure null on failure
                 _redisDb = null;
-                Console.WriteLine($"⚠️  Redis not available: {ex.Message}");
+                Console.WriteLine($"Warning: Redis not available: {ex.Message}");
                 Console.WriteLine("   Run: docker run -d -p 6379:6379 redis:7-alpine");
             }
         }
@@ -96,7 +96,7 @@ namespace AcornDB.Benchmarks
                 }
                 catch (Exception ex)
                 {
-                    Console.WriteLine($"⚠️  Warning: Failed to flush Redis database: {ex.Message}");
+                    Console.WriteLine($"Warning: Failed to flush Redis database: {ex.Message}");
                 }
             }
 
@@ -107,7 +107,7 @@ namespace AcornDB.Benchmarks
             }
             catch (Exception ex)
             {
-                Console.WriteLine($"⚠️  Warning: Failed to dispose Redis connection: {ex.Message}");
+                Console.WriteLine($"Warning: Failed to dispose Redis connection: {ex.Message}");
             }
         }
 
@@ -141,7 +141,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 
@@ -176,7 +176,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 
@@ -221,7 +221,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 
@@ -266,7 +266,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 
@@ -319,7 +319,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 
@@ -380,7 +380,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 
@@ -429,7 +429,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 
@@ -473,7 +473,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 
@@ -512,7 +512,7 @@ namespace AcornDB.Benchmarks
         {
             if (!_redisAvailable)
             {
-                Console.WriteLine("⏭️  Skipping Redis benchmark (Redis not available)");
+                Console.WriteLine("Skipping Redis benchmark (Redis not available)");
                 return;
             }
 

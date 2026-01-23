@@ -60,7 +60,7 @@ namespace AcornDB.Sync
                 // B → A
                 var tangleBA = new Tangle<T>(treeB, new InProcessBranch<T>(treeA), $"Tangle_{nodeB}→{nodeA}");
 
-                AcornLog.Info($"> 🕸️  Mesh link created: {nodeA} ↔ {nodeB}");
+                AcornLog.Info($"[MeshCoordinator] Mesh link created: {nodeA} <-> {nodeB}");
             }
         }
 
@@ -81,7 +81,7 @@ namespace AcornDB.Sync
                     }
                 }
 
-                AcornLog.Info($"> 🕸️  Full mesh created with {nodeIds.Count} nodes");
+                AcornLog.Info($"[MeshCoordinator] Full mesh created with {nodeIds.Count} nodes");
             }
         }
 
@@ -100,7 +100,7 @@ namespace AcornDB.Sync
                     ConnectNodes(nodeIds[i], nodeIds[nextIndex]);
                 }
 
-                AcornLog.Info($"> 🔗 Ring topology created with {nodeIds.Count} nodes");
+                AcornLog.Info($"[MeshCoordinator] Ring topology created with {nodeIds.Count} nodes");
             }
         }
 
@@ -122,7 +122,7 @@ namespace AcornDB.Sync
                     }
                 }
 
-                AcornLog.Info($"> ⭐ Star topology created with hub: {hubNodeId}");
+                AcornLog.Info($"[MeshCoordinator] Star topology created with hub: {hubNodeId}");
             }
         }
 
@@ -140,7 +140,7 @@ namespace AcornDB.Sync
                 }
             }
 
-            AcornLog.Info($"> 🌊 Mesh synchronized: {_nodes.Count} nodes");
+            AcornLog.Info($"[MeshCoordinator] Mesh synchronized: {_nodes.Count} nodes");
         }
 
         /// <summary>

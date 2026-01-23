@@ -61,11 +61,7 @@ namespace AcornDB.Persistence.DataLake
                 Directory.CreateDirectory(_basePath);
             }
 
-            AcornLog.Info($"📊 ParquetTrunk initialized:");
-            AcornLog.Info($"   Type: {_typeName}");
-            AcornLog.Info($"   Path: {_basePath}");
-            AcornLog.Info($"   Compression: {_options.CompressionMethod}");
-            AcornLog.Info($"   Partitioning: {(_options.PartitionStrategy != null ? "Enabled" : "Disabled")}");
+            AcornLog.Info($"[ParquetTrunk] Initialized: Type={_typeName}, Path={_basePath}, Compression={_options.CompressionMethod}, Partitioning={(_options.PartitionStrategy != null ? "Enabled" : "Disabled")}");
         }
 
         /// <summary>
@@ -81,8 +77,7 @@ namespace AcornDB.Persistence.DataLake
             _cloudStorage = cloudStorage ?? throw new ArgumentNullException(nameof(cloudStorage));
 
             var info = _cloudStorage.GetInfo();
-            AcornLog.Info($"   Cloud Provider: {info.ProviderName}");
-            AcornLog.Info($"   Bucket: {info.BucketName}");
+            AcornLog.Info($"[ParquetTrunk] Cloud storage: Provider={info.ProviderName}, Bucket={info.BucketName}");
         }
 
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -214,7 +209,7 @@ namespace AcornDB.Persistence.DataLake
                 .GroupBy(nut => GetPartitionedPath(nut))
                 .ToList();
 
-            AcornLog.Info($"   📊 Importing {incomingList.Count} nuts across {partitionedNuts.Count} partitions");
+            AcornLog.Info($"[ParquetTrunk] Importing {incomingList.Count} entries across {partitionedNuts.Count} partitions");
 
             foreach (var partition in partitionedNuts)
             {
@@ -238,7 +233,7 @@ namespace AcornDB.Persistence.DataLake
                 await WriteParquetFileAsync(filePath, nuts);
             }
 
-            AcornLog.Info($"   📊 Import complete: {incomingList.Count} nuts");
+            AcornLog.Info($"[ParquetTrunk] Import complete: {incomingList.Count} entries");
         }
 
         /// <summary>

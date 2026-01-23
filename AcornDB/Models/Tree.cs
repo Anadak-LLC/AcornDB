@@ -171,7 +171,7 @@ namespace AcornDB
 
         public void Shake()
         {
-            AcornLog.Info("🌳 Shaking tree...");
+            AcornLog.Info("[Tree] Syncing changes...");
 
             // Export changes from trunk for sync
             var changes = _trunk.ExportChanges();
@@ -291,7 +291,7 @@ namespace AcornDB
             if (!_branches.Contains(branch))
             {
                 _branches.Add(branch);
-                AcornLog.Info($"> 🌉 Tree<{typeof(T).Name}> entangled with {branch.RemoteUrl}");
+                AcornLog.Info($"[Tree] Tree<{typeof(T).Name}> connected to {branch.RemoteUrl}");
             }
             return branch;
         }
@@ -312,7 +312,7 @@ namespace AcornDB
             if (!_branches.Contains(branch))
             {
                 _branches.Add(branch);
-                AcornLog.Info($"> 🌉 Tree<{typeof(T).Name}> entangled with {branch.BranchId}");
+                AcornLog.Info($"[Tree] Tree<{typeof(T).Name}> connected to {branch.BranchId}");
             }
 
             return branch;
@@ -327,7 +327,7 @@ namespace AcornDB
             var inProcessBranch = new InProcessBranch<T>(otherTree);
             Entangle(inProcessBranch);
             var tangle = new Tangle<T>(this, inProcessBranch, $"InProcess-{Guid.NewGuid().ToString().Substring(0, 8)}");
-            AcornLog.Info($"> 🪢 Tree<{typeof(T).Name}> entangled in-process");
+            AcornLog.Info($"[Tree] Tree<{typeof(T).Name}> connected in-process");
             return tangle;
         }
 
@@ -339,7 +339,7 @@ namespace AcornDB
         {
             if (_branches.Remove(branch))
             {
-                AcornLog.Info($"> 🔓 Tree<{typeof(T).Name}> detangled from {branch.RemoteUrl}");
+                AcornLog.Info($"[Tree] Tree<{typeof(T).Name}> disconnected from {branch.RemoteUrl}");
 
                 // Dispose the branch if it implements IDisposable
                 if (branch is IDisposable disposable)
@@ -365,7 +365,7 @@ namespace AcornDB
             // Handle non-Branch IBranch implementations
             if (_branches.Remove(branch))
             {
-                AcornLog.Info($"> 🔓 Tree<{typeof(T).Name}> detangled from {branch.BranchId}");
+                AcornLog.Info($"[Tree] Tree<{typeof(T).Name}> disconnected from {branch.BranchId}");
 
                 // Dispose the branch
                 branch.Dispose();
@@ -380,7 +380,7 @@ namespace AcornDB
         {
             if (_tangles.Remove(tangle))
             {
-                AcornLog.Info($"> 🔓 Tree<{typeof(T).Name}> detangled (tangle removed)");
+                AcornLog.Info($"[Tree] Tree<{typeof(T).Name}> disconnected (tangle removed)");
 
                 // Dispose the tangle
                 tangle?.Dispose();
@@ -393,7 +393,7 @@ namespace AcornDB
         /// </summary>
         public void DetangleAll()
         {
-            AcornLog.Info($"> 🔓 Tree<{typeof(T).Name}> detangling all connections...");
+            AcornLog.Info($"[Tree] Tree<{typeof(T).Name}> disconnecting all connections...");
 
             // Dispose and clear all branches (both Branch and IBranch)
             foreach (var branch in _branches.ToList())
@@ -412,7 +412,7 @@ namespace AcornDB
             }
             _tangles.Clear();
 
-            AcornLog.Info($"> 🔓 All entanglements cleared!");
+            AcornLog.Info($"[Tree] All connections cleared");
         }
 
         public bool UndoSquabble(string id)
@@ -422,7 +422,7 @@ namespace AcornDB
                 var versions = _trunk.GetHistory(id);
                 if (versions.Count == 0)
                 {
-                    AcornLog.Info($"> 🕳️ No squabble history for '{id}' to undo.");
+                    AcornLog.Info($"[Tree] No conflict history for '{id}' to undo");
                     return false;
                 }
 

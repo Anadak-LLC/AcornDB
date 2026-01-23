@@ -110,7 +110,7 @@ namespace AcornDB.Transaction
             {
                 // Rollback on any error
                 Rollback();
-                AcornLog.Info($"⚠️ Transaction failed: {ex.Message}");
+                AcornLog.Warning($"[TreeTransaction] Transaction failed: {ex.Message}");
                 return false;
             }
         }
