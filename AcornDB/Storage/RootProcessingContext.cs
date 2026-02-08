@@ -1,5 +1,6 @@
 using System.Collections.Generic;
 using AcornDB.Policy;
+using AcornDB.Policy.Governance;
 
 namespace AcornDB.Storage
 {
@@ -31,5 +32,12 @@ namespace AcornDB.Storage
         /// Document/Nut ID being processed (for logging/debugging)
         /// </summary>
         public string? DocumentId { get; set; }
+
+        /// <summary>
+        /// Cached chain validation result from the policy governance ledger.
+        /// Set by PolicyEnforcementRoot after validating the policy chain.
+        /// Null if no policy log is configured or chain not yet validated.
+        /// </summary>
+        public ChainValidationResult? ChainState { get; set; }
     }
 }

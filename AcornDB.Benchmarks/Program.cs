@@ -38,6 +38,9 @@ namespace AcornDB.Benchmarks
                     case "competitive":
                         BenchmarkRunner.Run<CompetitiveBenchmarks>();
                         break;
+                    case "policy":
+                        BenchmarkRunner.Run<PolicyGovernanceBenchmarks>();
+                        break;
                     case "delta":
                         BenchmarkRunner.Run<DeltaSyncBenchmarks>();
                         break;
@@ -70,6 +73,7 @@ namespace AcornDB.Benchmarks
             var summary4 = BenchmarkRunner.Run<ConflictResolutionBenchmarks>();
             var summary5 = BenchmarkRunner.Run<CompetitiveBenchmarks>();
             var summary6 = BenchmarkRunner.Run<DeltaSyncBenchmarks>();
+            var summary7 = BenchmarkRunner.Run<PolicyGovernanceBenchmarks>();
 
             Console.WriteLine("\n✅ All benchmarks completed!");
             Console.WriteLine("\nResults saved to: ./BenchmarkDotNet.Artifacts/results/");
@@ -84,6 +88,7 @@ namespace AcornDB.Benchmarks
             Console.WriteLine("  sync         - Sync performance (in-process)");
             Console.WriteLine("  conflict     - Conflict resolution (Squabble)");
             Console.WriteLine("  competitive  - AcornDB vs competitors (1K/10K/50K docs)");
+            Console.WriteLine("  policy       - Policy governance (signers, MerkleTree, PolicyLog)");
             Console.WriteLine("  delta        - Delta sync efficiency (1%/5%/10%/50% changes)");
             Console.WriteLine("  redis        - AcornDB vs Redis cache comparison");
             Console.WriteLine("  all          - Run all benchmarks (default)");

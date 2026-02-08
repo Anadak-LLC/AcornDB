@@ -22,6 +22,9 @@ AcornDB uses woodland-themed metaphors for standard database concepts. This guid
 | `Entangle` | Connect | Link a Tree to a remote Branch for syncing |
 | `Oversee` | Auto-monitor | Automatically sync with a remote branch |
 | `Smush` | Compact | Manual log compaction for DocumentStoreTrunk |
+| `PolicyLog` | Audit Log | Append-only, hash-chained policy storage |
+| `PolicySeal` | Audit Entry | Immutable, cryptographically sealed policy record |
+| `IPolicySigner` | Crypto Service | Signature provider for policy integrity |
 
 ---
 
@@ -308,6 +311,57 @@ var groveStats = grove.GetNutStats();
 // groveStats.TotalStashed
 // groveStats.TotalSquabbles
 ```
+
+---
+
+## 🔐 Policy Governance
+
+AcornDB v0.6.0 introduces **hash-chained policy governance** for tamper-evident access control.
+
+### PolicyLog
+
+The **PolicyLog** is an append-only ledger that stores policy rules with cryptographic proof of integrity.
+
+```csharp
+var signer = new Sha256PolicySigner();
+var log = new MemoryPolicyLog(signer);
+
+// Append policies - creates hash chain (use any IPolicyRule implementation)
+log.Append(myPolicyRule, DateTime.UtcNow);
+log.Append(anotherPolicyRule, DateTime.UtcNow.AddHours(1));
+
+// Verify chain integrity
+var result = log.VerifyChain();
+if (!result.IsValid)
+    throw new ChainIntegrityException(result.Details);
+
+// Query policy at specific time
+var activePolicy = log.GetPolicyAt(DateTime.UtcNow);
+```
+
+### PolicySeal
+
+A **PolicySeal** is an immutable record containing:
+- **Signature** - SHA-256 hash of (Content + Timestamp + Index)
+- **PreviousHash** - Link to previous entry (hash chain)
+- **EffectiveAt** - When the policy became active
+- **Policy** - The actual policy rule
+
+### How the Hash Chain Works
+
+```
+Seal₀: { Policy: A, PrevHash: 0x000..., Signature: Hash(A) }
+         │
+         ▼
+Seal₁: { Policy: B, PrevHash: Hash(Seal₀), Signature: Hash(B) }
+         │
+         ▼
+Seal₂: { Policy: C, PrevHash: Hash(Seal₁), Signature: Hash(C) }
+```
+
+Tamper with Seal₁? Seal₂'s PreviousHash won't match. Tampering detected!
+
+**Deep dive: [[SECURITY_POLICY_ENGINE]]**
 
 ---
 
