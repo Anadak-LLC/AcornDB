@@ -47,6 +47,9 @@ public sealed class MemoryPolicyLog : IPolicyLog, IDisposable
 
     public PolicySeal Append(IPolicyRule policy, DateTime effectiveAt)
     {
+        if (effectiveAt.Kind != DateTimeKind.Utc)
+            throw new ArgumentException("effectiveAt must be UTC.", nameof(effectiveAt));
+
         var sw = _metrics is not null ? PolicyLogMetrics.StartTimer() : null;
         _lock.EnterWriteLock();
         try

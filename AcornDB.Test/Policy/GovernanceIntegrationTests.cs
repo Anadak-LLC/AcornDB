@@ -1,3 +1,5 @@
+#pragma warning disable CS0618 // Testing deprecated LocalPolicyEngine members for backward compatibility
+
 using System;
 using System.Text;
 using System.Threading.Tasks;

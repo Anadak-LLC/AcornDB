@@ -15,8 +15,8 @@ public sealed class Sha256PolicySigner : IPolicySigner
     /// <inheritdoc />
     public byte[] Sign(byte[] data)
     {
-        if (data is null)
-            throw new ArgumentException("Data to sign cannot be null.", nameof(data));
+        if (data is null || data.Length == 0)
+            throw new ArgumentException("Data to sign cannot be null or empty.", nameof(data));
 
         return SHA256.HashData(data);
     }

@@ -158,6 +158,33 @@ public class PolicySealTests
         Assert.Equal(new byte[32], seal.RootChainHash);
     }
 
+    [Fact]
+    public void Create_ThrowsArgumentException_ForNullPolicy()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            PolicySeal.Create(null!, DateTime.UtcNow, null, _signer));
+    }
+
+    [Fact]
+    public void Create_ThrowsArgumentException_ForNullSigner()
+    {
+        Assert.Throws<ArgumentException>(() =>
+            PolicySeal.Create(new TestPolicy("Test"), DateTime.UtcNow, null, null!));
+    }
+
+    [Fact]
+    public void Create_AcceptsEqualTimestamps()
+    {
+        var policy1 = new TestPolicy("First");
+        var policy2 = new TestPolicy("Second");
+        var time = DateTime.UtcNow;
+
+        var seal1 = PolicySeal.Create(policy1, time, null, _signer);
+        var seal2 = PolicySeal.Create(policy2, time, seal1, _signer);
+
+        Assert.Equal(1, seal2.Index);
+    }
+
     private class TestPolicy : IPolicyRule
     {
         public TestPolicy(string name) => Name = name;

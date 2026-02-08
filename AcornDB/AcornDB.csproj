@@ -7,7 +7,7 @@
 
     <!-- NuGet Package Metadata -->
     <PackageId>AcornDB</PackageId>
-    <Version>0.5.0</Version>
+    <Version>0.6.0</Version>
     <Authors>Anadak LLC</Authors>
     <Company>Anadak LLC</Company>
     <Product>AcornDB</Product>
@@ -18,9 +18,9 @@
     <RepositoryType>git</RepositoryType>
     <PackageProjectUrl>https://github.com/Anadak-LLC/AcornDB</PackageProjectUrl>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <!-- PackageIcon>acorn-icon.png</PackageIcon --> <!-- TODO: Create 128x128 PNG icon (<1MB) and uncomment -->
+    <!-- PackageIcon>acorn-icon.png</PackageIcon -->
     <Copyright>Copyright © 2025 Anadak LLC</Copyright>
-    <PackageReleaseNotes>v0.5.0: </PackageReleaseNotes>
+    <PackageReleaseNotes>v0.6.0: Security Policy Engine with cryptographic verification, hash-chained PolicyLog, tag-based ABAC evaluation, and Merkle tree audit proofs.</PackageReleaseNotes>
 
     <!-- Build Settings -->
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
@@ -32,8 +32,8 @@
     <PackageLicenseUrl>https://github.com/Anadak-LLC/AcornDB/blob/main/LICENSE.md</PackageLicenseUrl>
     <PackageIcon>icon.png</PackageIcon>
     <PackageRequireLicenseAcceptance>true</PackageRequireLicenseAcceptance>
-    <AssemblyVersion>0.5.0</AssemblyVersion>
-    <FileVersion>0.5.0</FileVersion>
+    <AssemblyVersion>0.6.0</AssemblyVersion>
+    <FileVersion>0.6.0</FileVersion>
     <SignAssembly>true</SignAssembly>
     <AssemblyOriginatorKeyFile>AcornDBKey.snk</AssemblyOriginatorKeyFile>
     <PublicSign>true</PublicSign>

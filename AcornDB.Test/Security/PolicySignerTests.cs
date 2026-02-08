@@ -77,4 +77,38 @@ public class PolicySignerTests
     {
         Assert.Equal("SHA256", _signer.Algorithm);
     }
+
+    [Fact]
+    public void Sign_ThrowsArgumentException_ForNullInput()
+    {
+        Assert.Throws<ArgumentException>(() => _signer.Sign(null!));
+    }
+
+    [Fact]
+    public void Sign_ThrowsArgumentException_ForEmptyInput()
+    {
+        Assert.Throws<ArgumentException>(() => _signer.Sign(Array.Empty<byte>()));
+    }
+
+    [Fact]
+    public void Verify_ThrowsArgumentException_ForNullData()
+    {
+        var signature = new byte[32];
+        Assert.Throws<ArgumentException>(() => _signer.Verify(null!, signature));
+    }
+
+    [Fact]
+    public void Verify_ThrowsArgumentException_ForNullSignature()
+    {
+        var data = Encoding.UTF8.GetBytes("test");
+        Assert.Throws<ArgumentException>(() => _signer.Verify(data, null!));
+    }
+
+    [Fact]
+    public void Verify_ReturnsFalse_ForWrongLengthSignature()
+    {
+        var data = Encoding.UTF8.GetBytes("test");
+        Assert.False(_signer.Verify(data, new byte[16]));
+        Assert.False(_signer.Verify(data, new byte[64]));
+    }
 }

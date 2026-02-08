@@ -70,6 +70,46 @@ tree.Subscribe(user => Console.WriteLine($"Changed: {user.Name}"));
 
 ---
 
+## 🎯 What's New in v0.6.0
+
+### Seal Your Policies
+Every policy rule gets **sealed** with a tamper-proof wax stamp. Somebody changed a rule? The chain breaks, and you'll know exactly where:
+
+```csharp
+var governed = new Acorn<User>()
+    .WithGovernance(new Sha256PolicySigner())
+    .Sprout();
+
+// Seal a policy into the governance ledger
+governed.AppendPolicy(new MaxSizePolicy(1024), DateTime.UtcNow);
+
+// Inspect the chain at any time — if someone tampered, you'll know
+var result = governed.VerifyChain();
+// ✅ Chain intact: 1 sealed policy, 0 broken links
+```
+
+### Tag-Based Access
+Control who can Stash and Crack by tagging your nuts:
+
+```csharp
+// "admin" role can touch "sensitive" nuts, "guest" can only look
+engine.GrantTagAccess("sensitive", "admin");
+
+var allowed = engine.ValidateAccess(myNut, "guest");
+// ❌ Access denied — guests can't crack sensitive nuts
+```
+
+### Merkle Proofs
+Got 10,000 sealed policies? Prove any single one is legit without checking the whole chain — like reading one tree ring without felling the tree:
+
+```csharp
+var proof = merkleTree.GenerateProof(entryIndex);
+var legit = proof.Verify();
+// ✅ Verified in O(log n) — no need to walk the full chain
+```
+
+---
+
 ## 🎯 What's New in v0.4
 
 ### Git as a Database
@@ -140,7 +180,7 @@ var pgTree = new Acorn<User>()
 - **[[Conflict Resolution]]** - Squabbles, judges, and resolution strategies
 - **[[COMPRESSION_FEATURE]]** - Gzip/Brotli compression for storage optimization
 - **[[Dashboard]]** - AcornVisualizer web UI for grove management
-- **[[SECURITY_POLICY_ENGINE]]** - Hash-chained policy governance with cryptographic verification
+- **[[SECURITY_POLICY_ENGINE]]** - Seal your policies, guard your grove
 
 ### Reference
 - **[[CHANGELOG]]** - Version history and release notes
@@ -159,6 +199,9 @@ var pgTree = new Acorn<User>()
 | **Grove** | Container managing multiple Trees with unified sync |
 | **Nursery** | Factory registry for discovering and creating trunks |
 | **Acorn&lt;T&gt;** | Fluent builder for configuring Trees |
+| **PolicySeal** | A tamper-proof wax stamp on a policy rule |
+| **PolicyLog** | The governance ledger — an append-only chain of seals |
+| **IPolicySigner** | The stamp maker (SHA-256 or Ed25519) |
 
 **Deep dive: [[Concepts]]**
 

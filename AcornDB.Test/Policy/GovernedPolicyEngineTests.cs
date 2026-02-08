@@ -115,6 +115,28 @@ public class GovernedPolicyEngineTests
         Assert.False(governed.ValidateAccess(entity, "guest"));
     }
 
+    [Fact]
+    public void Constructor_SkipsVerification_WhenVerifyOnStartupFalse()
+    {
+        var log = new MemoryPolicyLog(_signer);
+        var inner = new LocalPolicyEngine();
+
+        var governed = new GovernedPolicyEngine(inner, log, _signer, verifyOnStartup: false);
+
+        Assert.False(governed.IsChainVerified);
+    }
+
+    [Fact]
+    public void Dispose_IsIdempotent()
+    {
+        var log = new MemoryPolicyLog(_signer);
+        var inner = new LocalPolicyEngine();
+        var governed = new GovernedPolicyEngine(inner, log, _signer);
+
+        governed.Dispose();
+        governed.Dispose(); // Should not throw
+    }
+
     private class TestPolicy : IPolicyRule
     {
         public TestPolicy(string name) => Name = name;

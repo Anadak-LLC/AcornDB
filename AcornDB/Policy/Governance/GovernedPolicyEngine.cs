@@ -24,10 +24,9 @@ public sealed class GovernedPolicyEngine : IPolicyEngine, IDisposable
 {
     private readonly IPolicyEngine _innerEngine;
     private readonly IPolicyLog _policyLog;
-    private readonly IPolicySigner _signer;
     private readonly bool _verifyOnStartup;
-    private bool _chainVerified;
-    private bool _disposed;
+    private volatile bool _chainVerified;
+    private volatile bool _disposed;
 
     /// <summary>
     /// Creates a governed policy engine wrapping the specified engine.
@@ -45,7 +44,7 @@ public sealed class GovernedPolicyEngine : IPolicyEngine, IDisposable
     {
         _innerEngine = innerEngine ?? throw new ArgumentNullException(nameof(innerEngine));
         _policyLog = policyLog ?? throw new ArgumentNullException(nameof(policyLog));
-        _signer = signer ?? throw new ArgumentNullException(nameof(signer));
+        if (signer is null) throw new ArgumentNullException(nameof(signer));
         _verifyOnStartup = verifyOnStartup;
 
         LoadPoliciesFromLog();
@@ -174,6 +173,8 @@ public sealed class GovernedPolicyEngine : IPolicyEngine, IDisposable
         if (_disposed) return;
         if (_policyLog is IDisposable disposableLog)
             disposableLog.Dispose();
+        if (_innerEngine is IDisposable disposableEngine)
+            disposableEngine.Dispose();
         _disposed = true;
     }
 }

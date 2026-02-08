@@ -409,6 +409,12 @@ Built with acorns and sarcasm by developers who've had enough.
 💬 **Share your weirdest squirrel pun** in the discussions
 
 
+## 📋 Changelog
+
+See [wiki/CHANGELOG.md](wiki/CHANGELOG.md) for version history and release notes.
+
+---
+
 ## 🧾 License
 
 AcornDB is **source-available** software provided by [Anadak LLC](https://www.anadak.ai).

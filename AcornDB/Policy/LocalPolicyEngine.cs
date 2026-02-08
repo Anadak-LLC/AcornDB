@@ -28,7 +28,7 @@ namespace AcornDB.Policy
         private readonly ConcurrentDictionary<string, CachedEvaluationResult> _evaluationCache;
         private readonly LocalPolicyEngineOptions _options;
         private readonly IPolicyLog? _policyLog;
-        private volatile int _policyVersion; // Incremented on policy change to invalidate cache
+        private int _policyVersion; // Incremented on policy change to invalidate cache (via Interlocked)
 
         /// <summary>
         /// Event raised when a policy is evaluated. Extensions can subscribe to this for logging, auditing, etc.
@@ -376,7 +376,7 @@ namespace AcornDB.Policy
         /// </summary>
         private void InvalidateCache()
         {
-            _policyVersion++;
+            Interlocked.Increment(ref _policyVersion);
             _evaluationCache.Clear();
         }
 

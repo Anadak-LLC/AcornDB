@@ -1,5 +1,4 @@
 using System;
-using System.Security.Cryptography;
 using NSec.Cryptography;
 
 namespace AcornDB.Security;

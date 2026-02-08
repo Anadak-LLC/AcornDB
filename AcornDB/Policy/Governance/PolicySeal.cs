@@ -1,4 +1,5 @@
 using System;
+using System.Security.Cryptography;
 using System.Text;
 using AcornDB.Security;
 using Newtonsoft.Json;
@@ -98,15 +99,10 @@ public sealed record PolicySeal
     /// </summary>
     internal bool PreviousHashMatches(byte[] expectedPreviousHash)
     {
-        if (expectedPreviousHash.Length != _previousHash.Length)
+        if (expectedPreviousHash is null || expectedPreviousHash.Length != _previousHash.Length)
             return false;
 
-        for (var i = 0; i < _previousHash.Length; i++)
-        {
-            if (_previousHash[i] != expectedPreviousHash[i])
-                return false;
-        }
-        return true;
+        return CryptographicOperations.FixedTimeEquals(_previousHash, expectedPreviousHash);
     }
 
     /// <summary>

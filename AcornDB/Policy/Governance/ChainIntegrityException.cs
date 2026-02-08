@@ -6,7 +6,7 @@ namespace AcornDB.Policy.Governance;
 /// Exception thrown when the policy chain integrity verification fails.
 /// Indicates potential tampering or corruption in the governance ledger.
 /// </summary>
-public class ChainIntegrityException : Exception
+public sealed class ChainIntegrityException : Exception
 {
     /// <summary>
     /// Index where the chain integrity was broken (if known).

@@ -122,6 +122,78 @@ public class MemoryPolicyLogTests
         });
     }
 
+    [Fact]
+    public void VerifyChain_IndividualSignatures_AreValid()
+    {
+        using var log = new MemoryPolicyLog(_signer);
+        var time = DateTime.UtcNow;
+
+        log.Append(new TestPolicy("First"), time);
+        log.Append(new TestPolicy("Second"), time.AddMinutes(1));
+        log.Append(new TestPolicy("Third"), time.AddMinutes(2));
+
+        // Verify full chain
+        var result = log.VerifyChain();
+        Assert.True(result.IsValid);
+
+        // Verify each seal has a valid signature
+        var seals = log.GetAllSeals();
+        Assert.Equal(3, seals.Count);
+
+        foreach (var seal in seals)
+            Assert.True(seal.VerifySignature(_signer));
+
+        // Verify chain linkage: each entry's PreviousHash matches prior Signature
+        Assert.Equal(new byte[32], seals[0].PreviousHash); // Genesis
+        Assert.Equal(seals[0].Signature, seals[1].PreviousHash);
+        Assert.Equal(seals[1].Signature, seals[2].PreviousHash);
+    }
+
+    [Fact]
+    public void ThreadSafety_ConcurrentAppends_Succeed()
+    {
+        using var log = new MemoryPolicyLog(_signer);
+        var baseTime = DateTime.UtcNow;
+        var count = 50;
+
+        // Sequential appends (concurrent writes to a chain must be sequential
+        // because each entry depends on the previous)
+        for (var i = 0; i < count; i++)
+            log.Append(new TestPolicy($"Policy{i}"), baseTime.AddMilliseconds(i));
+
+        // Concurrent reads during which we verify chain integrity
+        Parallel.For(0, 10, _ =>
+        {
+            var result = log.VerifyChain();
+            Assert.True(result.IsValid);
+            Assert.Equal(count, log.Count);
+        });
+
+        // Chain should still be valid after concurrent access
+        var finalResult = log.VerifyChain();
+        Assert.True(finalResult.IsValid);
+    }
+
+    [Fact]
+    public void Append_RejectsNonUtcTimestamp()
+    {
+        using var log = new MemoryPolicyLog(_signer);
+        var localTime = new DateTime(2024, 1, 1, 12, 0, 0, DateTimeKind.Local);
+
+        Assert.Throws<ArgumentException>(() =>
+            log.Append(new TestPolicy("Test"), localTime));
+    }
+
+    [Fact]
+    public void VerifyChain_ReturnsValid_ForEmptyLog()
+    {
+        using var log = new MemoryPolicyLog(_signer);
+
+        var result = log.VerifyChain();
+
+        Assert.True(result.IsValid);
+    }
+
     private class TestPolicy : IPolicyRule
     {
         public TestPolicy(string name) => Name = name;

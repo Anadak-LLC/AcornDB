@@ -13,6 +13,9 @@ namespace AcornDB.Policy.Governance;
 /// </remarks>
 public sealed record MerkleProof
 {
+    private readonly byte[] _leafHash;
+    private readonly byte[] _rootHash;
+
     /// <summary>
     /// The index of the leaf being proven.
     /// </summary>
@@ -21,7 +24,7 @@ public sealed record MerkleProof
     /// <summary>
     /// The hash of the leaf being proven.
     /// </summary>
-    public byte[] LeafHash { get; }
+    public byte[] LeafHash => (byte[])_leafHash.Clone();
 
     /// <summary>
     /// Sibling hashes from leaf to root. Each entry indicates if it's a left sibling.
@@ -31,7 +34,7 @@ public sealed record MerkleProof
     /// <summary>
     /// The expected root hash for verification.
     /// </summary>
-    public byte[] RootHash { get; }
+    public byte[] RootHash => (byte[])_rootHash.Clone();
 
     /// <summary>
     /// Creates a new Merkle proof.
@@ -43,9 +46,9 @@ public sealed record MerkleProof
     public MerkleProof(int leafIndex, byte[] leafHash, IReadOnlyList<(byte[] Hash, bool IsLeft)> siblings, byte[] rootHash)
     {
         LeafIndex = leafIndex;
-        LeafHash = (byte[])leafHash.Clone();
+        _leafHash = (byte[])leafHash.Clone();
         Siblings = siblings;
-        RootHash = (byte[])rootHash.Clone();
+        _rootHash = (byte[])rootHash.Clone();
     }
 
     /// <summary>
@@ -54,7 +57,7 @@ public sealed record MerkleProof
     /// <returns>True if the proof is valid.</returns>
     public bool Verify()
     {
-        var currentHash = LeafHash;
+        var currentHash = (byte[])_leafHash.Clone();
 
         foreach (var (siblingHash, isLeft) in Siblings)
         {
@@ -63,6 +66,6 @@ public sealed record MerkleProof
                 : MerkleTree.HashPair(currentHash, siblingHash);
         }
 
-        return MerkleTree.HashesEqual(currentHash, RootHash);
+        return MerkleTree.HashesEqual(currentHash, _rootHash);
     }
 }
