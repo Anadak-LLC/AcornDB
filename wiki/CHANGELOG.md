@@ -5,41 +5,41 @@
 ### Major Features
 
 #### 🔐 Security Policy Engine
-Hash-chained governance ledger with cryptographic verification for tamper-evident policy management.
+Policy rules can now be sealed into a hash-chained governance ledger, so tampering leaves visible cracks in the chain.
 
 **New Components:**
 - `IPolicyLog` - Append-only, hash-chained policy storage interface
-- `MemoryPolicyLog` - In-memory implementation with thread-safe operations
-- `FilePolicyLog` - File-based implementation with crash recovery (JSON Lines format)
+- `MemoryPolicyLog` - Thread-safe in-memory ledger implementation
+- `FilePolicyLog` - Durable file-backed ledger with crash recovery (JSON Lines format)
 - `PolicySeal` - Immutable, cryptographically sealed policy record
-- `ChainValidationResult` - Result type for chain integrity verification
-- `ChainIntegrityException` - Exception thrown when hash chain is broken
+- `ChainValidationResult` - Chain integrity verification result
+- `ChainIntegrityException` - Exception raised when the chain is broken
 
 #### 🛡️ Cryptographic Infrastructure
-- `IPolicySigner` - Interface for cryptographic signature operations
-- `Sha256PolicySigner` - SHA-256 hash-based signer using `System.Security.Cryptography`
-- `Ed25519PolicySigner` - Ed25519 signature signer via NSec library
+- `IPolicySigner` - Interface for signature and seal verification operations
+- `Sha256PolicySigner` - SHA-256 signer using `System.Security.Cryptography`
+- `Ed25519PolicySigner` - Ed25519 signer via the NSec library
 
 #### 📊 Advanced Features
-- `MerkleTree` - Efficient Merkle tree for proof generation
+- `MerkleTree` - Merkle tree support for efficient proof generation
 - `MerkleProof` - Proof structure for verifying policy existence
-- `PolicyLogMetrics` - Performance metrics tracking for policy operations
+- `PolicyLogMetrics` - Metrics for append, verify, and cache behavior
 - Policy evaluation caching with configurable TTL
 
 ### Integration
-- `LocalPolicyEngine` extended to load policies from `IPolicyLog`
-- `PolicyEnforcementRoot` extended with chain verification on operations
-- `RootProcessingContext` added `ChainState` property for validation state
+- `LocalPolicyEngine` now loads policies from `IPolicyLog`
+- `PolicyEnforcementRoot` now verifies chain integrity during operations
+- `RootProcessingContext` now includes `ChainState` for validation status
 
 ### Security
-- Timing attack prevention using `CryptographicOperations.FixedTimeEquals()`
+- Timing-safe comparison via `CryptographicOperations.FixedTimeEquals()`
 - Constant-time signature comparison in all signers
-- Input validation on all public API methods
-- Fail-closed behavior on chain validation errors
+- Input validation across all public API methods
+- Fail-closed behavior when chain validation fails
 
 ### Documentation
-- Added `wiki/SECURITY_POLICY_ENGINE.md` - Comprehensive guide
-- Updated `wiki/Concepts.md` - Added PolicyLog, PolicySeal, IPolicySigner terms
+- Added `wiki/SECURITY_POLICY_ENGINE.md` - Guide to sealing, verifying, and auditing policies
+- Updated `wiki/Concepts.md` - Added `PolicyLog`, `PolicySeal`, and `IPolicySigner`
 
 ---
 
