@@ -12,3 +12,6 @@ obj/
 /SolutionFiles
 /nupkgs
 /nupkg
+
+# Strong name key files (generate locally, do not commit)
+*.snk

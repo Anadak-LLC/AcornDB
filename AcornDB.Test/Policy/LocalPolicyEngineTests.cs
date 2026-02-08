@@ -227,4 +227,118 @@ namespace AcornDB.Test.Policy
             return PolicyEvaluationResult.Success($"{_name} executed");
         }
     }
+
+    /// <summary>
+    /// Tests for GAP-003: Policy evaluation caching.
+    /// </summary>
+    public class LocalPolicyEngineCacheTests
+    {
+        [Fact]
+        public void Validate_WithCacheEnabled_ReturnsCachedResult()
+        {
+            // Arrange
+            var options = new LocalPolicyEngineOptions { EnableEvaluationCache = true };
+            var engine = new LocalPolicyEngine(options);
+            var entity = new TestEntity { Id = "test-1" };
+
+            // Act - first call populates cache
+            var result1 = engine.Validate(entity);
+            var (cacheSize1, version1) = engine.GetCacheStats();
+
+            // Act - second call should use cache
+            var result2 = engine.Validate(entity);
+            var (cacheSize2, version2) = engine.GetCacheStats();
+
+            // Assert
+            Assert.True(result1.IsValid);
+            Assert.True(result2.IsValid);
+            Assert.Equal(1, cacheSize1);
+            Assert.Equal(1, cacheSize2); // Same cache entry reused
+            Assert.Equal(version1, version2);
+        }
+
+        [Fact]
+        public void RegisterPolicy_InvalidatesCache()
+        {
+            // Arrange
+            var options = new LocalPolicyEngineOptions { EnableEvaluationCache = true };
+            var engine = new LocalPolicyEngine(options);
+            var entity = new TestEntity { Id = "test-1" };
+
+            // Populate cache
+            engine.Validate(entity);
+            var (cacheSize1, version1) = engine.GetCacheStats();
+
+            // Act - register new policy
+            engine.RegisterPolicy(new TestCustomPolicy());
+            var (cacheSize2, version2) = engine.GetCacheStats();
+
+            // Assert
+            Assert.Equal(1, cacheSize1);
+            Assert.Equal(0, cacheSize2); // Cache cleared
+            Assert.Equal(version1 + 1, version2); // Version incremented
+        }
+
+        [Fact]
+        public void UnregisterPolicy_InvalidatesCache()
+        {
+            // Arrange
+            var options = new LocalPolicyEngineOptions { EnableEvaluationCache = true };
+            var engine = new LocalPolicyEngine(options);
+            var customPolicy = new TestCustomPolicy();
+            engine.RegisterPolicy(customPolicy);
+            var entity = new TestEntity { Id = "test-1" };
+
+            // Populate cache
+            engine.Validate(entity);
+            var (_, version1) = engine.GetCacheStats();
+
+            // Act - unregister policy
+            engine.UnregisterPolicy(customPolicy.Name);
+            var (cacheSize2, version2) = engine.GetCacheStats();
+
+            // Assert
+            Assert.Equal(0, cacheSize2); // Cache cleared
+            Assert.True(version2 > version1); // Version incremented
+        }
+
+        [Fact]
+        public void Validate_WithCacheDisabled_DoesNotCache()
+        {
+            // Arrange
+            var options = new LocalPolicyEngineOptions { EnableEvaluationCache = false };
+            var engine = new LocalPolicyEngine(options);
+            var entity = new TestEntity { Id = "test-1" };
+
+            // Act
+            engine.Validate(entity);
+            engine.Validate(entity);
+            var (cacheSize, _) = engine.GetCacheStats();
+
+            // Assert
+            Assert.Equal(0, cacheSize);
+        }
+
+        [Fact]
+        public void ClearCache_EmptiesCache()
+        {
+            // Arrange
+            var options = new LocalPolicyEngineOptions { EnableEvaluationCache = true };
+            var engine = new LocalPolicyEngine(options);
+            var entity = new TestEntity { Id = "test-1" };
+            engine.Validate(entity);
+
+            // Act
+            engine.ClearCache();
+            var (cacheSize, _) = engine.GetCacheStats();
+
+            // Assert
+            Assert.Equal(0, cacheSize);
+        }
+
+        private class TestEntity
+        {
+            public string Id { get; set; } = "";
+        }
+    }
 }
