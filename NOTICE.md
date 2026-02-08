@@ -41,6 +41,31 @@ If you redistribute or reference this software, please include the following:
     "Powered by AcornDB — a project by Anadak LLC (https://www.anadakcorp.com)"
 
 -------------------------------------------------------------------------------
+Strong Name Signing
+-------------------------------------------------------------------------------
+
+AcornDB uses strong name signing for assembly identity. The key file is not
+committed to source control and must be generated locally.
+
+**To generate the key file:**
+
+```bash
+cd AcornDB
+sn -k AcornDBKey.snk
+```
+
+Or on .NET Core / .NET 5+:
+
+```bash
+dotnet tool install -g dotnet-sn
+dotnet-sn -k AcornDB/AcornDBKey.snk
+```
+
+**Note**: The project uses `PublicSign=true` for delay signing, which allows
+building without the private key for most scenarios. Full signing is only
+required for GAC deployment or when referenced by other strong-named assemblies.
+
+-------------------------------------------------------------------------------
 Trademark Notice
 -------------------------------------------------------------------------------
 
