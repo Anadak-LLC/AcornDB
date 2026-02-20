@@ -1,6 +1,7 @@
 using System;
 using AcornDB.Logging;
 using System.Text;
+using AcornDB.Models;
 using AcornDB.Policy;
 using AcornDB.Storage.Serialization;
 
@@ -28,13 +29,13 @@ namespace AcornDB.Storage.Roots
         public PolicyEnforcementMetrics Metrics => _metrics;
 
         public PolicyEnforcementRoot(
-            IPolicyEngine policyEngine,
+            IPolicyEngine? policyEngine = null,
             ISerializer? serializer = null,
             int sequence = 10,
             PolicyEnforcementOptions? options = null)
         {
-            _policyEngine = policyEngine ?? throw new ArgumentNullException(nameof(policyEngine));
-            _serializer = serializer ?? new NewtonsoftJsonSerializer();
+            _policyEngine = policyEngine ?? AcornDefaults.PolicyEngine;
+            _serializer = serializer ?? AcornDefaults.Serializer;
             Sequence = sequence;
             _options = options ?? new PolicyEnforcementOptions();
             _metrics = new PolicyEnforcementMetrics();

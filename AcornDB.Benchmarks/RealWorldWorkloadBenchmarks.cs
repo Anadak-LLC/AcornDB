@@ -121,7 +121,7 @@ namespace AcornDB.Benchmarks
         {
             var dir = Path.Combine(_tempDir, subdirName);
             Directory.CreateDirectory(dir);
-            var trunk = new BTreeTrunk<T>(dir);
+            var trunk = new BitcaskTrunk<T>(dir);
             var tree = new Tree<T>(trunk);
             tree.TtlEnforcementEnabled = false;
             tree.CacheEvictionEnabled = false;

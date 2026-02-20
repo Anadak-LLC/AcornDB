@@ -12,3 +12,4 @@ obj/
 /SolutionFiles
 /nupkgs
 /nupkg
+BenchmarkDotNet.Artifacts/

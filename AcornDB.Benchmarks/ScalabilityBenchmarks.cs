@@ -25,7 +25,7 @@ namespace AcornDB.Benchmarks
     [SimpleJob(warmupCount: 1, iterationCount: 3)] // Reduced iterations for large datasets
     public class ScalabilityBenchmarks
     {
-        private BTreeTrunk<TestDocument>? _btreeTrunk;
+        private BitcaskTrunk<TestDocument>? _btreeTrunk;
         private DocumentStoreTrunk<TestDocument>? _docStoreTrunk;
         private Tree<TestDocument>? _tree;
 
@@ -90,7 +90,7 @@ namespace AcornDB.Benchmarks
         public void ColdLoad_BTreeTrunk_Startup_Time()
         {
             var dir = Path.Combine(_tempDir, $"btree_cold_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Pre-populate and persist
@@ -104,7 +104,7 @@ namespace AcornDB.Benchmarks
 
             // Benchmark: Cold load from disk
             var sw = Stopwatch.StartNew();
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Force load by accessing count
@@ -165,7 +165,7 @@ namespace AcornDB.Benchmarks
         public void MemoryFootprint_BTreeTrunk_FullDataset()
         {
             var dir = Path.Combine(_tempDir, $"btree_mem_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             for (int i = 0; i < DatasetSize; i++)
@@ -387,7 +387,7 @@ namespace AcornDB.Benchmarks
         public void BulkInsert_Sequential_BTreeTrunk()
         {
             var dir = Path.Combine(_tempDir, $"btree_bulk_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             for (int i = 0; i < DatasetSize; i++)
@@ -447,7 +447,7 @@ namespace AcornDB.Benchmarks
         public void DiskSpace_BTreeTrunk_FullDataset()
         {
             var dir = Path.Combine(_tempDir, $"btree_disk_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             for (int i = 0; i < DatasetSize; i++)

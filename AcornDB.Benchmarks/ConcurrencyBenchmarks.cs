@@ -25,7 +25,7 @@ namespace AcornDB.Benchmarks
         private Tree<TestDocument>? _memoryTree;
         private Tree<TestDocument>? _btreeTree;
         private Tree<TestDocument>? _docStoreTree;
-        private BTreeTrunk<TestDocument>? _btreeTrunk;
+        private BitcaskTrunk<TestDocument>? _btreeTrunk;
         private DocumentStoreTrunk<TestDocument>? _docStoreTrunk;
 
         public class TestDocument
@@ -111,7 +111,7 @@ namespace AcornDB.Benchmarks
         public void Concurrent_Writes_BTreeTrunk()
         {
             var dir = Path.Combine(_tempDir, $"btree_writes_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTree = CreateTree(_btreeTrunk);
 
             var tasks = new Task[ThreadCount];
@@ -211,7 +211,7 @@ namespace AcornDB.Benchmarks
         public void Concurrent_Reads_BTreeTrunk_HighContention()
         {
             var dir = Path.Combine(_tempDir, $"btree_reads_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTree = CreateTree(_btreeTrunk);
 
             // Pre-populate
@@ -300,7 +300,7 @@ namespace AcornDB.Benchmarks
         public void Concurrent_Mixed_70Read_30Write_BTreeTrunk()
         {
             var dir = Path.Combine(_tempDir, $"btree_mixed_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTree = CreateTree(_btreeTrunk);
 
             // Pre-populate

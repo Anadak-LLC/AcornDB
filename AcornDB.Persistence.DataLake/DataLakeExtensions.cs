@@ -108,7 +108,7 @@ namespace AcornDB.Persistence.DataLake
             string coldPath,
             TieringOptions<T>? tieringOptions = null) where T : class
         {
-            var hotTrunk = new BTreeTrunk<T>(hotPath);
+            var hotTrunk = new BitcaskTrunk<T>(hotPath);
             var coldTrunk = new ParquetTrunk<T>(coldPath);
             return new TieredTrunk<T>(hotTrunk, coldTrunk, tieringOptions);
         }

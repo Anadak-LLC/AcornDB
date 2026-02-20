@@ -13,7 +13,7 @@ namespace AcornDB.Benchmarks
     [SimpleJob(warmupCount: 2, iterationCount: 5)]
     public class DurabilityBenchmarks
     {
-        private BTreeTrunk<TestDocument>? _btreeTrunk;
+        private BitcaskTrunk<TestDocument>? _btreeTrunk;
         private DocumentStoreTrunk<TestDocument>? _docStoreTrunk;
         private FileTrunk<TestDocument>? _fileTrunk;
         private Tree<TestDocument>? _tree;
@@ -79,7 +79,7 @@ namespace AcornDB.Benchmarks
         public void Persistence_BTreeTrunk_Write_Then_Reload()
         {
             var dir = Path.Combine(_tempDir, $"btree_persist_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Write phase
@@ -93,7 +93,7 @@ namespace AcornDB.Benchmarks
             _btreeTrunk.Dispose();
 
             // Reload phase
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Verify all data present
@@ -169,7 +169,7 @@ namespace AcornDB.Benchmarks
         public void CrashRecovery_BTreeTrunk_ColdStart()
         {
             var dir = Path.Combine(_tempDir, $"btree_crash_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Pre-populate
@@ -182,7 +182,7 @@ namespace AcornDB.Benchmarks
 
             // Simulate crash recovery: measure cold start time
             var sw = Stopwatch.StartNew();
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Verify data integrity
@@ -240,7 +240,7 @@ namespace AcornDB.Benchmarks
         public void IncrementalUpdates_BTreeTrunk_WithReload()
         {
             var dir = Path.Combine(_tempDir, $"btree_incremental_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Initial load
@@ -252,7 +252,7 @@ namespace AcornDB.Benchmarks
             _btreeTrunk.Dispose();
 
             // Incremental updates
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             for (int i = 0; i < DocumentCount / 10; i++)
@@ -265,7 +265,7 @@ namespace AcornDB.Benchmarks
             _btreeTrunk.Dispose();
 
             // Reload and verify
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             var updated = _tree.Crack("doc-0");
@@ -328,7 +328,7 @@ namespace AcornDB.Benchmarks
         public void BulkDelete_BTreeTrunk_WithReload()
         {
             var dir = Path.Combine(_tempDir, $"btree_delete_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Pre-populate
@@ -340,7 +340,7 @@ namespace AcornDB.Benchmarks
             _btreeTrunk.Dispose();
 
             // Delete 50%
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             for (int i = 0; i < DocumentCount / 2; i++)
@@ -351,7 +351,7 @@ namespace AcornDB.Benchmarks
             _btreeTrunk.Dispose();
 
             // Reload and verify
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             var count = _tree.NutCount;
@@ -425,7 +425,7 @@ namespace AcornDB.Benchmarks
         public void Durability_BTreeTrunk_ImmediatePersistence()
         {
             var dir = Path.Combine(_tempDir, $"btree_immediate_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Writes are immediately persisted to memory-mapped files
@@ -477,7 +477,7 @@ namespace AcornDB.Benchmarks
         public void ConcurrentWrites_BTreeTrunk_Durability()
         {
             var dir = Path.Combine(_tempDir, $"btree_concurrent_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Concurrent writes (thread-safe persistence)
@@ -499,7 +499,7 @@ namespace AcornDB.Benchmarks
             _btreeTrunk.Dispose();
 
             // Verify persistence
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             var count = _tree.NutCount;
@@ -557,7 +557,7 @@ namespace AcornDB.Benchmarks
         public void DataIntegrity_BTreeTrunk_FullVerification()
         {
             var dir = Path.Combine(_tempDir, $"btree_integrity_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             // Write with known values
@@ -569,7 +569,7 @@ namespace AcornDB.Benchmarks
             _btreeTrunk.Dispose();
 
             // Reload and verify every document
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             for (int i = 0; i < DocumentCount; i++)

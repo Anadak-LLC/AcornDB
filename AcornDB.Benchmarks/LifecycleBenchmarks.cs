@@ -75,7 +75,7 @@ namespace AcornDB.Benchmarks
             var dir = Path.Combine(_tempDir, $"btree_empty_{Guid.NewGuid()}");
             var sw = Stopwatch.StartNew();
 
-            var trunk = new BTreeTrunk<TestDocument>(dir);
+            var trunk = new BitcaskTrunk<TestDocument>(dir);
             var tree = new Tree<TestDocument>(trunk);
 
             sw.Stop();
@@ -91,7 +91,7 @@ namespace AcornDB.Benchmarks
             var dir = Path.Combine(_tempDir, $"btree_existing_{Guid.NewGuid()}");
 
             // Pre-populate data
-            var setupTrunk = new BTreeTrunk<TestDocument>(dir);
+            var setupTrunk = new BitcaskTrunk<TestDocument>(dir);
             var setupTree = new Tree<TestDocument>(setupTrunk);
             for (int i = 0; i < DatasetSize; i++)
             {
@@ -102,7 +102,7 @@ namespace AcornDB.Benchmarks
             // Benchmark: Cold start with existing data
             var sw = Stopwatch.StartNew();
 
-            var trunk = new BTreeTrunk<TestDocument>(dir);
+            var trunk = new BitcaskTrunk<TestDocument>(dir);
             var tree = new Tree<TestDocument>(trunk);
 
             // Force data load
@@ -207,7 +207,7 @@ namespace AcornDB.Benchmarks
         public void Shutdown_BTreeTrunk_CleanDispose()
         {
             var dir = Path.Combine(_tempDir, $"btree_shutdown_{Guid.NewGuid()}");
-            var trunk = new BTreeTrunk<TestDocument>(dir);
+            var trunk = new BitcaskTrunk<TestDocument>(dir);
             var tree = new Tree<TestDocument>(trunk);
 
             // Populate
@@ -270,7 +270,7 @@ namespace AcornDB.Benchmarks
             var dir = Path.Combine(_tempDir, $"btree_firstwrite_{Guid.NewGuid()}");
 
             // Cold start
-            var trunk = new BTreeTrunk<TestDocument>(dir);
+            var trunk = new BitcaskTrunk<TestDocument>(dir);
             var tree = new Tree<TestDocument>(trunk);
 
             // Benchmark: First write (lazy initialization overhead)
@@ -314,7 +314,7 @@ namespace AcornDB.Benchmarks
             // Simulate serverless: start, write, stop, repeat
             for (int cycle = 0; cycle < 10; cycle++)
             {
-                var trunk = new BTreeTrunk<TestDocument>(dir);
+                var trunk = new BitcaskTrunk<TestDocument>(dir);
                 var tree = new Tree<TestDocument>(trunk);
 
                 // Quick operation
@@ -369,7 +369,7 @@ namespace AcornDB.Benchmarks
             var dir = Path.Combine(_tempDir, $"btree_warmcache_{Guid.NewGuid()}");
 
             // Pre-populate
-            var setupTrunk = new BTreeTrunk<TestDocument>(dir);
+            var setupTrunk = new BitcaskTrunk<TestDocument>(dir);
             var setupTree = new Tree<TestDocument>(setupTrunk);
             for (int i = 0; i < DatasetSize; i++)
             {
@@ -378,7 +378,7 @@ namespace AcornDB.Benchmarks
             setupTrunk.Dispose();
 
             // Cold start
-            var trunk = new BTreeTrunk<TestDocument>(dir);
+            var trunk = new BitcaskTrunk<TestDocument>(dir);
             var tree = new Tree<TestDocument>(trunk, new AcornDB.Cache.LRUCacheStrategy<TestDocument>(1000));
             tree.CacheEvictionEnabled = true;
 
@@ -405,7 +405,7 @@ namespace AcornDB.Benchmarks
             var dir = Path.Combine(_tempDir, $"btree_ttfq_{Guid.NewGuid()}");
 
             // Pre-populate
-            var setupTrunk = new BTreeTrunk<TestDocument>(dir);
+            var setupTrunk = new BitcaskTrunk<TestDocument>(dir);
             var setupTree = new Tree<TestDocument>(setupTrunk);
             for (int i = 0; i < DatasetSize; i++)
             {
@@ -416,7 +416,7 @@ namespace AcornDB.Benchmarks
             // Benchmark: Cold start + first query
             var sw = Stopwatch.StartNew();
 
-            var trunk = new BTreeTrunk<TestDocument>(dir);
+            var trunk = new BitcaskTrunk<TestDocument>(dir);
             var tree = new Tree<TestDocument>(trunk);
 
             var doc = tree.Crack("doc-0");
@@ -481,7 +481,7 @@ namespace AcornDB.Benchmarks
             var dir = Path.Combine(_tempDir, $"btree_lazy_{Guid.NewGuid()}");
 
             // Pre-populate
-            var setupTrunk = new BTreeTrunk<TestDocument>(dir);
+            var setupTrunk = new BitcaskTrunk<TestDocument>(dir);
             var setupTree = new Tree<TestDocument>(setupTrunk);
             for (int i = 0; i < DatasetSize; i++)
             {
@@ -492,7 +492,7 @@ namespace AcornDB.Benchmarks
             // Benchmark: Lazy load (initialization deferred until first access)
             var sw = Stopwatch.StartNew();
 
-            var trunk = new BTreeTrunk<TestDocument>(dir);
+            var trunk = new BitcaskTrunk<TestDocument>(dir);
             var tree = new Tree<TestDocument>(trunk);
 
             // No data accessed yet - lazy initialization
@@ -508,7 +508,7 @@ namespace AcornDB.Benchmarks
         {
             var dir = Path.Combine(_tempDir, $"btree_eager_{Guid.NewGuid()}");
 
-            var setupTrunk = new BTreeTrunk<TestDocument>(dir);
+            var setupTrunk = new BitcaskTrunk<TestDocument>(dir);
             var setupTree = new Tree<TestDocument>(setupTrunk);
             for (int i = 0; i < DatasetSize; i++)
             {
@@ -519,7 +519,7 @@ namespace AcornDB.Benchmarks
             // Benchmark: Eager load (force all data to load immediately)
             var sw = Stopwatch.StartNew();
 
-            var trunk = new BTreeTrunk<TestDocument>(dir);
+            var trunk = new BitcaskTrunk<TestDocument>(dir);
             var tree = new Tree<TestDocument>(trunk);
 
             // Force eager load
@@ -542,7 +542,7 @@ namespace AcornDB.Benchmarks
 
             // Simulate unclean shutdown (no Dispose)
             {
-                var trunk = new BTreeTrunk<TestDocument>(dir);
+                var trunk = new BitcaskTrunk<TestDocument>(dir);
                 var tree = new Tree<TestDocument>(trunk);
                 for (int i = 0; i < DatasetSize; i++)
                 {
@@ -554,7 +554,7 @@ namespace AcornDB.Benchmarks
             // Benchmark: Recovery from unclean shutdown
             var sw = Stopwatch.StartNew();
 
-            var recoveryTrunk = new BTreeTrunk<TestDocument>(dir);
+            var recoveryTrunk = new BitcaskTrunk<TestDocument>(dir);
             var recoveryTree = new Tree<TestDocument>(recoveryTrunk);
 
             var count = recoveryTree.NutCount;

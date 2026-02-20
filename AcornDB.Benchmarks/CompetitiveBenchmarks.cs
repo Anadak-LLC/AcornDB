@@ -86,10 +86,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 for (int i = 0; i < DocumentCount; i++)
@@ -121,10 +121,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -160,10 +160,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -204,10 +204,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -243,10 +243,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Insert 50%
@@ -299,10 +299,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -336,10 +336,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -442,10 +442,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_btree_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 for (int i = 0; i < DocumentCount; i++)
@@ -474,10 +474,10 @@ namespace AcornDB.Benchmarks
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_btree_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BTreeTrunk<TestDocument>? trunk = null;
+            BitcaskTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BTreeTrunk<TestDocument>(dataDir);
+                trunk = new BitcaskTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate

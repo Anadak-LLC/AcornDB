@@ -14,7 +14,7 @@ namespace AcornDB.Benchmarks
     public class CacheEffectivenessBenchmarks
     {
         private Tree<TestDocument>? _tree;
-        private BTreeTrunk<TestDocument>? _btreeTrunk;
+        private BitcaskTrunk<TestDocument>? _btreeTrunk;
 
         public class TestDocument
         {
@@ -76,7 +76,7 @@ namespace AcornDB.Benchmarks
         {
             // Simulate 90% of reads from 10% of data (hot spot pattern)
             var dir = Path.Combine(_tempDir, $"cache_hotspot_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -117,7 +117,7 @@ namespace AcornDB.Benchmarks
         {
             // Uniform random access (worst case for caching)
             var dir = Path.Combine(_tempDir, $"cache_uniform_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -147,7 +147,7 @@ namespace AcornDB.Benchmarks
         {
             // Sequential access pattern (sliding window)
             var dir = Path.Combine(_tempDir, $"cache_sequential_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -176,7 +176,7 @@ namespace AcornDB.Benchmarks
         {
             // Zipf distribution (realistic: some items very popular, long tail)
             var dir = Path.Combine(_tempDir, $"cache_zipf_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -208,7 +208,7 @@ namespace AcornDB.Benchmarks
         public void NoCache_Random_Reads()
         {
             var dir = Path.Combine(_tempDir, $"nocache_random_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = new Tree<TestDocument>(_btreeTrunk);
             _tree.CacheEvictionEnabled = false;
             _tree.TtlEnforcementEnabled = false;
@@ -236,7 +236,7 @@ namespace AcornDB.Benchmarks
         public void WithCache_Random_Reads()
         {
             var dir = Path.Combine(_tempDir, $"cache_random_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -264,7 +264,7 @@ namespace AcornDB.Benchmarks
         public void NoCache_HotSpot_Reads()
         {
             var dir = Path.Combine(_tempDir, $"nocache_hotspot_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = new Tree<TestDocument>(_btreeTrunk);
             _tree.CacheEvictionEnabled = false;
             _tree.TtlEnforcementEnabled = false;
@@ -294,7 +294,7 @@ namespace AcornDB.Benchmarks
         public void WithCache_HotSpot_Reads()
         {
             var dir = Path.Combine(_tempDir, $"cache_hotspot_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -326,7 +326,7 @@ namespace AcornDB.Benchmarks
         public void CacheEviction_LRU_Overhead()
         {
             var dir = Path.Combine(_tempDir, $"eviction_lru_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -351,7 +351,7 @@ namespace AcornDB.Benchmarks
         public void CacheEviction_NoEviction_Strategy()
         {
             var dir = Path.Combine(_tempDir, $"eviction_none_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = new Tree<TestDocument>(_btreeTrunk);
             _tree.CacheEvictionEnabled = false; // Unlimited cache
             _tree.TtlEnforcementEnabled = false;
@@ -380,7 +380,7 @@ namespace AcornDB.Benchmarks
         public void MemoryFootprint_SmallCache()
         {
             var dir = Path.Combine(_tempDir, $"mem_small_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, 100); // Small cache
 
             for (int i = 0; i < DatasetSize; i++)
@@ -399,7 +399,7 @@ namespace AcornDB.Benchmarks
         public void MemoryFootprint_LargeCache()
         {
             var dir = Path.Combine(_tempDir, $"mem_large_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, DatasetSize); // Cache entire dataset
 
             for (int i = 0; i < DatasetSize; i++)
@@ -419,7 +419,7 @@ namespace AcornDB.Benchmarks
         public void WriteThrough_WithCache()
         {
             var dir = Path.Combine(_tempDir, $"write_cache_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Writes update both cache and disk
@@ -438,7 +438,7 @@ namespace AcornDB.Benchmarks
         public void WriteThrough_NoCache()
         {
             var dir = Path.Combine(_tempDir, $"write_nocache_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = new Tree<TestDocument>(_btreeTrunk);
             _tree.CacheEvictionEnabled = false;
             _tree.TtlEnforcementEnabled = false;
@@ -458,7 +458,7 @@ namespace AcornDB.Benchmarks
         public void CacheInvalidation_FrequentUpdates()
         {
             var dir = Path.Combine(_tempDir, $"invalidation_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -489,7 +489,7 @@ namespace AcornDB.Benchmarks
         public void CacheWarming_Preload_HotData()
         {
             var dir = Path.Combine(_tempDir, $"warming_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate
@@ -522,7 +522,7 @@ namespace AcornDB.Benchmarks
         public void MixedWorkload_70Read_30Write_WithCache()
         {
             var dir = Path.Combine(_tempDir, $"mixed_cache_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTreeWithCache(_btreeTrunk, CacheSize);
 
             // Pre-populate

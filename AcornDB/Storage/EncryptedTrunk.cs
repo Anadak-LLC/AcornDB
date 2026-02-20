@@ -3,6 +3,7 @@ using AcornDB.Logging;
 using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
+using AcornDB.Models;
 using AcornDB.Security;
 using AcornDB.Storage.Serialization;
 using Newtonsoft.Json;
@@ -63,7 +64,7 @@ namespace AcornDB.Storage
         {
             _innerTrunk = innerTrunk ?? throw new ArgumentNullException(nameof(innerTrunk));
             _encryption = encryption ?? throw new ArgumentNullException(nameof(encryption));
-            _serializer = serializer ?? new NewtonsoftJsonSerializer();
+            _serializer = serializer ?? AcornDefaults.Serializer;
         }
 
         public void Stash(string id, Nut<T> nut)

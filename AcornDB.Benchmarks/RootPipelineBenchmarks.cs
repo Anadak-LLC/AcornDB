@@ -22,7 +22,7 @@ namespace AcornDB.Benchmarks
     [SimpleJob(warmupCount: 3, iterationCount: 5)]
     public class RootPipelineBenchmarks
     {
-        private BTreeTrunk<TestDocument>? _btreeTrunk;
+        private BitcaskTrunk<TestDocument>? _btreeTrunk;
         private FileTrunk<TestDocument>? _fileTrunk;
         private Tree<TestDocument>? _tree;
 
@@ -88,7 +88,7 @@ namespace AcornDB.Benchmarks
         public void BTreeTrunk_NoRoots_Baseline()
         {
             var dir = Path.Combine(_tempDir, $"btree_baseline_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _tree = CreateTree(_btreeTrunk);
 
             var content = GenerateContent(DocumentSize);
@@ -115,7 +115,7 @@ namespace AcornDB.Benchmarks
         public void BTreeTrunk_WithCompression_Gzip()
         {
             var dir = Path.Combine(_tempDir, $"btree_gzip_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTrunk.AddRoot(new CompressionRoot(new GzipCompressionProvider(), sequence: 100));
             _tree = CreateTree(_btreeTrunk);
 
@@ -141,7 +141,7 @@ namespace AcornDB.Benchmarks
         public void BTreeTrunk_WithCompression_Brotli()
         {
             var dir = Path.Combine(_tempDir, $"btree_brotli_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTrunk.AddRoot(new CompressionRoot(new BrotliCompressionProvider(), sequence: 100));
             _tree = CreateTree(_btreeTrunk);
 
@@ -169,7 +169,7 @@ namespace AcornDB.Benchmarks
         public void BTreeTrunk_WithEncryption_AES256()
         {
             var dir = Path.Combine(_tempDir, $"btree_aes_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             var encryption = AesEncryptionProvider.FromPassword("benchmark-password", "benchmark-salt");
             _btreeTrunk.AddRoot(new EncryptionRoot(encryption, sequence: 200));
             _tree = CreateTree(_btreeTrunk);
@@ -198,7 +198,7 @@ namespace AcornDB.Benchmarks
         public void BTreeTrunk_WithCompressionAndEncryption()
         {
             var dir = Path.Combine(_tempDir, $"btree_both_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTrunk.AddRoot(new CompressionRoot(new GzipCompressionProvider(), sequence: 100));
             var encryption = AesEncryptionProvider.FromPassword("benchmark-password", "benchmark-salt");
             _btreeTrunk.AddRoot(new EncryptionRoot(encryption, sequence: 200));
@@ -277,7 +277,7 @@ namespace AcornDB.Benchmarks
         public void BTreeTrunk_Read_WithCompression()
         {
             var dir = Path.Combine(_tempDir, $"btree_read_gzip_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTrunk.AddRoot(new CompressionRoot(new GzipCompressionProvider(), sequence: 100));
             _tree = CreateTree(_btreeTrunk);
 
@@ -310,7 +310,7 @@ namespace AcornDB.Benchmarks
         public void BTreeTrunk_Read_WithEncryption()
         {
             var dir = Path.Combine(_tempDir, $"btree_read_aes_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             var encryption = AesEncryptionProvider.FromPassword("benchmark-password", "benchmark-salt");
             _btreeTrunk.AddRoot(new EncryptionRoot(encryption, sequence: 200));
             _tree = CreateTree(_btreeTrunk);
@@ -344,7 +344,7 @@ namespace AcornDB.Benchmarks
         public void BTreeTrunk_Read_WithCompressionAndEncryption()
         {
             var dir = Path.Combine(_tempDir, $"btree_read_both_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTrunk.AddRoot(new CompressionRoot(new GzipCompressionProvider(), sequence: 100));
             var encryption = AesEncryptionProvider.FromPassword("benchmark-password", "benchmark-salt");
             _btreeTrunk.AddRoot(new EncryptionRoot(encryption, sequence: 200));
@@ -381,7 +381,7 @@ namespace AcornDB.Benchmarks
         public void Compression_Ratio_Measurement_Gzip()
         {
             var dir = Path.Combine(_tempDir, $"ratio_gzip_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(dir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(dir);
             _btreeTrunk.AddRoot(new CompressionRoot(new GzipCompressionProvider(), sequence: 100));
             _tree = CreateTree(_btreeTrunk);
 

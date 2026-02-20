@@ -25,7 +25,7 @@ namespace AcornDB.Benchmarks
         private Tree<TestDocument>? _fileTree;
         private Tree<TestDocument>? _btreeTree;
         private Tree<TestDocument>? _docStoreTree;
-        private BTreeTrunk<TestDocument>? _btreeTrunk;
+        private BitcaskTrunk<TestDocument>? _btreeTrunk;
         private DocumentStoreTrunk<TestDocument>? _docStoreTrunk;
 
         public class TestDocument
@@ -118,7 +118,7 @@ namespace AcornDB.Benchmarks
         public void Sequential_Write_BTreeTrunk()
         {
             var btreeDir = Path.Combine(_tempDir, $"btree_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(btreeDir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(btreeDir);
             _btreeTree = CreateTree(_btreeTrunk);
 
             for (int i = 0; i < DocumentCount; i++)
@@ -225,7 +225,7 @@ namespace AcornDB.Benchmarks
         public void Random_Read_BTreeTrunk()
         {
             var btreeDir = Path.Combine(_tempDir, $"btree_read_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(btreeDir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(btreeDir);
             _btreeTree = CreateTree(_btreeTrunk);
 
             // Pre-populate
@@ -326,7 +326,7 @@ namespace AcornDB.Benchmarks
         public void Mixed_70Read_30Write_BTreeTrunk()
         {
             var btreeDir = Path.Combine(_tempDir, $"btree_mixed_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(btreeDir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(btreeDir);
             _btreeTree = CreateTree(_btreeTrunk);
 
             // Pre-populate
@@ -439,7 +439,7 @@ namespace AcornDB.Benchmarks
         public void Startup_Time_BTreeTrunk_ColdLoad()
         {
             var btreeDir = Path.Combine(_tempDir, $"btree_startup_{Guid.NewGuid()}");
-            var setupTrunk = new BTreeTrunk<TestDocument>(btreeDir);
+            var setupTrunk = new BitcaskTrunk<TestDocument>(btreeDir);
             var setupTree = CreateTree(setupTrunk);
 
             // Pre-populate
@@ -457,7 +457,7 @@ namespace AcornDB.Benchmarks
             setupTree = null;
 
             // Measure cold start
-            _btreeTrunk = new BTreeTrunk<TestDocument>(btreeDir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(btreeDir);
             _btreeTree = CreateTree(_btreeTrunk);
 
             _btreeTrunk?.Dispose();
@@ -527,7 +527,7 @@ namespace AcornDB.Benchmarks
         public void Update_Performance_BTreeTrunk()
         {
             var btreeDir = Path.Combine(_tempDir, $"btree_update_{Guid.NewGuid()}");
-            _btreeTrunk = new BTreeTrunk<TestDocument>(btreeDir);
+            _btreeTrunk = new BitcaskTrunk<TestDocument>(btreeDir);
             _btreeTree = CreateTree(_btreeTrunk);
 
             // Pre-populate

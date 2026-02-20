@@ -51,9 +51,9 @@ namespace AcornDB.Test
         }
 
         [Fact]
-        public void BTreeTrunk_Has_Correct_Capabilities()
+        public void BitcaskTrunk_Has_Correct_Capabilities()
         {
-            var trunk = new BTreeTrunk<string>($"data/test-{Guid.NewGuid():N}");
+            var trunk = new BitcaskTrunk<string>($"data/test-{Guid.NewGuid():N}");
             var caps = trunk.Capabilities;
 
             Assert.NotNull(caps);
@@ -61,7 +61,7 @@ namespace AcornDB.Test
             Assert.True(caps.SupportsSync);
             Assert.True(caps.IsDurable);
             Assert.False(caps.SupportsAsync);
-            Assert.Equal("BTreeTrunk", caps.TrunkType);
+            Assert.Equal("BitcaskTrunk", caps.TrunkType);
         }
 
         [Fact]

@@ -183,7 +183,7 @@ namespace AcornDB.Storage
         {
             // Serialize log entry to JSON (compact format for newline-delimited log)
             // Note: We do NOT apply roots to the log entries themselves - the log is an internal format
-            // Roots are only applied by individual trunk implementations (BTreeTrunk, FileTrunk) for their storage
+            // Roots are only applied by individual trunk implementations (BitcaskTrunk, FileTrunk) for their storage
             var json = JsonConvert.SerializeObject(entry, Formatting.None);
             var jsonByteCount = Encoding.UTF8.GetByteCount(json);
 

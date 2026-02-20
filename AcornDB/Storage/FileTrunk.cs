@@ -9,8 +9,8 @@ namespace AcornDB.Storage
 {
     /// <summary>
     /// Simple file-per-document trunk implementation.
-    /// NOTE: This architecture is inherently slow (2000-3000x slower than BTreeTrunk).
-    /// For performance-critical applications, use BTreeTrunk instead.
+    /// NOTE: This architecture is inherently slow (2000-3000x slower than BitcaskTrunk).
+    /// For performance-critical applications, use BitcaskTrunk instead.
     /// Supports extensible IRoot processors for compression, encryption, policy enforcement, etc.
     ///
     /// Storage Pipeline:

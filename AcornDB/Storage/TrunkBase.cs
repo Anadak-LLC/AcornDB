@@ -5,6 +5,7 @@ using System.Linq;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using AcornDB.Models;
 using AcornDB.Policy;
 using AcornDB.Storage.Serialization;
 
@@ -88,7 +89,7 @@ namespace AcornDB.Storage
             int batchThreshold = 100,
             int flushIntervalMs = 200)
         {
-            _serializer = serializer ?? new NewtonsoftJsonSerializer();
+            _serializer = serializer ?? AcornDefaults.Serializer;
             _batchThreshold = batchThreshold;
             _flushIntervalMs = flushIntervalMs;
 

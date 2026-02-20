@@ -18,6 +18,13 @@ namespace AcornDB.Benchmarks
                 return;
             }
 
+            // Support BDN-native args (--filter, --exporters, etc.)
+            if (args.Length > 0 && args[0].StartsWith("--"))
+            {
+                BenchmarkSwitcher.FromAssembly(typeof(Program).Assembly).Run(args);
+                return;
+            }
+
             // Run specific benchmark if specified
             if (args.Length > 0)
             {
@@ -43,6 +50,9 @@ namespace AcornDB.Benchmarks
                         break;
                     case "redis":
                         BenchmarkRunner.Run<RedisCacheBenchmarks>();
+                        break;
+                    case "trunk":
+                        BenchmarkRunner.Run<TrunkPerformanceBenchmarks>();
                         break;
                     case "all":
                         RunAllBenchmarks();
@@ -86,6 +96,7 @@ namespace AcornDB.Benchmarks
             Console.WriteLine("  competitive  - AcornDB vs competitors (1K/10K/50K docs)");
             Console.WriteLine("  delta        - Delta sync efficiency (1%/5%/10%/50% changes)");
             Console.WriteLine("  redis        - AcornDB vs Redis cache comparison");
+            Console.WriteLine("  trunk        - Trunk performance comparison (all backends)");
             Console.WriteLine("  all          - Run all benchmarks (default)");
             Console.WriteLine("\nExamples:");
             Console.WriteLine("  dotnet run");
