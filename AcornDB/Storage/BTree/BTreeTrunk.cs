@@ -8,7 +8,7 @@ using System.Threading;
 using System.Threading.Tasks;
 using AcornDB.Storage.Serialization;
 
-namespace AcornDB.Storage.BPlusTree
+namespace AcornDB.Storage.BTree
 {
     /// <summary>
     /// True page-based B+Tree trunk with WAL-based crash safety, page cache, and ordered access.
@@ -27,17 +27,17 @@ namespace AcornDB.Storage.BPlusTree
     /// The B+Tree itself is type-agnostic: it stores (byte[] key, byte[] value) pairs.
     /// Keys are UTF-8 encoded document IDs. Values are post-root-pipeline opaque payloads.
     /// </summary>
-    public sealed class BPlusTreeTrunk<T> : TrunkBase<T>, IDisposable where T : class
+    public sealed class BTreeTrunk<T> : TrunkBase<T>, IDisposable where T : class
     {
         private readonly string _dataDirectory;
         private readonly string _dataFilePath;
         private readonly string _walFilePath;
-        private readonly BPlusTreeOptions _options;
+        private readonly BTreeOptions _options;
 
         private PageManager _pageManager;
         private PageCache _pageCache;
         private WalManager _walManager;
-        private BPlusTreeNavigator _navigator;
+        private BTreeNavigator _navigator;
 
         /// <summary>
         /// Current root page ID. Updated atomically after each committed batch.
@@ -64,22 +64,22 @@ namespace AcornDB.Storage.BPlusTree
         private const int BUFFER_THRESHOLD = 256;
         private const int FLUSH_INTERVAL_MS = 100;
 
-        public BPlusTreeTrunk(string? customPath = null, ISerializer? serializer = null, BPlusTreeOptions? options = null)
+        public BTreeTrunk(string? customPath = null, ISerializer? serializer = null, BTreeOptions? options = null)
             : base(
                 serializer,
                 enableBatching: true,
                 batchThreshold: BUFFER_THRESHOLD,
                 flushIntervalMs: FLUSH_INTERVAL_MS)
         {
-            _options = options ?? BPlusTreeOptions.Default;
+            _options = options ?? BTreeOptions.Default;
             _options.Validate();
 
             var typeName = typeof(T).Name;
             _dataDirectory = customPath ?? Path.Combine(Directory.GetCurrentDirectory(), "data", typeName);
             Directory.CreateDirectory(_dataDirectory);
 
-            _dataFilePath = Path.Combine(_dataDirectory, "bplustree.db");
-            _walFilePath = Path.Combine(_dataDirectory, "bplustree.wal");
+            _dataFilePath = Path.Combine(_dataDirectory, "btree.db");
+            _walFilePath = Path.Combine(_dataDirectory, "btree.wal");
 
             Initialize();
         }
@@ -94,7 +94,7 @@ namespace AcornDB.Storage.BPlusTree
                 _pageManager = new PageManager(_dataFilePath, _options.PageSize, _options.ValidateChecksumsOnRead, _options.FsyncOnCommit);
                 _pageCache = new PageCache(_options.MaxCachePages, _options.PageSize);
                 _walManager = new WalManager(_walFilePath, _pageManager, _options.PageSize, _options.FsyncOnCommit);
-                _navigator = new BPlusTreeNavigator(_pageManager, _pageCache, _options.PageSize);
+                _navigator = new BTreeNavigator(_pageManager, _pageCache, _options.PageSize);
 
                 // Recover from WAL if needed, then load root pointer from superblock
                 _walManager.Recover();
@@ -207,7 +207,7 @@ namespace AcornDB.Storage.BPlusTree
         public override IReadOnlyList<Nut<T>> GetHistory(string id)
         {
             throw new NotSupportedException(
-                "BPlusTreeTrunk does not support history. Use DocumentStoreTrunk for versioning.");
+                "BTreeTrunk does not support history. Use DocumentStoreTrunk for versioning.");
         }
 
         public override IEnumerable<Nut<T>> ExportChanges()
@@ -234,7 +234,7 @@ namespace AcornDB.Storage.BPlusTree
             SupportsNativeIndexes = false,
             SupportsFullTextSearch = false,
             SupportsComputedIndexes = false,
-            TrunkType = "BPlusTreeTrunk"
+            TrunkType = "BTreeTrunk"
         };
 
         #endregion
@@ -351,7 +351,7 @@ namespace AcornDB.Storage.BPlusTree
         /// <summary>
         /// Force a WAL checkpoint: apply all WAL entries to the data file and truncate the WAL.
         /// This is normally done automatically when the committed entry count exceeds
-        /// <see cref="BPlusTreeOptions.CheckpointThreshold"/>, but can also be triggered manually.
+        /// <see cref="BTreeOptions.CheckpointThreshold"/>, but can also be triggered manually.
         /// </summary>
         public void Checkpoint()
         {

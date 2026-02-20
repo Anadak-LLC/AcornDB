@@ -1,7 +1,7 @@
 using System;
 using System.Runtime.CompilerServices;
 
-namespace AcornDB.Storage.BPlusTree
+namespace AcornDB.Storage.BTree
 {
     /// <summary>
     /// CRC32 (IEEE 802.3) utility for page and WAL checksums.

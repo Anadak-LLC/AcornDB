@@ -4,7 +4,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.IO;
 
-namespace AcornDB.Storage.BPlusTree
+namespace AcornDB.Storage.BTree
 {
     /// <summary>
     /// Write-Ahead Log (WAL) manager for crash-safe page writes.

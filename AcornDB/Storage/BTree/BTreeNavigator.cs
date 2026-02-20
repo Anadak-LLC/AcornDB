@@ -4,7 +4,7 @@ using System.Buffers.Binary;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 
-namespace AcornDB.Storage.BPlusTree
+namespace AcornDB.Storage.BTree
 {
     /// <summary>
     /// B+Tree navigation, search, insert, delete, and scan logic.
@@ -38,7 +38,7 @@ namespace AcornDB.Storage.BPlusTree
     /// Internal nodes additionally store a "leftmost child" pointer in the first 8 bytes
     /// of the record area (before the first key-child pair).
     /// </summary>
-    internal sealed class BPlusTreeNavigator
+    internal sealed class BTreeNavigator
     {
         private readonly PageManager _pageManager;
         private readonly PageCache _pageCache;
@@ -62,7 +62,7 @@ namespace AcornDB.Storage.BPlusTree
         internal const byte PAGE_TYPE_INTERNAL = 0x01;
         internal const byte PAGE_TYPE_LEAF = 0x02;
 
-        internal BPlusTreeNavigator(PageManager pageManager, PageCache pageCache, int pageSize)
+        internal BTreeNavigator(PageManager pageManager, PageCache pageCache, int pageSize)
         {
             _pageManager = pageManager;
             _pageCache = pageCache;

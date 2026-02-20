@@ -6,16 +6,16 @@ using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using AcornDB.Models;
-using AcornDB.Storage.BPlusTree;
+using AcornDB.Storage.BTree;
 using Xunit;
 
 namespace AcornDB.Test
 {
-    public class BPlusTreeReadPathTests : IDisposable
+    public class BTreeReadPathTests : IDisposable
     {
         private readonly string _testDir;
 
-        public BPlusTreeReadPathTests()
+        public BTreeReadPathTests()
         {
             _testDir = Path.Combine(Path.GetTempPath(), $"acorndb_bpt_read_{Guid.NewGuid()}");
             Directory.CreateDirectory(_testDir);
@@ -27,11 +27,11 @@ namespace AcornDB.Test
                 Directory.Delete(_testDir, true);
         }
 
-        private BPlusTreeTrunk<string> CreateTrunk(BPlusTreeOptions? options = null)
+        private BTreeTrunk<string> CreateTrunk(BTreeOptions? options = null)
         {
-            return new BPlusTreeTrunk<string>(
+            return new BTreeTrunk<string>(
                 customPath: _testDir,
-                options: options ?? new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 });
+                options: options ?? new BTreeOptions { PageSize = 4096, MaxCachePages = 64 });
         }
 
         #region Crack (ReadById)
@@ -275,10 +275,10 @@ namespace AcornDB.Test
         {
             var subDir = Path.Combine(_testDir, "persist");
             Directory.CreateDirectory(subDir);
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
 
             // Write data, then dispose
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: subDir, options: options))
             {
                 for (int i = 0; i < 50; i++)
                 {
@@ -288,7 +288,7 @@ namespace AcornDB.Test
             }
 
             // Reopen and read
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: subDir, options: options))
             {
                 for (int i = 0; i < 50; i++)
                 {
@@ -311,8 +311,8 @@ namespace AcornDB.Test
         public void Crack_AfterManySplits_AllKeysReadable()
         {
             // Use small page size to force many splits
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 32 };
-            using var trunk = new BPlusTreeTrunk<string>(customPath: _testDir, options: options);
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 32 };
+            using var trunk = new BTreeTrunk<string>(customPath: _testDir, options: options);
 
             int count = 300;
             for (int i = 0; i < count; i++)

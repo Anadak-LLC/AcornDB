@@ -3,16 +3,16 @@ using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using AcornDB.Models;
-using AcornDB.Storage.BPlusTree;
+using AcornDB.Storage.BTree;
 using Xunit;
 
 namespace AcornDB.Test
 {
-    public class BPlusTreeDeleteTests : IDisposable
+    public class BTreeDeleteTests : IDisposable
     {
         private readonly string _testDir;
 
-        public BPlusTreeDeleteTests()
+        public BTreeDeleteTests()
         {
             _testDir = Path.Combine(Path.GetTempPath(), $"acorndb_bpt_del_{Guid.NewGuid()}");
             Directory.CreateDirectory(_testDir);
@@ -24,20 +24,20 @@ namespace AcornDB.Test
                 Directory.Delete(_testDir, true);
         }
 
-        private BPlusTreeTrunk<string> CreateTrunk(BPlusTreeOptions? options = null)
+        private BTreeTrunk<string> CreateTrunk(BTreeOptions? options = null)
         {
-            return new BPlusTreeTrunk<string>(
+            return new BTreeTrunk<string>(
                 customPath: _testDir,
-                options: options ?? new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 });
+                options: options ?? new BTreeOptions { PageSize = 4096, MaxCachePages = 64 });
         }
 
-        private BPlusTreeTrunk<string> CreateTrunkInSubDir(string subDir, BPlusTreeOptions? options = null)
+        private BTreeTrunk<string> CreateTrunkInSubDir(string subDir, BTreeOptions? options = null)
         {
             var path = Path.Combine(_testDir, subDir);
             Directory.CreateDirectory(path);
-            return new BPlusTreeTrunk<string>(
+            return new BTreeTrunk<string>(
                 customPath: path,
-                options: options ?? new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 });
+                options: options ?? new BTreeOptions { PageSize = 4096, MaxCachePages = 64 });
         }
 
         #region Basic Delete
@@ -358,8 +358,8 @@ namespace AcornDB.Test
         public void Toss_AfterManySplits_CorrectAfterDelete()
         {
             // Small page size forces many splits -> multi-level tree
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 32 };
-            using var trunk = new BPlusTreeTrunk<string>(customPath: _testDir, options: options);
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 32 };
+            using var trunk = new BTreeTrunk<string>(customPath: _testDir, options: options);
 
             int count = 500;
             for (int i = 0; i < count; i++)
@@ -396,10 +396,10 @@ namespace AcornDB.Test
         {
             var subDir = Path.Combine(_testDir, "persist_del");
             Directory.CreateDirectory(subDir);
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
 
             // Insert and delete, then close
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: subDir, options: options))
             {
                 for (int i = 0; i < 100; i++)
                     trunk.Stash($"k-{i:D3}", new Nut<string> { Id = $"k-{i:D3}", Payload = $"v-{i}" });
@@ -410,7 +410,7 @@ namespace AcornDB.Test
             }
 
             // Reopen and verify
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: subDir, options: options))
             {
                 for (int i = 0; i < 100; i++)
                 {
@@ -434,9 +434,9 @@ namespace AcornDB.Test
         {
             var subDir = Path.Combine(_testDir, "persist_empty");
             Directory.CreateDirectory(subDir);
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
 
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: subDir, options: options))
             {
                 for (int i = 0; i < 50; i++)
                     trunk.Stash($"k-{i:D3}", new Nut<string> { Id = $"k-{i:D3}", Payload = $"v-{i}" });
@@ -447,7 +447,7 @@ namespace AcornDB.Test
                 Assert.Equal(0, trunk.Count);
             }
 
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: subDir, options: options))
             {
                 Assert.Equal(0, trunk.Count);
                 Assert.Null(trunk.Crack("k-000"));
@@ -507,7 +507,7 @@ namespace AcornDB.Test
         {
             // Small page size to force many splits, then delete most entries
             // triggering merges as leaves become underfull
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             using var trunk = CreateTrunk(options);
             int count = 300;
 
@@ -544,7 +544,7 @@ namespace AcornDB.Test
         [Fact]
         public void Merge_DeleteFromLeftEdge_ScanRemainsOrdered()
         {
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             using var trunk = CreateTrunk(options);
 
             for (int i = 0; i < 200; i++)
@@ -565,7 +565,7 @@ namespace AcornDB.Test
         [Fact]
         public void Merge_DeleteFromRightEdge_ScanRemainsOrdered()
         {
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             using var trunk = CreateTrunk(options);
 
             for (int i = 0; i < 200; i++)
@@ -587,7 +587,7 @@ namespace AcornDB.Test
         public void Merge_AlternatingDelete_LeafChainCorrect()
         {
             // Deleting alternating keys forces many underfull leaves that should merge/redistribute
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             using var trunk = CreateTrunk(options);
 
             for (int i = 0; i < 400; i++)
@@ -619,7 +619,7 @@ namespace AcornDB.Test
         [Fact]
         public void Merge_DeleteAndReinsert_AfterMerge_Correct()
         {
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             using var trunk = CreateTrunk(options);
 
             // Insert, then delete most (triggering merges), then reinsert
@@ -657,9 +657,9 @@ namespace AcornDB.Test
         {
             var subDir = Path.Combine(_testDir, "persist_merge");
             Directory.CreateDirectory(subDir);
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
 
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: subDir, options: options))
             {
                 for (int i = 0; i < 200; i++)
                     trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"v-{i}" });
@@ -673,7 +673,7 @@ namespace AcornDB.Test
             }
 
             // Reopen and verify
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: subDir, options: options))
             {
                 Assert.Equal(20, trunk.Count);
 
@@ -694,7 +694,7 @@ namespace AcornDB.Test
         [Fact]
         public void Merge_DeleteAll_ViaSmallBatches_TreeBecomesEmpty()
         {
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             using var trunk = CreateTrunk(options);
 
             for (int i = 0; i < 500; i++)
@@ -720,7 +720,7 @@ namespace AcornDB.Test
         {
             // With large values, fewer entries per page — merges and redistributions
             // happen more frequently
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             using var trunk = CreateTrunk(options);
 
             int count = 100;
@@ -748,7 +748,7 @@ namespace AcornDB.Test
         [Fact]
         public void Merge_RangeScan_AfterHeavyMerges_Correct()
         {
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             using var trunk = CreateTrunk(options);
 
             for (int i = 0; i < 300; i++)
@@ -777,13 +777,13 @@ namespace AcornDB.Test
         {
             // Insert a large batch, record file size, delete all, insert again.
             // Second insert should reuse freed pages, so file shouldn't grow significantly.
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             var dir = Path.Combine(_testDir, "freelist_reuse");
             Directory.CreateDirectory(dir);
-            var dataFile = Path.Combine(dir, "bplustree.db");
+            var dataFile = Path.Combine(dir, "btree.db");
 
             long fileSizeAfterFirstBatch;
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 0; i < 200; i++)
                     trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"val-{i}" });
@@ -791,7 +791,7 @@ namespace AcornDB.Test
             fileSizeAfterFirstBatch = new FileInfo(dataFile).Length;
 
             // Delete all entries
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 0; i < 200; i++)
                     trunk.Toss($"k-{i:D5}");
@@ -801,7 +801,7 @@ namespace AcornDB.Test
             long fileSizeAfterDelete = new FileInfo(dataFile).Length;
 
             // Re-insert same number of entries — should reuse freed pages
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 0; i < 200; i++)
                     trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"val-{i}" });
@@ -821,17 +821,17 @@ namespace AcornDB.Test
         public void DeleteMany_ThenReinsert_DataCorrectAcrossRestart()
         {
             // Insert, delete all, reinsert, restart, verify all data is correct.
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             var dir = Path.Combine(_testDir, "freelist_restart");
             Directory.CreateDirectory(dir);
 
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 0; i < 100; i++)
                     trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"original-{i}" });
             }
 
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 0; i < 100; i++)
                     trunk.Toss($"k-{i:D5}");
@@ -843,7 +843,7 @@ namespace AcornDB.Test
             }
 
             // Restart and verify
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 Assert.Equal(100, trunk.Count);
                 for (int i = 0; i < 100; i++)
@@ -859,19 +859,19 @@ namespace AcornDB.Test
         public void FreeList_PersistsAcrossRestart()
         {
             // Delete entries to create free pages, restart, insert more — should reuse pages.
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             var dir = Path.Combine(_testDir, "freelist_persist");
             Directory.CreateDirectory(dir);
-            var dataFile = Path.Combine(dir, "bplustree.db");
+            var dataFile = Path.Combine(dir, "btree.db");
 
             // Phase 1: Insert and then delete half
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 0; i < 200; i++)
                     trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"val-{i}" });
             }
 
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 // Delete every other key to trigger merges
                 for (int i = 0; i < 200; i += 2)
@@ -881,7 +881,7 @@ namespace AcornDB.Test
             long fileSizeAfterDelete = new FileInfo(dataFile).Length;
 
             // Phase 2: Reopen and insert new entries — should reuse freed pages
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 200; i < 300; i++)
                     trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"new-{i}" });
@@ -892,7 +892,7 @@ namespace AcornDB.Test
             // Verify the file didn't grow as much as a full 100-item insert would require
             // (some pages from deletes should have been reused)
             // Also verify data correctness across restart
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 // Odd keys from original + new keys should exist
                 for (int i = 1; i < 200; i += 2)
@@ -914,19 +914,19 @@ namespace AcornDB.Test
         public void FreeList_SuperblockStoresFreeListHead()
         {
             // Insert entries, delete to cause merges, verify free list head is stored in superblock.
-            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var options = new BTreeOptions { PageSize = 4096, MaxCachePages = 64 };
             var dir = Path.Combine(_testDir, "freelist_superblock");
             Directory.CreateDirectory(dir);
-            var dataFile = Path.Combine(dir, "bplustree.db");
+            var dataFile = Path.Combine(dir, "btree.db");
 
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 0; i < 100; i++)
                     trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"val-{i}" });
             }
 
             // Delete all entries — should free many pages
-            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            using (var trunk = new BTreeTrunk<string>(customPath: dir, options: options))
             {
                 for (int i = 0; i < 100; i++)
                     trunk.Toss($"k-{i:D5}");

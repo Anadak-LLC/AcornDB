@@ -2,7 +2,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using AcornDB;
 using AcornDB.Storage;
-using AcornDB.Storage.BPlusTree;
+using AcornDB.Storage.BTree;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -49,7 +49,7 @@ namespace AcornDB.Benchmarks
             new TrunkCase("Memory",  _ => new MemoryTrunk<TestItem>()),
             new TrunkCase("File",    (root) => new FileTrunk<TestItem>(Path.Combine(root, "file"))),
             new TrunkCase("Bitcask", (root) => new BitcaskTrunk<TestItem>(Path.Combine(root, "bitcask"))),
-            new TrunkCase("BPlusTree", (root) => new BPlusTreeTrunk<TestItem>(Path.Combine(root, "bplustree"))),
+            new TrunkCase("BTree", (root) => new BTreeTrunk<TestItem>(Path.Combine(root, "btree"))),
         };
 
         [ParamsSource(nameof(Trunks))]

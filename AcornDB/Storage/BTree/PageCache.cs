@@ -3,7 +3,7 @@ using System.Buffers;
 using System.Collections.Concurrent;
 using System.Threading;
 
-namespace AcornDB.Storage.BPlusTree
+namespace AcornDB.Storage.BTree
 {
     /// <summary>
     /// Bounded page cache using clock (second-chance) eviction.

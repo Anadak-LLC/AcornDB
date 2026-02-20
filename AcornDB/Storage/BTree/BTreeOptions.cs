@@ -1,12 +1,12 @@
 using System;
 
-namespace AcornDB.Storage.BPlusTree
+namespace AcornDB.Storage.BTree
 {
     /// <summary>
-    /// Configuration options for BPlusTreeTrunk.
+    /// Configuration options for BTreeTrunk.
     /// Tuned defaults based on design decisions (8KB pages, 256-page cache, WAL-based durability).
     /// </summary>
-    public sealed class BPlusTreeOptions
+    public sealed class BTreeOptions
     {
         /// <summary>
         /// Page size in bytes. Must be a power of 2, minimum 4096, maximum 65536.
@@ -41,7 +41,7 @@ namespace AcornDB.Storage.BPlusTree
         /// <summary>
         /// Default options: 8KB pages, 256-page cache, CRC validation on, fsync on commit.
         /// </summary>
-        public static readonly BPlusTreeOptions Default = new();
+        public static readonly BTreeOptions Default = new();
 
         /// <summary>
         /// Validates all options and throws <see cref="ArgumentException"/> if any are invalid.

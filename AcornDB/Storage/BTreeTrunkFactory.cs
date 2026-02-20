@@ -1,28 +1,28 @@
 using System;
 using System.Collections.Generic;
-using AcornDB.Storage.BPlusTree;
+using AcornDB.Storage.BTree;
 
 namespace AcornDB.Storage
 {
     /// <summary>
-    /// Factory for creating BPlusTreeTrunk instances via the Nursery registry.
+    /// Factory for creating BTreeTrunk instances via the Nursery registry.
     /// </summary>
-    public class BPlusTreeTrunkFactory : ITrunkFactory
+    public class BTreeTrunkFactory : ITrunkFactory
     {
         public ITrunk<object> Create(Type itemType, Dictionary<string, object> configuration)
         {
             var path = configuration.TryGetValue("path", out var pathObj) ? pathObj?.ToString() : null;
 
-            var options = new BPlusTreeOptions
+            var options = new BTreeOptions
             {
-                PageSize = GetInt(configuration, "pageSize", BPlusTreeOptions.Default.PageSize),
-                MaxCachePages = GetInt(configuration, "maxCachePages", BPlusTreeOptions.Default.MaxCachePages),
-                ValidateChecksumsOnRead = GetBool(configuration, "validateChecksums", BPlusTreeOptions.Default.ValidateChecksumsOnRead),
-                FsyncOnCommit = GetBool(configuration, "fsyncOnCommit", BPlusTreeOptions.Default.FsyncOnCommit),
-                CheckpointThreshold = GetInt(configuration, "checkpointThreshold", BPlusTreeOptions.Default.CheckpointThreshold)
+                PageSize = GetInt(configuration, "pageSize", BTreeOptions.Default.PageSize),
+                MaxCachePages = GetInt(configuration, "maxCachePages", BTreeOptions.Default.MaxCachePages),
+                ValidateChecksumsOnRead = GetBool(configuration, "validateChecksums", BTreeOptions.Default.ValidateChecksumsOnRead),
+                FsyncOnCommit = GetBool(configuration, "fsyncOnCommit", BTreeOptions.Default.FsyncOnCommit),
+                CheckpointThreshold = GetInt(configuration, "checkpointThreshold", BTreeOptions.Default.CheckpointThreshold)
             };
 
-            var trunkType = typeof(BPlusTreeTrunk<>).MakeGenericType(itemType);
+            var trunkType = typeof(BTreeTrunk<>).MakeGenericType(itemType);
             var trunk = Activator.CreateInstance(trunkType, path, null /* serializer */, options);
             return (ITrunk<object>)trunk!;
         }
@@ -31,8 +31,8 @@ namespace AcornDB.Storage
         {
             return new TrunkMetadata
             {
-                TypeId = "bplustree",
-                DisplayName = "B+Tree Trunk",
+                TypeId = "btree",
+                DisplayName = "BTree Trunk",
                 Description = "Page-based B+Tree with WAL crash safety, page cache, and ordered access. High-performance durable storage.",
                 Capabilities = new TrunkCapabilities
                 {
@@ -40,7 +40,7 @@ namespace AcornDB.Storage
                     SupportsSync = true,
                     IsDurable = true,
                     SupportsAsync = false,
-                    TrunkType = "BPlusTreeTrunk"
+                    TrunkType = "BTreeTrunk"
                 },
                 RequiredConfigKeys = new List<string>(),
                 OptionalConfigKeys = new Dictionary<string, object>

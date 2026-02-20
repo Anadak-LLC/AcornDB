@@ -6,7 +6,7 @@ using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
 
-namespace AcornDB.Storage.BPlusTree
+namespace AcornDB.Storage.BTree
 {
     /// <summary>
     /// Manages fixed-size page I/O for the B+Tree data file.
@@ -54,7 +54,7 @@ namespace AcornDB.Storage.BPlusTree
         internal const int SUPERBLOCK_ENTRY_COUNT_OFFSET = 8;
         internal const int SUPERBLOCK_FREE_LIST_HEAD_OFFSET = 32;
 
-        // Page header CRC field offset (matches BPlusTreeNavigator.HDR_PAGE_CRC)
+        // Page header CRC field offset (matches BTreeNavigator.HDR_PAGE_CRC)
         private const int HDR_PAGE_CRC = 18;
         private const int HDR_PAGE_CRC_LEN = 4;
 

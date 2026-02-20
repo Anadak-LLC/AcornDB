@@ -1,7 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using AcornDB;
 using AcornDB.Storage;
-using AcornDB.Storage.BPlusTree;
+using AcornDB.Storage.BTree;
 using Microsoft.Data.Sqlite;
 
 namespace AcornDB.Benchmarks
@@ -79,10 +79,10 @@ namespace AcornDB.Benchmarks
             return tree;
         }
 
-        // ===== AcornDB Benchmarks (File-Based for Fair Comparison) =====
+        // ===== AcornDB Bitcask Benchmarks (File-Based for Fair Comparison) =====
 
         [Benchmark(Baseline = true)]
-        public void AcornDB_BTree_Insert_Documents()
+        public void AcornDB_Bitcask_Insert_Documents()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
@@ -117,7 +117,7 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BTree_Read_ById()
+        public void AcornDB_Bitcask_Read_ById()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
@@ -156,7 +156,7 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BTree_Update_Documents()
+        public void AcornDB_Bitcask_Update_Documents()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
@@ -200,7 +200,7 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BTree_Delete_Documents()
+        public void AcornDB_Bitcask_Delete_Documents()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
@@ -239,7 +239,7 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BTree_Mixed_Workload()
+        public void AcornDB_Bitcask_Mixed_Workload()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
@@ -295,7 +295,7 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BTree_Scan_All_Documents()
+        public void AcornDB_Bitcask_Scan_All_Documents()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
@@ -332,7 +332,7 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BTree_Scan_With_Filter()
+        public void AcornDB_Bitcask_Scan_With_Filter()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"acorndb_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
@@ -368,18 +368,18 @@ namespace AcornDB.Benchmarks
             }
         }
 
-        // ===== BPlusTreeTrunk Benchmarks (True Page-Based B+Tree) =====
+        // ===== BTreeTrunk Benchmarks (True Page-Based B+Tree) =====
 
         [Benchmark]
-        public void AcornDB_BPlusTree_Insert_Documents()
+        public void AcornDB_BTree_Insert_Documents()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BPlusTreeTrunk<TestDocument>? trunk = null;
+            BTreeTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                trunk = new BTreeTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 for (int i = 0; i < DocumentCount; i++)
@@ -404,15 +404,15 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BPlusTree_Read_ById()
+        public void AcornDB_BTree_Read_ById()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BPlusTreeTrunk<TestDocument>? trunk = null;
+            BTreeTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                trunk = new BTreeTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -441,15 +441,15 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BPlusTree_Update_Documents()
+        public void AcornDB_BTree_Update_Documents()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BPlusTreeTrunk<TestDocument>? trunk = null;
+            BTreeTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                trunk = new BTreeTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -483,15 +483,15 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BPlusTree_Delete_Documents()
+        public void AcornDB_BTree_Delete_Documents()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BPlusTreeTrunk<TestDocument>? trunk = null;
+            BTreeTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                trunk = new BTreeTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -520,15 +520,15 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BPlusTree_Mixed_Workload()
+        public void AcornDB_BTree_Mixed_Workload()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BPlusTreeTrunk<TestDocument>? trunk = null;
+            BTreeTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                trunk = new BTreeTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Insert 50%
@@ -574,15 +574,15 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BPlusTree_Scan_All_Documents()
+        public void AcornDB_BTree_Scan_All_Documents()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BPlusTreeTrunk<TestDocument>? trunk = null;
+            BTreeTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                trunk = new BTreeTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate
@@ -609,15 +609,15 @@ namespace AcornDB.Benchmarks
         }
 
         [Benchmark]
-        public void AcornDB_BPlusTree_Scan_With_Filter()
+        public void AcornDB_BTree_Scan_With_Filter()
         {
             var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
             Directory.CreateDirectory(dataDir);
 
-            BPlusTreeTrunk<TestDocument>? trunk = null;
+            BTreeTrunk<TestDocument>? trunk = null;
             try
             {
-                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                trunk = new BTreeTrunk<TestDocument>(dataDir);
                 var tree = CreateTree(trunk);
 
                 // Pre-populate

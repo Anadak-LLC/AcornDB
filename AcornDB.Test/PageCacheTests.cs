@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
-using AcornDB.Storage.BPlusTree;
+using AcornDB.Storage.BTree;
 using Xunit;
 
 namespace AcornDB.Test

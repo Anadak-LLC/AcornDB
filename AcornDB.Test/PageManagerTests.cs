@@ -1,7 +1,7 @@
 using System;
 using System.Buffers.Binary;
 using System.IO;
-using AcornDB.Storage.BPlusTree;
+using AcornDB.Storage.BTree;
 using Xunit;
 
 namespace AcornDB.Test
@@ -384,7 +384,7 @@ namespace AcornDB.Test
 
             long pageId = pm.AllocatePage();
 
-            // Write a page with valid CRC (simulate what BPlusTreeNavigator does)
+            // Write a page with valid CRC (simulate what BTreeNavigator does)
             var writeBuf = new byte[PAGE_SIZE];
             writeBuf[0] = 0x02; // PageType = Leaf
             writeBuf[1] = 0x00; // Level = 0
