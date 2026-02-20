@@ -336,7 +336,13 @@ namespace AcornDB.Storage.BPlusTree
 
         /// <summary>
         /// Delete a key from the B+Tree. Returns (newRootPageId, found).
-        /// Does NOT merge underfull pages (MVP: simple delete-from-leaf).
+        ///
+        /// Strategy (MVP — documented in 01-design-decisions.md):
+        ///   - Delete from leaf with page compaction (no fragmentation).
+        ///   - Root shrinking: if the root internal node has 0 separators after a child
+        ///     becomes empty or is the sole remaining child, collapse the root.
+        ///   - No sibling merge/redistribution. Underfull pages are allowed.
+        ///   - Full rebalancing is deferred to a future step.
         /// </summary>
         internal (long NewRootPageId, bool Found) Delete(long rootPageId, ReadOnlySpan<byte> key, WalManager wal)
         {
@@ -349,7 +355,6 @@ namespace AcornDB.Storage.BPlusTree
                 ReadPageCached(rootPageId, pageBuf);
                 var page = pageBuf.AsSpan(0, _pageSize);
                 byte pageType = page[HDR_PAGE_TYPE];
-                int itemCount = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_ITEM_COUNT));
 
                 if (pageType == PAGE_TYPE_LEAF)
                 {
@@ -360,8 +365,13 @@ namespace AcornDB.Storage.BPlusTree
                 }
                 else
                 {
-                    // Navigate to leaf and delete
-                    return DeleteRecursive(rootPageId, key, wal);
+                    var result = DeleteRecursive(rootPageId, key, wal);
+                    if (!result.Found)
+                        return result;
+
+                    // Root shrinking: if root internal node now has 0 separators,
+                    // collapse to its sole child (the leftmost child).
+                    return (TryShrinkRoot(result.NewRootPageId), true);
                 }
             }
             finally
@@ -396,6 +406,10 @@ namespace AcornDB.Storage.BPlusTree
             }
         }
 
+        /// <summary>
+        /// Delete a key from a leaf page by rewriting the page without the deleted entry.
+        /// This reclaims all fragmented record space (full compaction).
+        /// </summary>
         private bool DeleteFromLeaf(long pageId, byte[] pageBuf, ReadOnlySpan<byte> key, WalManager wal)
         {
             var page = pageBuf.AsSpan(0, _pageSize);
@@ -405,23 +419,65 @@ namespace AcornDB.Storage.BPlusTree
             if (!keyExists)
                 return false;
 
-            // Remove the slot entry by shifting subsequent slots left
-            int slotArrayStart = HEADER_SIZE;
-            int slotToRemove = deleteIdx;
-            for (int i = slotToRemove; i < itemCount - 1; i++)
+            // Collect all entries except the one being deleted
+            long rightSibling = BinaryPrimitives.ReadInt64LittleEndian(page.Slice(HDR_RIGHT_SIBLING));
+            var remaining = new List<(byte[] Key, byte[] Value)>(itemCount - 1);
+
+            for (int i = 0; i < itemCount; i++)
             {
-                int srcOff = slotArrayStart + (i + 1) * SLOT_SIZE;
-                int dstOff = slotArrayStart + i * SLOT_SIZE;
-                page.Slice(srcOff, SLOT_SIZE).CopyTo(page.Slice(dstOff));
+                if (i == deleteIdx)
+                    continue;
+
+                var (slotOffset, slotLen) = ReadSlot(page, i);
+                var record = page.Slice(slotOffset, slotLen);
+                int kLen = BinaryPrimitives.ReadUInt16LittleEndian(record);
+                var rKey = record.Slice(2, kLen).ToArray();
+                int vLenOff = 2 + kLen;
+                int vLen = BinaryPrimitives.ReadInt32LittleEndian(record.Slice(vLenOff));
+                var rVal = record.Slice(vLenOff + 4, vLen).ToArray();
+                remaining.Add((rKey, rVal));
             }
 
-            BinaryPrimitives.WriteUInt16LittleEndian(page.Slice(HDR_ITEM_COUNT), (ushort)(itemCount - 1));
-            int freeStart = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_FREE_SPACE_START));
-            BinaryPrimitives.WriteUInt16LittleEndian(page.Slice(HDR_FREE_SPACE_START), (ushort)(freeStart - SLOT_SIZE));
-
-            // Note: record space is not reclaimed (fragmentation). Page compaction is deferred.
+            // Rewrite the page: compacts all records, reclaims dead space
+            RewriteLeafPage(pageBuf, remaining, rightSibling);
             WritePageCrcAndFlush(pageId, pageBuf, wal);
             return true;
+        }
+
+        /// <summary>
+        /// If the root is an internal node with 0 separators (single child),
+        /// collapse it to the leftmost child. Repeats until the root is a leaf
+        /// or has at least one separator.
+        /// </summary>
+        private long TryShrinkRoot(long rootPageId)
+        {
+            var pageBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
+            try
+            {
+                long currentRoot = rootPageId;
+
+                while (currentRoot != 0)
+                {
+                    ReadPageCached(currentRoot, pageBuf);
+                    var page = pageBuf.AsSpan(0, _pageSize);
+
+                    if (page[HDR_PAGE_TYPE] != PAGE_TYPE_INTERNAL)
+                        break; // Leaf root — nothing to shrink
+
+                    int itemCount = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_ITEM_COUNT));
+                    if (itemCount > 0)
+                        break; // Root has separators — no shrinking needed
+
+                    // Root internal with 0 separators: collapse to leftmost child
+                    currentRoot = BinaryPrimitives.ReadInt64LittleEndian(page.Slice(HEADER_SIZE));
+                }
+
+                return currentRoot;
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(pageBuf);
+            }
         }
 
         #endregion
