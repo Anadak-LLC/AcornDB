@@ -32,8 +32,9 @@ namespace AcornDB.Storage.BPlusTree
         private readonly PageManager _pageManager;
         private readonly int _pageSize;
         private FileStream? _walStream;
-            private readonly object _walLock = new();
+        private readonly object _walLock = new();
         private int _uncommittedCount;
+        private long _committedSinceCheckpoint;
 
         internal const byte RECORD_TYPE_PAGE = 0x01;
         internal const byte RECORD_TYPE_COMMIT = 0x02;
@@ -104,8 +105,18 @@ namespace AcornDB.Storage.BPlusTree
 
                 _walStream!.Write(record);
                 _walStream.Flush(flushToDisk: true);
+                _committedSinceCheckpoint += _uncommittedCount;
                 _uncommittedCount = 0;
             }
+        }
+
+        /// <summary>
+        /// Number of page images committed to the WAL since the last checkpoint.
+        /// Used by the trunk to decide when to trigger automatic checkpointing.
+        /// </summary>
+        internal long CommittedSinceCheckpoint
+        {
+            get { lock (_walLock) return _committedSinceCheckpoint; }
         }
 
         /// <summary>
@@ -202,6 +213,7 @@ namespace AcornDB.Storage.BPlusTree
             {
                 _walStream?.SetLength(0);
                 _walStream?.Flush(flushToDisk: true);
+                _committedSinceCheckpoint = 0;
             }
         }
 

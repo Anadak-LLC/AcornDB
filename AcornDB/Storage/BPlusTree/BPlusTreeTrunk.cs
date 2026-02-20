@@ -150,6 +150,8 @@ namespace AcornDB.Storage.BPlusTree
             _walManager.CommitRootUpdate(newRoot, newGeneration);
             _pageManager.WriteSuperblock(newRoot, newGeneration);
             Volatile.Write(ref _rootPageId, newRoot);
+
+            CheckpointIfNeeded();
         }
 
         public override IEnumerable<Nut<T>> CrackAll()
@@ -224,6 +226,8 @@ namespace AcornDB.Storage.BPlusTree
             _pageManager.WriteSuperblock(newRoot, newGeneration);
             Volatile.Write(ref _rootPageId, newRoot);
 
+            CheckpointIfNeeded();
+
             return Task.CompletedTask;
         }
 
@@ -243,6 +247,8 @@ namespace AcornDB.Storage.BPlusTree
             _walManager.CommitRootUpdate(currentRoot, newGeneration);
             _pageManager.WriteSuperblock(currentRoot, newGeneration);
             Volatile.Write(ref _rootPageId, currentRoot);
+
+            CheckpointIfNeeded();
 
             return Task.CompletedTask;
         }
@@ -311,11 +317,24 @@ namespace AcornDB.Storage.BPlusTree
 
         /// <summary>
         /// Force a WAL checkpoint: apply all WAL entries to the data file and truncate the WAL.
-        /// This is normally done automatically, but can be triggered manually.
+        /// This is normally done automatically when the committed entry count exceeds
+        /// <see cref="BPlusTreeOptions.CheckpointThreshold"/>, but can also be triggered manually.
         /// </summary>
         public void Checkpoint()
         {
             _walManager.Checkpoint();
+        }
+
+        /// <summary>
+        /// Triggers a WAL checkpoint if the number of committed page images since the last
+        /// checkpoint exceeds the configured threshold. Safe to call under concurrent reads
+        /// since checkpoint only truncates the WAL (pages are already applied to the data file).
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void CheckpointIfNeeded()
+        {
+            if (_walManager.CommittedSinceCheckpoint >= _options.CheckpointThreshold)
+                _walManager.Checkpoint();
         }
 
         #endregion
