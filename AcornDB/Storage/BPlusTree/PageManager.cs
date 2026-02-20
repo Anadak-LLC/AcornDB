@@ -22,6 +22,7 @@ namespace AcornDB.Storage.BPlusTree
         private readonly string _filePath;
         private readonly int _pageSize;
         private readonly bool _validateChecksumsOnRead;
+        private readonly bool _fsyncOnCommit;
         private FileStream _fileStream;
         private long _nextPageId;
         private readonly object _allocLock = new();
@@ -47,11 +48,12 @@ namespace AcornDB.Storage.BPlusTree
         private const int HDR_PAGE_CRC = 18;
         private const int HDR_PAGE_CRC_LEN = 4;
 
-        internal PageManager(string filePath, int pageSize, bool validateChecksumsOnRead = true)
+        internal PageManager(string filePath, int pageSize, bool validateChecksumsOnRead = true, bool fsyncOnCommit = true)
         {
             _filePath = filePath;
             _pageSize = pageSize;
             _validateChecksumsOnRead = validateChecksumsOnRead;
+            _fsyncOnCommit = fsyncOnCommit;
 
             bool isNew = !File.Exists(filePath) || new FileInfo(filePath).Length == 0;
 
@@ -215,7 +217,7 @@ namespace AcornDB.Storage.BPlusTree
         /// </summary>
         internal void Flush()
         {
-            _fileStream.Flush(flushToDisk: true);
+            _fileStream.Flush(flushToDisk: _fsyncOnCommit);
         }
 
         /// <summary>
@@ -262,7 +264,7 @@ namespace AcornDB.Storage.BPlusTree
                 RandomAccess.Read(_fileStream.SafeFileHandle, buf.AsSpan(0, _pageSize), 0);
                 WriteSuperblockToBuffer(buf, rootPageId, generation, entryCount);
                 RandomAccess.Write(_fileStream.SafeFileHandle, buf.AsSpan(0, _pageSize), 0);
-                _fileStream.Flush(flushToDisk: true);
+                _fileStream.Flush(flushToDisk: _fsyncOnCommit);
             }
             finally
             {

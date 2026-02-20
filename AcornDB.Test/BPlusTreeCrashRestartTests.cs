@@ -890,5 +890,48 @@ namespace AcornDB.Test
         }
 
         #endregion
+
+        #region 9. FsyncOnCommit Configuration
+
+        [Fact]
+        public void FsyncOnCommit_False_InsertReadDeleteWork()
+        {
+            // Verifies that FsyncOnCommit=false is wired through correctly:
+            // writes, reads, updates, deletes, and persistence across dispose/reopen all work.
+            var dir = SubDir("fsync_off");
+            var options = new BPlusTreeOptions
+            {
+                PageSize = 4096,
+                MaxCachePages = 64,
+                FsyncOnCommit = false
+            };
+
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 100; i++)
+                    trunk.Stash($"k-{i:D3}", new Nut<string> { Id = $"k-{i:D3}", Payload = $"v-{i}" });
+
+                Assert.Equal(100, trunk.Count);
+
+                // Update
+                trunk.Stash("k-050", new Nut<string> { Id = "k-050", Payload = "updated" });
+                Assert.Equal("updated", trunk.Crack("k-050")!.Payload);
+
+                // Delete
+                trunk.Toss("k-099");
+                Assert.Null(trunk.Crack("k-099"));
+                Assert.Equal(99, trunk.Count);
+            }
+
+            // Reopen with same option — data persisted (OS may have flushed buffers on close)
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                Assert.Equal(99, trunk.Count);
+                Assert.Equal("updated", trunk.Crack("k-050")!.Payload);
+                Assert.Null(trunk.Crack("k-099"));
+            }
+        }
+
+        #endregion
     }
 }

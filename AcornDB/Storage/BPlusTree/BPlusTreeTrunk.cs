@@ -91,9 +91,9 @@ namespace AcornDB.Storage.BPlusTree
             {
                 if (_initialized) return;
 
-                _pageManager = new PageManager(_dataFilePath, _options.PageSize, _options.ValidateChecksumsOnRead);
+                _pageManager = new PageManager(_dataFilePath, _options.PageSize, _options.ValidateChecksumsOnRead, _options.FsyncOnCommit);
                 _pageCache = new PageCache(_options.MaxCachePages, _options.PageSize);
-                _walManager = new WalManager(_walFilePath, _pageManager, _options.PageSize);
+                _walManager = new WalManager(_walFilePath, _pageManager, _options.PageSize, _options.FsyncOnCommit);
                 _navigator = new BPlusTreeNavigator(_pageManager, _pageCache, _options.PageSize);
 
                 // Recover from WAL if needed, then load root pointer from superblock

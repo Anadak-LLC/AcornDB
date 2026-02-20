@@ -31,6 +31,7 @@ namespace AcornDB.Storage.BPlusTree
         private readonly string _walFilePath;
         private readonly PageManager _pageManager;
         private readonly int _pageSize;
+        private readonly bool _fsyncOnCommit;
         private FileStream? _walStream;
         private readonly object _walLock = new();
         private int _uncommittedCount;
@@ -39,11 +40,12 @@ namespace AcornDB.Storage.BPlusTree
         internal const byte RECORD_TYPE_PAGE = 0x01;
         internal const byte RECORD_TYPE_COMMIT = 0x02;
 
-        internal WalManager(string walFilePath, PageManager pageManager, int pageSize)
+        internal WalManager(string walFilePath, PageManager pageManager, int pageSize, bool fsyncOnCommit = true)
         {
             _walFilePath = walFilePath;
             _pageManager = pageManager;
             _pageSize = pageSize;
+            _fsyncOnCommit = fsyncOnCommit;
 
             _walStream = new FileStream(
                 walFilePath,
@@ -105,7 +107,7 @@ namespace AcornDB.Storage.BPlusTree
                 BinaryPrimitives.WriteUInt32LittleEndian(record.Slice(25), crc);
 
                 _walStream!.Write(record);
-                _walStream.Flush(flushToDisk: true);
+                _walStream.Flush(flushToDisk: _fsyncOnCommit);
                 _committedSinceCheckpoint += _uncommittedCount;
                 _uncommittedCount = 0;
             }
