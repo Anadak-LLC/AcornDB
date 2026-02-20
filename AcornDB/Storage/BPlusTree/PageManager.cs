@@ -28,15 +28,20 @@ namespace AcornDB.Storage.BPlusTree
         private bool _disposed;
 
         // Superblock layout (page 0):
-        //   [Magic:4][FormatVersion:2][PageSize:2][Flags:4][Reserved:4]
+        //   [Magic:4][FormatVersion:2][PageSize:2][EntryCount:8]
         //   [RootPageId:8][RootGeneration:8]
         //   [FreeListHead:8]
         //   [SuperblockCRC:4]
         // Total: 42 bytes (rest of page 0 is reserved)
+        //
+        // EntryCount at offset 8 reuses the former Flags[4]+Reserved[4] fields
+        // (always zero in v1 files). Migration: if EntryCount==0 && RootPageId!=0,
+        // recount from leaf chain on open.
         internal const int MAGIC = 0x41504C53; // 'APLS' (AcornDB PlusTree)
         internal const ushort FORMAT_VERSION = 1;
         internal const int SUPERBLOCK_HEADER_SIZE = 42;
         internal const int SUPERBLOCK_CRC_OFFSET = 38;
+        internal const int SUPERBLOCK_ENTRY_COUNT_OFFSET = 8;
 
         // Page header CRC field offset (matches BPlusTreeNavigator.HDR_PAGE_CRC)
         private const int HDR_PAGE_CRC = 18;
@@ -75,7 +80,7 @@ namespace AcornDB.Storage.BPlusTree
             try
             {
                 Array.Clear(superblock, 0, _pageSize);
-                WriteSuperblockToBuffer(superblock, rootPageId: 0, generation: 0);
+                WriteSuperblockToBuffer(superblock, rootPageId: 0, generation: 0, entryCount: 0);
                 RandomAccess.Write(_fileStream.SafeFileHandle, superblock.AsSpan(0, _pageSize), 0);
                 _fileStream.Flush(flushToDisk: true);
             }
@@ -230,31 +235,32 @@ namespace AcornDB.Storage.BPlusTree
         #region Superblock
 
         /// <summary>
-        /// Read root page ID and generation from the superblock (page 0).
+        /// Read root page ID, generation, and entry count from the superblock (page 0).
         /// </summary>
-        internal (long RootPageId, long Generation) ReadSuperblock()
+        internal (long RootPageId, long Generation, long EntryCount) ReadSuperblock()
         {
             Span<byte> buf = stackalloc byte[SUPERBLOCK_HEADER_SIZE];
             RandomAccess.Read(_fileStream.SafeFileHandle, buf, 0);
 
+            long entryCount = BinaryPrimitives.ReadInt64LittleEndian(buf.Slice(SUPERBLOCK_ENTRY_COUNT_OFFSET));
             long rootPageId = BinaryPrimitives.ReadInt64LittleEndian(buf.Slice(16));
             long generation = BinaryPrimitives.ReadInt64LittleEndian(buf.Slice(24));
 
-            return (rootPageId, generation);
+            return (rootPageId, generation, entryCount);
         }
 
         /// <summary>
-        /// Write root page ID and generation to the superblock (page 0) and fsync.
+        /// Write root page ID, generation, and entry count to the superblock (page 0) and fsync.
         /// This is the commit point for the data file.
         /// </summary>
-        internal void WriteSuperblock(long rootPageId, long generation)
+        internal void WriteSuperblock(long rootPageId, long generation, long entryCount)
         {
             var buf = ArrayPool<byte>.Shared.Rent(_pageSize);
             try
             {
                 // Read existing superblock to preserve other fields
                 RandomAccess.Read(_fileStream.SafeFileHandle, buf.AsSpan(0, _pageSize), 0);
-                WriteSuperblockToBuffer(buf, rootPageId, generation);
+                WriteSuperblockToBuffer(buf, rootPageId, generation, entryCount);
                 RandomAccess.Write(_fileStream.SafeFileHandle, buf.AsSpan(0, _pageSize), 0);
                 _fileStream.Flush(flushToDisk: true);
             }
@@ -264,12 +270,12 @@ namespace AcornDB.Storage.BPlusTree
             }
         }
 
-        private void WriteSuperblockToBuffer(Span<byte> buf, long rootPageId, long generation)
+        private void WriteSuperblockToBuffer(Span<byte> buf, long rootPageId, long generation, long entryCount = 0)
         {
             BinaryPrimitives.WriteInt32LittleEndian(buf, MAGIC);
             BinaryPrimitives.WriteUInt16LittleEndian(buf.Slice(4), FORMAT_VERSION);
             BinaryPrimitives.WriteUInt16LittleEndian(buf.Slice(6), (ushort)_pageSize);
-            // Flags[4] + Reserved[4] at offset 8..15 — leave as-is
+            BinaryPrimitives.WriteInt64LittleEndian(buf.Slice(SUPERBLOCK_ENTRY_COUNT_OFFSET), entryCount);
             BinaryPrimitives.WriteInt64LittleEndian(buf.Slice(16), rootPageId);
             BinaryPrimitives.WriteInt64LittleEndian(buf.Slice(24), generation);
             // FreeListHead[8] at offset 32..39 — leave as-is for now

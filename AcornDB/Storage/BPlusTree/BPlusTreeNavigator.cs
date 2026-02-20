@@ -195,14 +195,14 @@ namespace AcornDB.Storage.BPlusTree
 
         /// <summary>
         /// Insert a key-value pair into the B+Tree. Returns the new root page ID
-        /// (may change if the root splits).
+        /// (may change if the root splits) and whether a new key was inserted (vs update).
         /// </summary>
-        internal long Insert(long rootPageId, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, WalManager wal)
+        internal (long NewRootPageId, bool IsNewKey) Insert(long rootPageId, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, WalManager wal)
         {
             if (rootPageId == 0)
             {
                 // Empty tree: create first leaf
-                return CreateInitialLeaf(key, value, wal);
+                return (CreateInitialLeaf(key, value, wal), true);
             }
 
             var result = InsertRecursive(rootPageId, key, value, wal);
@@ -210,10 +210,10 @@ namespace AcornDB.Storage.BPlusTree
             if (result.Split)
             {
                 // Root split: create new root
-                return CreateNewRoot(rootPageId, result.SplitKey!, result.NewPageId, result.Level + 1, wal);
+                return (CreateNewRoot(rootPageId, result.SplitKey!, result.NewPageId, result.Level + 1, wal), result.IsNewKey);
             }
 
-            return rootPageId;
+            return (rootPageId, result.IsNewKey);
         }
 
         private InsertResult InsertRecursive(long pageId, ReadOnlySpan<byte> key, ReadOnlySpan<byte> value, WalManager wal)
@@ -242,10 +242,12 @@ namespace AcornDB.Storage.BPlusTree
                     if (childResult.Split)
                     {
                         // Insert the separator from the child split into this internal node
-                        return InsertIntoInternal(pageId, pageBuf, childResult.SplitKey!, childResult.NewPageId, level, wal);
+                        var internalResult = InsertIntoInternal(pageId, pageBuf, childResult.SplitKey!, childResult.NewPageId, level, wal);
+                        internalResult.IsNewKey = childResult.IsNewKey;
+                        return internalResult;
                     }
 
-                    return new InsertResult { Split = false, Level = level };
+                    return new InsertResult { Split = false, Level = level, IsNewKey = childResult.IsNewKey };
                 }
             }
             finally
@@ -288,12 +290,14 @@ namespace AcornDB.Storage.BPlusTree
                 BinaryPrimitives.WriteUInt16LittleEndian(page.Slice(HDR_FREE_SPACE_END), (ushort)(freeEnd - recordSize));
 
                 WritePageCrcAndFlush(pageId, pageBuf, wal);
-                return new InsertResult { Split = false, Level = 0 };
+                return new InsertResult { Split = false, Level = 0, IsNewKey = true };
             }
             else
             {
-                // Split leaf
-                return SplitLeafAndInsert(pageId, pageBuf, key, value, wal);
+                // Split leaf (always a new key — keyExists was false)
+                var splitResult = SplitLeafAndInsert(pageId, pageBuf, key, value, wal);
+                splitResult.IsNewKey = true;
+                return splitResult;
             }
         }
 
@@ -1592,6 +1596,7 @@ namespace AcornDB.Storage.BPlusTree
             public byte[]? SplitKey;
             public long NewPageId;
             public int Level;
+            public bool IsNewKey;
         }
     }
 }

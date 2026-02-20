@@ -35,10 +35,11 @@ namespace AcornDB.Test
             var path = TestFilePath();
             using var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false);
 
-            var (rootPageId, generation) = pm.ReadSuperblock();
+            var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
 
             Assert.Equal(0, rootPageId);
             Assert.Equal(0, generation);
+            Assert.Equal(0, entryCount);
             Assert.Equal(PAGE_SIZE, pm.PageSize);
 
             // File should be exactly one page (the superblock)
@@ -62,15 +63,16 @@ namespace AcornDB.Test
             // Create
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                pm.WriteSuperblock(42, 7);
+                pm.WriteSuperblock(42, 7, 10);
             }
 
             // Reopen
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                var (rootPageId, generation) = pm.ReadSuperblock();
+                var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
                 Assert.Equal(42, rootPageId);
                 Assert.Equal(7, generation);
+                Assert.Equal(10, entryCount);
             }
         }
 
@@ -82,7 +84,7 @@ namespace AcornDB.Test
             // Create valid file
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                pm.WriteSuperblock(1, 1);
+                pm.WriteSuperblock(1, 1, 0);
             }
 
             // Corrupt the RootPageId field (byte 16) in the superblock
@@ -472,11 +474,12 @@ namespace AcornDB.Test
             var path = TestFilePath();
             using var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false);
 
-            pm.WriteSuperblock(123, 456);
+            pm.WriteSuperblock(123, 456, 789);
 
-            var (rootPageId, generation) = pm.ReadSuperblock();
+            var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
             Assert.Equal(123, rootPageId);
             Assert.Equal(456, generation);
+            Assert.Equal(789, entryCount);
         }
 
         [Fact]
@@ -486,14 +489,15 @@ namespace AcornDB.Test
 
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                pm.WriteSuperblock(999, 42);
+                pm.WriteSuperblock(999, 42, 55);
             }
 
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                var (rootPageId, generation) = pm.ReadSuperblock();
+                var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
                 Assert.Equal(999, rootPageId);
                 Assert.Equal(42, generation);
+                Assert.Equal(55, entryCount);
             }
         }
 
@@ -505,17 +509,18 @@ namespace AcornDB.Test
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
                 // Multiple superblock updates should all maintain valid CRC
-                pm.WriteSuperblock(1, 1);
-                pm.WriteSuperblock(2, 2);
-                pm.WriteSuperblock(100, 50);
+                pm.WriteSuperblock(1, 1, 10);
+                pm.WriteSuperblock(2, 2, 20);
+                pm.WriteSuperblock(100, 50, 30);
             }
 
             // Reopen validates CRC — should succeed
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                var (rootPageId, generation) = pm.ReadSuperblock();
+                var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
                 Assert.Equal(100, rootPageId);
                 Assert.Equal(50, generation);
+                Assert.Equal(30, entryCount);
             }
         }
 

@@ -20,7 +20,7 @@ namespace AcornDB.Storage.BPlusTree
     ///   [RecordType:1][PageId:8][DataLength:4][PageData:N][RecordCRC:4]
     ///
     /// Commit record:
-    ///   [RecordType:1 (=0x02)][RootPageId:8][Generation:8][CommitCRC:4]
+    ///   [RecordType:1 (=0x02)][RootPageId:8][Generation:8][EntryCount:8][CommitCRC:4]
     ///
     /// Recovery:
     ///   On startup, replay any committed but unapplied WAL entries to the data file.
@@ -90,18 +90,19 @@ namespace AcornDB.Storage.BPlusTree
         /// Write a commit record to the WAL and fsync.
         /// After this returns, the batch is durable.
         /// </summary>
-        internal void CommitRootUpdate(long newRootPageId, long generation)
+        internal void CommitRootUpdate(long newRootPageId, long generation, long entryCount)
         {
             lock (_walLock)
             {
-                // Commit record: [Type:1][RootPageId:8][Generation:8][CRC:4]
-                Span<byte> record = stackalloc byte[21];
+                // Commit record: [Type:1][RootPageId:8][Generation:8][EntryCount:8][CRC:4]
+                Span<byte> record = stackalloc byte[29];
                 record[0] = RECORD_TYPE_COMMIT;
                 BinaryPrimitives.WriteInt64LittleEndian(record.Slice(1), newRootPageId);
                 BinaryPrimitives.WriteInt64LittleEndian(record.Slice(9), generation);
+                BinaryPrimitives.WriteInt64LittleEndian(record.Slice(17), entryCount);
 
-                uint crc = Crc32.Compute(record.Slice(0, 17));
-                BinaryPrimitives.WriteUInt32LittleEndian(record.Slice(17), crc);
+                uint crc = Crc32.Compute(record.Slice(0, 25));
+                BinaryPrimitives.WriteUInt32LittleEndian(record.Slice(25), crc);
 
                 _walStream!.Write(record);
                 _walStream.Flush(flushToDisk: true);
@@ -135,8 +136,8 @@ namespace AcornDB.Storage.BPlusTree
             // Pre-allocate buffers for recovery (cold path — no need for stackalloc)
             int pageRecordSize = 8 + 4 + _pageSize + 4;
             var fullRecordBuf = new byte[1 + pageRecordSize];
-            var commitBuf = new byte[20];
-            var fullCommitBuf = new byte[21];
+            var commitBuf = new byte[28];
+            var fullCommitBuf = new byte[29];
 
             while (_walStream.Position < _walStream.Length)
             {
@@ -165,17 +166,17 @@ namespace AcornDB.Storage.BPlusTree
                 }
                 else if (typeByte == RECORD_TYPE_COMMIT)
                 {
-                    int read = _walStream.Read(commitBuf, 0, 20);
-                    if (read < 20) break; // Truncated
+                    int read = _walStream.Read(commitBuf, 0, 28);
+                    if (read < 28) break; // Truncated
 
                     // Validate commit CRC
                     fullCommitBuf[0] = RECORD_TYPE_COMMIT;
-                    Array.Copy(commitBuf, 0, fullCommitBuf, 1, 20);
+                    Array.Copy(commitBuf, 0, fullCommitBuf, 1, 28);
 
                     uint storedCrc = BinaryPrimitives.ReadUInt32LittleEndian(
-                        fullCommitBuf.AsSpan(17, 4));
+                        fullCommitBuf.AsSpan(25, 4));
                     uint computedCrc = Crc32.Compute(
-                        fullCommitBuf.AsSpan(0, 17));
+                        fullCommitBuf.AsSpan(0, 25));
                     if (storedCrc != computedCrc) break; // Corrupted commit
 
                     // Committed: apply all accumulated page writes to data file
@@ -187,7 +188,8 @@ namespace AcornDB.Storage.BPlusTree
 
                     long rootPageId = BinaryPrimitives.ReadInt64LittleEndian(commitBuf.AsSpan(0, 8));
                     long generation = BinaryPrimitives.ReadInt64LittleEndian(commitBuf.AsSpan(8, 8));
-                    _pageManager.WriteSuperblock(rootPageId, generation);
+                    long entryCount = BinaryPrimitives.ReadInt64LittleEndian(commitBuf.AsSpan(16, 8));
+                    _pageManager.WriteSuperblock(rootPageId, generation, entryCount);
 
                     pageEntries.Clear();
                 }
