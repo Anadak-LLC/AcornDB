@@ -112,6 +112,9 @@ namespace AcornDB.Storage.BPlusTree
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         public override Nut<T>? Crack(string id)
         {
+            // Flush pending writes to ensure read-your-writes consistency
+            FlushPendingWrites();
+
             var keyBytes = Encoding.UTF8.GetBytes(id);
             long rootSnapshot = Volatile.Read(ref _rootPageId);
 
@@ -133,6 +136,9 @@ namespace AcornDB.Storage.BPlusTree
 
         public override void Toss(string id)
         {
+            // Flush pending writes so we delete from the latest state
+            FlushPendingWrites();
+
             var keyBytes = Encoding.UTF8.GetBytes(id);
             long currentRoot = Volatile.Read(ref _rootPageId);
 
@@ -150,6 +156,9 @@ namespace AcornDB.Storage.BPlusTree
 
         public override IEnumerable<Nut<T>> CrackAll()
         {
+            // Flush pending writes to ensure scan sees all committed data
+            FlushPendingWrites();
+
             long rootSnapshot = Volatile.Read(ref _rootPageId);
             if (rootSnapshot == 0)
                 return Enumerable.Empty<Nut<T>>();
@@ -250,6 +259,9 @@ namespace AcornDB.Storage.BPlusTree
         /// </summary>
         public IEnumerable<Nut<T>> RangeScan(string startKey, string endKey)
         {
+            // Flush pending writes to ensure range scan sees all committed data
+            FlushPendingWrites();
+
             var startBytes = Encoding.UTF8.GetBytes(startKey);
             var endBytes = Encoding.UTF8.GetBytes(endKey);
             long rootSnapshot = Volatile.Read(ref _rootPageId);
@@ -275,6 +287,8 @@ namespace AcornDB.Storage.BPlusTree
         {
             get
             {
+                FlushPendingWrites();
+
                 long rootSnapshot = Volatile.Read(ref _rootPageId);
                 if (rootSnapshot == 0) return 0;
                 return _navigator.CountEntries(rootSnapshot);
@@ -284,6 +298,18 @@ namespace AcornDB.Storage.BPlusTree
         #endregion
 
         #region Maintenance
+
+        /// <summary>
+        /// Flush any pending batched writes to the B+Tree so that subsequent reads
+        /// see the latest committed state (read-your-writes consistency).
+        /// This is a no-op if the write buffer is empty.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private void FlushPendingWrites()
+        {
+            if (PendingWriteCount > 0)
+                FlushBatchAsync().GetAwaiter().GetResult();
+        }
 
         /// <summary>
         /// Force a WAL checkpoint: apply all WAL entries to the data file and truncate the WAL.
