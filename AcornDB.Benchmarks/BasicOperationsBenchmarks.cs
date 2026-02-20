@@ -2,6 +2,7 @@ using BenchmarkDotNet.Attributes;
 using BenchmarkDotNet.Engines;
 using AcornDB;
 using AcornDB.Storage;
+using AcornDB.Storage.BPlusTree;
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -48,6 +49,7 @@ namespace AcornDB.Benchmarks
             new TrunkCase("Memory",  _ => new MemoryTrunk<TestItem>()),
             new TrunkCase("File",    (root) => new FileTrunk<TestItem>(Path.Combine(root, "file"))),
             new TrunkCase("Bitcask", (root) => new BitcaskTrunk<TestItem>(Path.Combine(root, "bitcask"))),
+            new TrunkCase("BPlusTree", (root) => new BPlusTreeTrunk<TestItem>(Path.Combine(root, "bplustree"))),
         };
 
         [ParamsSource(nameof(Trunks))]
@@ -142,7 +144,7 @@ namespace AcornDB.Benchmarks
             // Adapt this if your actual API differs.
             if (_tree is null) return;
 
-            // Tree likely wraps a trunk, but Tree API isn’t shown here.
+            // Tree likely wraps a trunk, but Tree API isn't shown here.
             // If you can get the trunk out of Tree, do it; otherwise ignore.
             // Example if Tree exposes Trunk:
             // if (_tree.Trunk is TrunkBase<TestItem> tb) tb.FlushBatchAsync().GetAwaiter().GetResult();

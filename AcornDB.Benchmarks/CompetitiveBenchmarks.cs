@@ -1,6 +1,7 @@
 using BenchmarkDotNet.Attributes;
 using AcornDB;
 using AcornDB.Storage;
+using AcornDB.Storage.BPlusTree;
 using Microsoft.Data.Sqlite;
 
 namespace AcornDB.Benchmarks
@@ -364,6 +365,281 @@ namespace AcornDB.Benchmarks
                 {
                     Directory.Delete(dataDir, recursive: true);
                 }
+            }
+        }
+
+        // ===== BPlusTreeTrunk Benchmarks (True Page-Based B+Tree) =====
+
+        [Benchmark]
+        public void AcornDB_BPlusTree_Insert_Documents()
+        {
+            var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
+            Directory.CreateDirectory(dataDir);
+
+            BPlusTreeTrunk<TestDocument>? trunk = null;
+            try
+            {
+                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                var tree = CreateTree(trunk);
+
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Document {i}",
+                        Description = $"This is a test document with some content for benchmarking purposes. Document number: {i}",
+                        Value = i,
+                        Created = DateTime.UtcNow,
+                        IsActive = i % 2 == 0
+                    });
+                }
+            }
+            finally
+            {
+                trunk?.Dispose();
+                if (Directory.Exists(dataDir))
+                    Directory.Delete(dataDir, recursive: true);
+            }
+        }
+
+        [Benchmark]
+        public void AcornDB_BPlusTree_Read_ById()
+        {
+            var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
+            Directory.CreateDirectory(dataDir);
+
+            BPlusTreeTrunk<TestDocument>? trunk = null;
+            try
+            {
+                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                var tree = CreateTree(trunk);
+
+                // Pre-populate
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Document {i}",
+                        Value = i
+                    });
+                }
+
+                // Benchmark: Read all documents by ID
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    var doc = tree.Crack($"doc-{i}");
+                }
+            }
+            finally
+            {
+                trunk?.Dispose();
+                if (Directory.Exists(dataDir))
+                    Directory.Delete(dataDir, recursive: true);
+            }
+        }
+
+        [Benchmark]
+        public void AcornDB_BPlusTree_Update_Documents()
+        {
+            var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
+            Directory.CreateDirectory(dataDir);
+
+            BPlusTreeTrunk<TestDocument>? trunk = null;
+            try
+            {
+                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                var tree = CreateTree(trunk);
+
+                // Pre-populate
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Document {i}",
+                        Value = i
+                    });
+                }
+
+                // Benchmark: Update all documents
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Updated Document {i}",
+                        Value = i * 2
+                    });
+                }
+            }
+            finally
+            {
+                trunk?.Dispose();
+                if (Directory.Exists(dataDir))
+                    Directory.Delete(dataDir, recursive: true);
+            }
+        }
+
+        [Benchmark]
+        public void AcornDB_BPlusTree_Delete_Documents()
+        {
+            var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
+            Directory.CreateDirectory(dataDir);
+
+            BPlusTreeTrunk<TestDocument>? trunk = null;
+            try
+            {
+                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                var tree = CreateTree(trunk);
+
+                // Pre-populate
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Document {i}",
+                        Value = i
+                    });
+                }
+
+                // Benchmark: Delete all documents
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    tree.Toss($"doc-{i}");
+                }
+            }
+            finally
+            {
+                trunk?.Dispose();
+                if (Directory.Exists(dataDir))
+                    Directory.Delete(dataDir, recursive: true);
+            }
+        }
+
+        [Benchmark]
+        public void AcornDB_BPlusTree_Mixed_Workload()
+        {
+            var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
+            Directory.CreateDirectory(dataDir);
+
+            BPlusTreeTrunk<TestDocument>? trunk = null;
+            try
+            {
+                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                var tree = CreateTree(trunk);
+
+                // Insert 50%
+                for (int i = 0; i < DocumentCount / 2; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Document {i}",
+                        Value = i
+                    });
+                }
+
+                // Read 25%
+                for (int i = 0; i < DocumentCount / 4; i++)
+                {
+                    var doc = tree.Crack($"doc-{i}");
+                }
+
+                // Update 15%
+                for (int i = 0; i < (DocumentCount * 15) / 100; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Updated {i}",
+                        Value = i * 2
+                    });
+                }
+
+                // Delete 10%
+                for (int i = 0; i < DocumentCount / 10; i++)
+                {
+                    tree.Toss($"doc-{i}");
+                }
+            }
+            finally
+            {
+                trunk?.Dispose();
+                if (Directory.Exists(dataDir))
+                    Directory.Delete(dataDir, recursive: true);
+            }
+        }
+
+        [Benchmark]
+        public void AcornDB_BPlusTree_Scan_All_Documents()
+        {
+            var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
+            Directory.CreateDirectory(dataDir);
+
+            BPlusTreeTrunk<TestDocument>? trunk = null;
+            try
+            {
+                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                var tree = CreateTree(trunk);
+
+                // Pre-populate
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Document {i}",
+                        Value = i,
+                        IsActive = i % 2 == 0
+                    });
+                }
+
+                // Benchmark: Scan all documents
+                var allDocs = tree.Nuts.ToList();
+            }
+            finally
+            {
+                trunk?.Dispose();
+                if (Directory.Exists(dataDir))
+                    Directory.Delete(dataDir, recursive: true);
+            }
+        }
+
+        [Benchmark]
+        public void AcornDB_BPlusTree_Scan_With_Filter()
+        {
+            var dataDir = Path.Combine(Path.GetTempPath(), $"bplus_comp_{Guid.NewGuid()}");
+            Directory.CreateDirectory(dataDir);
+
+            BPlusTreeTrunk<TestDocument>? trunk = null;
+            try
+            {
+                trunk = new BPlusTreeTrunk<TestDocument>(dataDir);
+                var tree = CreateTree(trunk);
+
+                // Pre-populate
+                for (int i = 0; i < DocumentCount; i++)
+                {
+                    tree.Stash(new TestDocument
+                    {
+                        Id = $"doc-{i}",
+                        Name = $"Document {i}",
+                        Value = i,
+                        IsActive = i % 2 == 0
+                    });
+                }
+
+                // Benchmark: Filter documents (LINQ)
+                var activeDocs = tree.Nuts.Where(d => d.IsActive && d.Value > 100).ToList();
+            }
+            finally
+            {
+                trunk?.Dispose();
+                if (Directory.Exists(dataDir))
+                    Directory.Delete(dataDir, recursive: true);
             }
         }
 
