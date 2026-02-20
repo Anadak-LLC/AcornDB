@@ -86,7 +86,7 @@ namespace AcornDB.Storage.BPlusTree
             {
                 if (_initialized) return;
 
-                _pageManager = new PageManager(_dataFilePath, _options.PageSize);
+                _pageManager = new PageManager(_dataFilePath, _options.PageSize, _options.ValidateChecksumsOnRead);
                 _pageCache = new PageCache(_options.MaxCachePages, _options.PageSize);
                 _walManager = new WalManager(_walFilePath, _pageManager, _options.PageSize);
                 _navigator = new BPlusTreeNavigator(_pageManager, _pageCache, _options.PageSize);

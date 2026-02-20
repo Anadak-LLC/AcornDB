@@ -38,6 +38,10 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="AcornDB.Test" PublicKey="0024000004800000140100000602000000240000525341310008000001000100174d080190a437663ccf1e79e72c5d473f348c64b498a9acb4903263412a917c9eb67ab01c4ad79ae777c1c02ea98fefb7f1f6d27ce91c88a038c77be11b2e54d23f022fd49ee6e7ac4eccaf6ef4fcde238b354211c41dc35a7fdcf48a28a42f46e2dfb7219d4ede4a44249c7751bcc4f950bcc44eaa471171c36ddb94f594f8d177907bab044dffd6c1ab77e17583698842c67fb282409edc274eefa3016595ea54f17e745e06087c500181293cdb56eb4a5d0cd052cb7b6246a1e80a679d70cac0c4aab22853fc7986cfd691809abf000e37e30bbfc0ed58713093cb7e134b79634a4224832f317ec801131d5e38e1fccc940f43285bf09d5049d278d6f4a6" />
+  </ItemGroup>
+
+  <ItemGroup>
     <PackageReference Include="LibGit2Sharp" Version="0.31.0" />
     <PackageReference Include="Newtonsoft.Json" Version="13.0.4" />
     <PackageReference Include="System.IO.Hashing" Version="8.0.0" />

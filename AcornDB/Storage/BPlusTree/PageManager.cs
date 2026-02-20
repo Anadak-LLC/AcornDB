@@ -3,6 +3,7 @@ using System.Buffers;
 using System.Buffers.Binary;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading;
 
 namespace AcornDB.Storage.BPlusTree
 {
@@ -20,9 +21,11 @@ namespace AcornDB.Storage.BPlusTree
     {
         private readonly string _filePath;
         private readonly int _pageSize;
+        private readonly bool _validateChecksumsOnRead;
         private FileStream _fileStream;
         private long _nextPageId;
         private readonly object _allocLock = new();
+        private bool _disposed;
 
         // Superblock layout (page 0):
         //   [Magic:4][FormatVersion:2][PageSize:2][Flags:4][Reserved:4]
@@ -32,12 +35,18 @@ namespace AcornDB.Storage.BPlusTree
         // Total: 42 bytes (rest of page 0 is reserved)
         internal const int MAGIC = 0x41504C53; // 'APLS' (AcornDB PlusTree)
         internal const ushort FORMAT_VERSION = 1;
-        private const int SUPERBLOCK_HEADER_SIZE = 42;
+        internal const int SUPERBLOCK_HEADER_SIZE = 42;
+        internal const int SUPERBLOCK_CRC_OFFSET = 38;
 
-        internal PageManager(string filePath, int pageSize)
+        // Page header CRC field offset (matches BPlusTreeNavigator.HDR_PAGE_CRC)
+        private const int HDR_PAGE_CRC = 18;
+        private const int HDR_PAGE_CRC_LEN = 4;
+
+        internal PageManager(string filePath, int pageSize, bool validateChecksumsOnRead = true)
         {
             _filePath = filePath;
             _pageSize = pageSize;
+            _validateChecksumsOnRead = validateChecksumsOnRead;
 
             bool isNew = !File.Exists(filePath) || new FileInfo(filePath).Length == 0;
 
@@ -80,7 +89,11 @@ namespace AcornDB.Storage.BPlusTree
 
         private void ValidateAndLoad()
         {
-            var header = (stackalloc byte[16]);
+            long fileLength = _fileStream.Length;
+            if (fileLength < _pageSize)
+                throw new InvalidDataException($"File too small for superblock: {fileLength} bytes (need at least {_pageSize}).");
+
+            Span<byte> header = stackalloc byte[SUPERBLOCK_HEADER_SIZE];
             RandomAccess.Read(_fileStream.SafeFileHandle, header, 0);
 
             int magic = BinaryPrimitives.ReadInt32LittleEndian(header);
@@ -95,39 +108,80 @@ namespace AcornDB.Storage.BPlusTree
             if (storedPageSize != _pageSize)
                 throw new InvalidDataException($"Page size mismatch: file has {storedPageSize}, configured {_pageSize}.");
 
-            _nextPageId = _fileStream.Length / _pageSize;
+            // Validate superblock CRC (F-4)
+            uint storedCrc = BinaryPrimitives.ReadUInt32LittleEndian(header.Slice(SUPERBLOCK_CRC_OFFSET));
+            uint computedCrc = Crc32.Compute(header.Slice(0, SUPERBLOCK_CRC_OFFSET));
+            if (storedCrc != computedCrc)
+                throw new InvalidDataException($"Superblock CRC mismatch: stored 0x{storedCrc:X8}, computed 0x{computedCrc:X8}.");
+
+            _nextPageId = fileLength / _pageSize;
         }
 
         #region Page I/O
 
         /// <summary>
         /// Read a page into the provided buffer. Buffer must be at least PageSize bytes.
+        /// Validates page CRC if checksums are enabled.
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void ReadPage(long pageId, Span<byte> dest)
         {
             if (dest.Length < _pageSize)
                 throw new ArgumentException($"Buffer too small: {dest.Length} < {_pageSize}");
+            if (pageId < 1)
+                throw new ArgumentOutOfRangeException(nameof(pageId), pageId, "Page ID must be >= 1 (page 0 is the superblock).");
+
+            long currentNext = Volatile.Read(ref _nextPageId);
+            if (pageId >= currentNext)
+                throw new ArgumentOutOfRangeException(nameof(pageId), pageId, $"Page ID {pageId} is beyond allocated range [1..{currentNext - 1}].");
 
             long offset = pageId * _pageSize;
             RandomAccess.Read(_fileStream.SafeFileHandle, dest.Slice(0, _pageSize), offset);
+
+            if (_validateChecksumsOnRead)
+            {
+                ValidatePageCrc(dest.Slice(0, _pageSize), pageId);
+            }
         }
 
         /// <summary>
         /// Write a page from the provided buffer. Buffer must be at least PageSize bytes.
+        /// Updates the internal page count if writing beyond the current allocation
+        /// (e.g. during WAL recovery).
         /// </summary>
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         internal void WritePage(long pageId, ReadOnlySpan<byte> src)
         {
             if (src.Length < _pageSize)
                 throw new ArgumentException($"Buffer too small: {src.Length} < {_pageSize}");
+            if (pageId < 1)
+                throw new ArgumentOutOfRangeException(nameof(pageId), pageId, "Page ID must be >= 1 (page 0 is the superblock).");
 
             long offset = pageId * _pageSize;
+            long requiredLength = offset + _pageSize;
+
+            // Extend file if needed (WAL recovery may write pages beyond current file length)
+            if (_fileStream.Length < requiredLength)
+            {
+                _fileStream.SetLength(requiredLength);
+            }
+
             RandomAccess.Write(_fileStream.SafeFileHandle, src.Slice(0, _pageSize), offset);
+
+            // Update _nextPageId if we wrote beyond the known allocation
+            // Use a lock-free spin to avoid contention on the hot write path
+            long next = pageId + 1;
+            long current;
+            do
+            {
+                current = Volatile.Read(ref _nextPageId);
+                if (next <= current) break;
+            } while (Interlocked.CompareExchange(ref _nextPageId, next, current) != current);
         }
 
         /// <summary>
         /// Allocate a new page, returning its ID. Thread-safe.
+        /// The page is zero-initialized on disk.
         /// </summary>
         internal long AllocatePage()
         {
@@ -147,11 +201,28 @@ namespace AcornDB.Storage.BPlusTree
         }
 
         /// <summary>
+        /// Returns the current count of allocated pages (including the superblock).
+        /// </summary>
+        internal long PageCount => Volatile.Read(ref _nextPageId);
+
+        /// <summary>
         /// Flush all written pages to disk.
         /// </summary>
         internal void Flush()
         {
             _fileStream.Flush(flushToDisk: true);
+        }
+
+        /// <summary>
+        /// Validate CRC of a page buffer. Throws InvalidDataException on mismatch.
+        /// </summary>
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        private static void ValidatePageCrc(ReadOnlySpan<byte> page, long pageId)
+        {
+            uint storedCrc = BinaryPrimitives.ReadUInt32LittleEndian(page.Slice(HDR_PAGE_CRC));
+            uint computedCrc = Crc32.ComputeExcluding(page, HDR_PAGE_CRC, HDR_PAGE_CRC_LEN);
+            if (storedCrc != computedCrc)
+                throw new InvalidDataException($"Page {pageId} CRC mismatch: stored 0x{storedCrc:X8}, computed 0x{computedCrc:X8}.");
         }
 
         #endregion
@@ -204,16 +275,19 @@ namespace AcornDB.Storage.BPlusTree
             // FreeListHead[8] at offset 32..39 — leave as-is for now
 
             // CRC32 over first 38 bytes (everything before the CRC field)
-            uint crc = Crc32.Compute(buf.Slice(0, 38));
-            BinaryPrimitives.WriteUInt32LittleEndian(buf.Slice(38), crc);
+            uint crc = Crc32.Compute(buf.Slice(0, SUPERBLOCK_CRC_OFFSET));
+            BinaryPrimitives.WriteUInt32LittleEndian(buf.Slice(SUPERBLOCK_CRC_OFFSET), crc);
         }
 
         internal int PageSize => _pageSize;
+        internal bool ValidateChecksumsOnRead => _validateChecksumsOnRead;
 
         #endregion
 
         public void Dispose()
         {
+            if (_disposed) return;
+            _disposed = true;
             _fileStream?.Dispose();
         }
     }
