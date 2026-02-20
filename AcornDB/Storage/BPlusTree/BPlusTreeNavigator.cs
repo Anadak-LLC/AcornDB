@@ -350,10 +350,10 @@ namespace AcornDB.Storage.BPlusTree
         ///   - Handle cascading internal node merges when a merge reduces parent below minimum.
         ///   - Root shrinking: if the root internal node has 0 separators, collapse to its sole child.
         /// </summary>
-        internal (long NewRootPageId, bool Found) Delete(long rootPageId, ReadOnlySpan<byte> key, WalManager wal)
+        internal (long NewRootPageId, bool Found, List<long>? FreedPages) Delete(long rootPageId, ReadOnlySpan<byte> key, WalManager wal)
         {
             if (rootPageId == 0)
-                return (0, false);
+                return (0, false, null);
 
             var pageBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
             try
@@ -367,17 +367,30 @@ namespace AcornDB.Storage.BPlusTree
                     bool found = DeleteFromLeaf(rootPageId, pageBuf, key, wal);
                     int newCount = BinaryPrimitives.ReadUInt16LittleEndian(pageBuf.AsSpan(HDR_ITEM_COUNT));
                     long newRoot = newCount == 0 ? 0 : rootPageId;
-                    return (newRoot, found);
+                    List<long>? freed = null;
+                    if (found && newCount == 0)
+                    {
+                        // Root leaf is now empty — it will become unreferenced
+                        freed = new List<long> { rootPageId };
+                    }
+                    return (newRoot, found, freed);
                 }
                 else
                 {
                     var result = DeleteRecursive(rootPageId, key, wal);
                     if (!result.Found)
-                        return (rootPageId, false);
+                        return (rootPageId, false, null);
 
                     // Root shrinking: if root internal node now has 0 separators,
                     // collapse to its sole child (the leftmost child).
-                    return (TryShrinkRoot(rootPageId), true);
+                    var (newRoot, shrunkPages) = TryShrinkRoot(rootPageId);
+                    var freedPages = result.FreedPages;
+                    if (shrunkPages != null)
+                    {
+                        freedPages ??= new List<long>();
+                        freedPages.AddRange(shrunkPages);
+                    }
+                    return (newRoot, true, freedPages);
                 }
             }
             finally
@@ -419,16 +432,24 @@ namespace AcornDB.Storage.BPlusTree
                     return childResult;
 
                 if (!childResult.Underfull)
-                    return new DeleteResult { Found = true, Underfull = false };
+                    return new DeleteResult { Found = true, Underfull = false, FreedPages = childResult.FreedPages };
 
                 // Child is underfull — try merge or redistribute with a sibling
-                TryRebalanceChild(pageId, childPageId, childIdx, wal);
+                long? mergedPageId = TryRebalanceChild(pageId, childPageId, childIdx, wal);
+
+                // Accumulate freed pages from child and from this merge
+                var freedPages = childResult.FreedPages;
+                if (mergedPageId.HasValue)
+                {
+                    freedPages ??= new List<long>();
+                    freedPages.Add(mergedPageId.Value);
+                }
 
                 // Re-read parent to check if it became underfull after rebalancing
                 ReadPageCached(pageId, pageBuf);
                 page = pageBuf.AsSpan(0, _pageSize);
                 int parentItemCount = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_ITEM_COUNT));
-                return new DeleteResult { Found = true, Underfull = IsInternalUnderfull(page, parentItemCount) };
+                return new DeleteResult { Found = true, Underfull = IsInternalUnderfull(page, parentItemCount), FreedPages = freedPages };
             }
             finally
             {
@@ -517,8 +538,9 @@ namespace AcornDB.Storage.BPlusTree
         /// Try to rebalance an underfull child by merging with or redistributing from a sibling.
         /// Prefers the right sibling if available, otherwise uses the left sibling.
         /// Merge is preferred over redistribution when entries fit in one page.
+        /// Returns the page ID of the merged-away (freed) page, or null if redistribution occurred.
         /// </summary>
-        private void TryRebalanceChild(long parentPageId, long childPageId, int childIdx, WalManager wal)
+        private long? TryRebalanceChild(long parentPageId, long childPageId, int childIdx, WalManager wal)
         {
             var parentBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
             var childBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
@@ -552,7 +574,7 @@ namespace AcornDB.Storage.BPlusTree
                 else
                 {
                     // Only child — nothing to merge/redistribute with
-                    return;
+                    return null;
                 }
 
                 ReadPageCached(childPageId, childBuf);
@@ -562,12 +584,12 @@ namespace AcornDB.Storage.BPlusTree
 
                 if (childType == PAGE_TYPE_LEAF)
                 {
-                    TryRebalanceLeaves(parentPageId, parentBuf, childPageId, childBuf,
+                    return TryRebalanceLeaves(parentPageId, parentBuf, childPageId, childBuf,
                         siblingPageId, siblingBuf, separatorIdx, siblingIsRight, wal);
                 }
                 else
                 {
-                    TryRebalanceInternals(parentPageId, parentBuf, childPageId, childBuf,
+                    return TryRebalanceInternals(parentPageId, parentBuf, childPageId, childBuf,
                         siblingPageId, siblingBuf, separatorIdx, siblingIsRight, wal);
                 }
             }
@@ -583,8 +605,9 @@ namespace AcornDB.Storage.BPlusTree
         /// Merge or redistribute two leaf siblings.
         /// If all entries fit in one page, merge (left absorbs right, remove right from chain).
         /// Otherwise, redistribute entries evenly and update parent separator.
+        /// Returns the page ID of the merged-away (freed) page, or null if redistribution occurred.
         /// </summary>
-        private void TryRebalanceLeaves(long parentPageId, byte[] parentBuf,
+        private long? TryRebalanceLeaves(long parentPageId, byte[] parentBuf,
             long childPageId, byte[] childBuf, long siblingPageId, byte[] siblingBuf,
             int separatorIdx, bool siblingIsRight, WalManager wal)
         {
@@ -624,6 +647,9 @@ namespace AcornDB.Storage.BPlusTree
                 // Remove separator from parent, collapsing the right child
                 RemoveSeparatorFromParent(parentPageId, parentBuf, separatorIdx,
                     leftPageId, siblingIsRight, wal);
+
+                // Right page is now unreferenced — return it for freeing
+                return rightPageId;
             }
             else
             {
@@ -641,6 +667,8 @@ namespace AcornDB.Storage.BPlusTree
 
                 // Update parent separator to the first key of the new right leaf
                 UpdateParentSeparator(parentPageId, parentBuf, separatorIdx, rightEntries[0].Key, wal);
+
+                return null; // No page freed — redistribution only
             }
         }
 
@@ -648,8 +676,9 @@ namespace AcornDB.Storage.BPlusTree
         /// Merge or redistribute two internal node siblings.
         /// Merge pulls the parent separator down into the combined node.
         /// Redistribute moves entries via the parent separator (rotate).
+        /// Returns the page ID of the merged-away (freed) page, or null if redistribution occurred.
         /// </summary>
-        private void TryRebalanceInternals(long parentPageId, byte[] parentBuf,
+        private long? TryRebalanceInternals(long parentPageId, byte[] parentBuf,
             long childPageId, byte[] childBuf, long siblingPageId, byte[] siblingBuf,
             int separatorIdx, bool siblingIsRight, WalManager wal)
         {
@@ -715,6 +744,9 @@ namespace AcornDB.Storage.BPlusTree
 
                 RemoveSeparatorFromParent(parentPageId, parentBuf, separatorIdx,
                     leftPageId, siblingIsRight, wal);
+
+                // Right page is now unreferenced — return it for freeing
+                return rightPageId;
             }
             else
             {
@@ -733,6 +765,8 @@ namespace AcornDB.Storage.BPlusTree
                 WritePageCrcAndFlush(rightPageId, rightBuf, wal);
 
                 UpdateParentSeparator(parentPageId, parentBuf, separatorIdx, newSepKey, wal);
+
+                return null; // No page freed — redistribution only
             }
         }
 
@@ -954,13 +988,16 @@ namespace AcornDB.Storage.BPlusTree
         /// If the root is an internal node with 0 separators (single child),
         /// collapse it to the leftmost child. Repeats until the root is a leaf
         /// or has at least one separator.
+        /// Returns (newRootPageId, freedPageIds) where freedPageIds contains
+        /// any old root pages that were collapsed.
         /// </summary>
-        private long TryShrinkRoot(long rootPageId)
+        private (long NewRoot, List<long>? FreedPages) TryShrinkRoot(long rootPageId)
         {
             var pageBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
             try
             {
                 long currentRoot = rootPageId;
+                List<long>? freedPages = null;
 
                 while (currentRoot != 0)
                 {
@@ -975,10 +1012,14 @@ namespace AcornDB.Storage.BPlusTree
                         break; // Root has separators — no shrinking needed
 
                     // Root internal with 0 separators: collapse to leftmost child
+                    long oldRoot = currentRoot;
                     currentRoot = BinaryPrimitives.ReadInt64LittleEndian(page.Slice(HEADER_SIZE));
+
+                    freedPages ??= new List<long>();
+                    freedPages.Add(oldRoot);
                 }
 
-                return currentRoot;
+                return (currentRoot, freedPages);
             }
             finally
             {
@@ -990,6 +1031,7 @@ namespace AcornDB.Storage.BPlusTree
         {
             public bool Found;
             public bool Underfull;
+            public List<long>? FreedPages;
         }
 
         #endregion

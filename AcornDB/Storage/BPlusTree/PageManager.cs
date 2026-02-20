@@ -1,6 +1,7 @@
 using System;
 using System.Buffers;
 using System.Buffers.Binary;
+using System.Collections.Generic;
 using System.IO;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -11,8 +12,8 @@ namespace AcornDB.Storage.BPlusTree
     /// Manages fixed-size page I/O for the B+Tree data file.
     ///
     /// File layout:
-    ///   Page 0: Superblock (root pointer, format version, page size, generation)
-    ///   Page 1+: B+Tree pages (internal nodes and leaf nodes)
+    ///   Page 0: Superblock (root pointer, format version, page size, generation, free list head)
+    ///   Page 1+: B+Tree pages (internal nodes, leaf nodes, or free pages)
     ///
     /// Uses RandomAccess.Read/Write for explicit offset I/O with Span{byte}.
     /// No memory-mapped files — the PageCache provides hot-path caching.
@@ -28,12 +29,20 @@ namespace AcornDB.Storage.BPlusTree
         private readonly object _allocLock = new();
         private bool _disposed;
 
+        /// <summary>
+        /// In-memory free page stack. Pages are pushed here when freed (merge/delete)
+        /// and popped on allocation. The head of this list is persisted in the superblock
+        /// as a linked list threaded through the free pages on disk.
+        /// </summary>
+        private long _freeListHead;
+
         // Superblock layout (page 0):
         //   [Magic:4][FormatVersion:2][PageSize:2][EntryCount:8]
         //   [RootPageId:8][RootGeneration:8]
-        //   [FreeListHead:8]
+        //   [FreeListHead:4][Reserved:2]
         //   [SuperblockCRC:4]
         // Total: 42 bytes (rest of page 0 is reserved)
+        // Note: FreeListHead is 4 bytes (int32) at offset 32. Supports up to ~2B pages (~16TB at 8KB).
         //
         // EntryCount at offset 8 reuses the former Flags[4]+Reserved[4] fields
         // (always zero in v1 files). Migration: if EntryCount==0 && RootPageId!=0,
@@ -43,6 +52,7 @@ namespace AcornDB.Storage.BPlusTree
         internal const int SUPERBLOCK_HEADER_SIZE = 42;
         internal const int SUPERBLOCK_CRC_OFFSET = 38;
         internal const int SUPERBLOCK_ENTRY_COUNT_OFFSET = 8;
+        internal const int SUPERBLOCK_FREE_LIST_HEAD_OFFSET = 32;
 
         // Page header CRC field offset (matches BPlusTreeNavigator.HDR_PAGE_CRC)
         private const int HDR_PAGE_CRC = 18;
@@ -82,7 +92,7 @@ namespace AcornDB.Storage.BPlusTree
             try
             {
                 Array.Clear(superblock, 0, _pageSize);
-                WriteSuperblockToBuffer(superblock, rootPageId: 0, generation: 0, entryCount: 0);
+                WriteSuperblockToBuffer(superblock, rootPageId: 0, generation: 0, entryCount: 0, freeListHead: 0);
                 RandomAccess.Write(_fileStream.SafeFileHandle, superblock.AsSpan(0, _pageSize), 0);
                 _fileStream.Flush(flushToDisk: true);
             }
@@ -122,6 +132,7 @@ namespace AcornDB.Storage.BPlusTree
                 throw new InvalidDataException($"Superblock CRC mismatch: stored 0x{storedCrc:X8}, computed 0x{computedCrc:X8}.");
 
             _nextPageId = fileLength / _pageSize;
+            _freeListHead = BinaryPrimitives.ReadInt32LittleEndian(header.Slice(SUPERBLOCK_FREE_LIST_HEAD_OFFSET));
         }
 
         #region Page I/O
@@ -187,25 +198,81 @@ namespace AcornDB.Storage.BPlusTree
         }
 
         /// <summary>
-        /// Allocate a new page, returning its ID. Thread-safe.
-        /// The page is zero-initialized on disk.
+        /// Allocate a page, returning its ID. Thread-safe.
+        /// Reuses a free page if available; otherwise extends the file.
         /// </summary>
         internal long AllocatePage()
         {
             lock (_allocLock)
             {
-                long pageId = _nextPageId++;
+                if (_freeListHead != 0)
+                {
+                    // Pop from free list: read the free page to get the next pointer
+                    long pageId = _freeListHead;
+                    Span<byte> header = stackalloc byte[16];
+                    long offset = pageId * _pageSize;
+                    RandomAccess.Read(_fileStream.SafeFileHandle, header, offset);
+
+                    // Free page format: [PageType:1 (0x03)][NextFreePageId:8]
+                    long nextFree = BinaryPrimitives.ReadInt64LittleEndian(header.Slice(1));
+                    _freeListHead = nextFree;
+                    return pageId;
+                }
+
+                long newPageId = _nextPageId++;
 
                 // Extend file to cover the new page
-                long requiredLength = (pageId + 1) * _pageSize;
+                long requiredLength = (newPageId + 1) * _pageSize;
                 if (_fileStream.Length < requiredLength)
                 {
                     _fileStream.SetLength(requiredLength);
                 }
 
-                return pageId;
+                return newPageId;
             }
         }
+
+        /// <summary>
+        /// Return a page to the free list for reuse. The page is overwritten with
+        /// a free-page marker and linked into the free list chain.
+        /// Must be called under the same write serialization as tree modifications.
+        /// The free list head is persisted in the superblock on the next commit.
+        /// </summary>
+        internal void FreePage(long pageId, WalManager wal)
+        {
+            lock (_allocLock)
+            {
+                var buf = ArrayPool<byte>.Shared.Rent(_pageSize);
+                try
+                {
+                    Array.Clear(buf, 0, _pageSize);
+                    var page = buf.AsSpan(0, _pageSize);
+
+                    // Free page format: [PageType:1 = 0x03][NextFreePageId:8]
+                    page[0] = PAGE_TYPE_FREE;
+                    BinaryPrimitives.WriteInt64LittleEndian(page.Slice(1), _freeListHead);
+
+                    // CRC over the page (excluding CRC field at HDR_PAGE_CRC)
+                    uint crc = Crc32.ComputeExcluding(page, HDR_PAGE_CRC, HDR_PAGE_CRC_LEN);
+                    BinaryPrimitives.WriteUInt32LittleEndian(page.Slice(HDR_PAGE_CRC), crc);
+
+                    // Write to WAL first, then data file
+                    wal.WritePageImage(pageId, page);
+                    WritePage(pageId, page);
+
+                    _freeListHead = pageId;
+                }
+                finally
+                {
+                    ArrayPool<byte>.Shared.Return(buf);
+                }
+            }
+        }
+
+        /// <summary>
+        /// Page type marker for free (recycled) pages.
+        /// </summary>
+        internal const byte PAGE_TYPE_FREE = 0x03;
 
         /// <summary>
         /// Returns the current count of allocated pages (including the superblock).
@@ -237,9 +304,9 @@ namespace AcornDB.Storage.BPlusTree
         #region Superblock
 
         /// <summary>
-        /// Read root page ID, generation, and entry count from the superblock (page 0).
+        /// Read root page ID, generation, entry count, and free list head from the superblock (page 0).
         /// </summary>
-        internal (long RootPageId, long Generation, long EntryCount) ReadSuperblock()
+        internal (long RootPageId, long Generation, long EntryCount, long FreeListHead) ReadSuperblock()
         {
             Span<byte> buf = stackalloc byte[SUPERBLOCK_HEADER_SIZE];
             RandomAccess.Read(_fileStream.SafeFileHandle, buf, 0);
@@ -247,12 +314,13 @@ namespace AcornDB.Storage.BPlusTree
             long entryCount = BinaryPrimitives.ReadInt64LittleEndian(buf.Slice(SUPERBLOCK_ENTRY_COUNT_OFFSET));
             long rootPageId = BinaryPrimitives.ReadInt64LittleEndian(buf.Slice(16));
             long generation = BinaryPrimitives.ReadInt64LittleEndian(buf.Slice(24));
+            long freeListHead = BinaryPrimitives.ReadInt32LittleEndian(buf.Slice(SUPERBLOCK_FREE_LIST_HEAD_OFFSET));
 
-            return (rootPageId, generation, entryCount);
+            return (rootPageId, generation, entryCount, freeListHead);
         }
 
         /// <summary>
-        /// Write root page ID, generation, and entry count to the superblock (page 0) and fsync.
+        /// Write root page ID, generation, entry count, and free list head to the superblock (page 0) and fsync.
         /// This is the commit point for the data file.
         /// </summary>
         internal void WriteSuperblock(long rootPageId, long generation, long entryCount)
@@ -262,7 +330,7 @@ namespace AcornDB.Storage.BPlusTree
             {
                 // Read existing superblock to preserve other fields
                 RandomAccess.Read(_fileStream.SafeFileHandle, buf.AsSpan(0, _pageSize), 0);
-                WriteSuperblockToBuffer(buf, rootPageId, generation, entryCount);
+                WriteSuperblockToBuffer(buf, rootPageId, generation, entryCount, _freeListHead);
                 RandomAccess.Write(_fileStream.SafeFileHandle, buf.AsSpan(0, _pageSize), 0);
                 _fileStream.Flush(flushToDisk: _fsyncOnCommit);
             }
@@ -272,7 +340,7 @@ namespace AcornDB.Storage.BPlusTree
             }
         }
 
-        private void WriteSuperblockToBuffer(Span<byte> buf, long rootPageId, long generation, long entryCount = 0)
+        private void WriteSuperblockToBuffer(Span<byte> buf, long rootPageId, long generation, long entryCount, long freeListHead)
         {
             BinaryPrimitives.WriteInt32LittleEndian(buf, MAGIC);
             BinaryPrimitives.WriteUInt16LittleEndian(buf.Slice(4), FORMAT_VERSION);
@@ -280,7 +348,7 @@ namespace AcornDB.Storage.BPlusTree
             BinaryPrimitives.WriteInt64LittleEndian(buf.Slice(SUPERBLOCK_ENTRY_COUNT_OFFSET), entryCount);
             BinaryPrimitives.WriteInt64LittleEndian(buf.Slice(16), rootPageId);
             BinaryPrimitives.WriteInt64LittleEndian(buf.Slice(24), generation);
-            // FreeListHead[8] at offset 32..39 — leave as-is for now
+            BinaryPrimitives.WriteInt32LittleEndian(buf.Slice(SUPERBLOCK_FREE_LIST_HEAD_OFFSET), (int)freeListHead);
 
             // CRC32 over first 38 bytes (everything before the CRC field)
             uint crc = Crc32.Compute(buf.Slice(0, SUPERBLOCK_CRC_OFFSET));
@@ -289,6 +357,14 @@ namespace AcornDB.Storage.BPlusTree
 
         internal int PageSize => _pageSize;
         internal bool ValidateChecksumsOnRead => _validateChecksumsOnRead;
+
+        /// <summary>
+        /// Current head of the free page list. 0 means the list is empty.
+        /// </summary>
+        internal long FreeListHead
+        {
+            get { lock (_allocLock) return _freeListHead; }
+        }
 
         #endregion
 

@@ -98,7 +98,7 @@ namespace AcornDB.Storage.BPlusTree
 
                 // Recover from WAL if needed, then load root pointer from superblock
                 _walManager.Recover();
-                var (rootPageId, generation, entryCount) = _pageManager.ReadSuperblock();
+                var (rootPageId, generation, entryCount, _) = _pageManager.ReadSuperblock();
                 Volatile.Write(ref _rootPageId, rootPageId);
                 Volatile.Write(ref _rootGeneration, generation);
 
@@ -158,12 +158,22 @@ namespace AcornDB.Storage.BPlusTree
             if (currentRoot == 0)
                 return; // Empty tree, nothing to delete
 
-            var (newRoot, found) = _navigator.Delete(currentRoot, keyBytes, _walManager);
+            var (newRoot, found, freedPages) = _navigator.Delete(currentRoot, keyBytes, _walManager);
             long newCount = Volatile.Read(ref _entryCount) - (found ? 1 : 0);
+
+            // Return freed pages to the free list (written to WAL + data file)
+            if (freedPages != null)
+            {
+                foreach (var freedPageId in freedPages)
+                {
+                    _pageManager.FreePage(freedPageId, _walManager);
+                    _pageCache.Invalidate(freedPageId);
+                }
+            }
 
             // Atomically update root pointer and persist via WAL
             var newGeneration = Interlocked.Increment(ref _rootGeneration);
-            _walManager.CommitRootUpdate(newRoot, newGeneration, newCount);
+            _walManager.CommitRootUpdate(newRoot, newGeneration, newCount, _pageManager.FreeListHead);
             _pageManager.WriteSuperblock(newRoot, newGeneration, newCount);
             Volatile.Write(ref _rootPageId, newRoot);
             Volatile.Write(ref _entryCount, newCount);
@@ -240,7 +250,7 @@ namespace AcornDB.Storage.BPlusTree
             long newCount = Volatile.Read(ref _entryCount) + (isNewKey ? 1 : 0);
 
             var newGeneration = Interlocked.Increment(ref _rootGeneration);
-            _walManager.CommitRootUpdate(newRoot, newGeneration, newCount);
+            _walManager.CommitRootUpdate(newRoot, newGeneration, newCount, _pageManager.FreeListHead);
             _pageManager.WriteSuperblock(newRoot, newGeneration, newCount);
             Volatile.Write(ref _rootPageId, newRoot);
             Volatile.Write(ref _entryCount, newCount);
@@ -268,7 +278,7 @@ namespace AcornDB.Storage.BPlusTree
 
             // Single WAL commit + fsync for the entire batch (group commit)
             var newGeneration = Interlocked.Increment(ref _rootGeneration);
-            _walManager.CommitRootUpdate(currentRoot, newGeneration, newCount);
+            _walManager.CommitRootUpdate(currentRoot, newGeneration, newCount, _pageManager.FreeListHead);
             _pageManager.WriteSuperblock(currentRoot, newGeneration, newCount);
             Volatile.Write(ref _rootPageId, currentRoot);
             Volatile.Write(ref _entryCount, newCount);

@@ -35,11 +35,12 @@ namespace AcornDB.Test
             var path = TestFilePath();
             using var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false);
 
-            var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
+            var (rootPageId, generation, entryCount, freeListHead) = pm.ReadSuperblock();
 
             Assert.Equal(0, rootPageId);
             Assert.Equal(0, generation);
             Assert.Equal(0, entryCount);
+            Assert.Equal(0, freeListHead);
             Assert.Equal(PAGE_SIZE, pm.PageSize);
 
             // File should be exactly one page (the superblock)
@@ -69,7 +70,7 @@ namespace AcornDB.Test
             // Reopen
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
+                var (rootPageId, generation, entryCount, _) = pm.ReadSuperblock();
                 Assert.Equal(42, rootPageId);
                 Assert.Equal(7, generation);
                 Assert.Equal(10, entryCount);
@@ -476,7 +477,7 @@ namespace AcornDB.Test
 
             pm.WriteSuperblock(123, 456, 789);
 
-            var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
+            var (rootPageId, generation, entryCount, _) = pm.ReadSuperblock();
             Assert.Equal(123, rootPageId);
             Assert.Equal(456, generation);
             Assert.Equal(789, entryCount);
@@ -494,7 +495,7 @@ namespace AcornDB.Test
 
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
+                var (rootPageId, generation, entryCount, _) = pm.ReadSuperblock();
                 Assert.Equal(999, rootPageId);
                 Assert.Equal(42, generation);
                 Assert.Equal(55, entryCount);
@@ -517,7 +518,7 @@ namespace AcornDB.Test
             // Reopen validates CRC — should succeed
             using (var pm = new PageManager(path, PAGE_SIZE, validateChecksumsOnRead: false))
             {
-                var (rootPageId, generation, entryCount) = pm.ReadSuperblock();
+                var (rootPageId, generation, entryCount, _) = pm.ReadSuperblock();
                 Assert.Equal(100, rootPageId);
                 Assert.Equal(50, generation);
                 Assert.Equal(30, entryCount);

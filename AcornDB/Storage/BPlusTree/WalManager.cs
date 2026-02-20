@@ -20,7 +20,7 @@ namespace AcornDB.Storage.BPlusTree
     ///   [RecordType:1][PageId:8][DataLength:4][PageData:N][RecordCRC:4]
     ///
     /// Commit record:
-    ///   [RecordType:1 (=0x02)][RootPageId:8][Generation:8][EntryCount:8][CommitCRC:4]
+    ///   [RecordType:1 (=0x02)][RootPageId:8][Generation:8][EntryCount:8][FreeListHead:8][CommitCRC:4]
     ///
     /// Recovery:
     ///   On startup, replay any committed but unapplied WAL entries to the data file.
@@ -92,19 +92,20 @@ namespace AcornDB.Storage.BPlusTree
         /// Write a commit record to the WAL and fsync.
         /// After this returns, the batch is durable.
         /// </summary>
-        internal void CommitRootUpdate(long newRootPageId, long generation, long entryCount)
+        internal void CommitRootUpdate(long newRootPageId, long generation, long entryCount, long freeListHead = 0)
         {
             lock (_walLock)
             {
-                // Commit record: [Type:1][RootPageId:8][Generation:8][EntryCount:8][CRC:4]
-                Span<byte> record = stackalloc byte[29];
+                // Commit record: [Type:1][RootPageId:8][Generation:8][EntryCount:8][FreeListHead:8][CRC:4]
+                Span<byte> record = stackalloc byte[37];
                 record[0] = RECORD_TYPE_COMMIT;
                 BinaryPrimitives.WriteInt64LittleEndian(record.Slice(1), newRootPageId);
                 BinaryPrimitives.WriteInt64LittleEndian(record.Slice(9), generation);
                 BinaryPrimitives.WriteInt64LittleEndian(record.Slice(17), entryCount);
+                BinaryPrimitives.WriteInt64LittleEndian(record.Slice(25), freeListHead);
 
-                uint crc = Crc32.Compute(record.Slice(0, 25));
-                BinaryPrimitives.WriteUInt32LittleEndian(record.Slice(25), crc);
+                uint crc = Crc32.Compute(record.Slice(0, 33));
+                BinaryPrimitives.WriteUInt32LittleEndian(record.Slice(33), crc);
 
                 _walStream!.Write(record);
                 _walStream.Flush(flushToDisk: _fsyncOnCommit);
@@ -138,8 +139,9 @@ namespace AcornDB.Storage.BPlusTree
             // Pre-allocate buffers for recovery (cold path — no need for stackalloc)
             int pageRecordSize = 8 + 4 + _pageSize + 4;
             var fullRecordBuf = new byte[1 + pageRecordSize];
-            var commitBuf = new byte[28];
-            var fullCommitBuf = new byte[29];
+            // Commit record (after type byte): [RootPageId:8][Gen:8][EntryCount:8][FreeListHead:8][CRC:4] = 36
+            var commitBuf = new byte[36];
+            var fullCommitBuf = new byte[37];
 
             while (_walStream.Position < _walStream.Length)
             {
@@ -168,17 +170,17 @@ namespace AcornDB.Storage.BPlusTree
                 }
                 else if (typeByte == RECORD_TYPE_COMMIT)
                 {
-                    int read = _walStream.Read(commitBuf, 0, 28);
-                    if (read < 28) break; // Truncated
+                    int read = _walStream.Read(commitBuf, 0, 36);
+                    if (read < 36) break; // Truncated
 
                     // Validate commit CRC
                     fullCommitBuf[0] = RECORD_TYPE_COMMIT;
-                    Array.Copy(commitBuf, 0, fullCommitBuf, 1, 28);
+                    Array.Copy(commitBuf, 0, fullCommitBuf, 1, 36);
 
                     uint storedCrc = BinaryPrimitives.ReadUInt32LittleEndian(
-                        fullCommitBuf.AsSpan(25, 4));
+                        fullCommitBuf.AsSpan(33, 4));
                     uint computedCrc = Crc32.Compute(
-                        fullCommitBuf.AsSpan(0, 25));
+                        fullCommitBuf.AsSpan(0, 33));
                     if (storedCrc != computedCrc) break; // Corrupted commit
 
                     // Committed: apply all accumulated page writes to data file

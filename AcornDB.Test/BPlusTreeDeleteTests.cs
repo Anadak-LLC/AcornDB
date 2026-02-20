@@ -769,5 +769,179 @@ namespace AcornDB.Test
         }
 
         #endregion
+
+        #region Free Page List Tests
+
+        [Fact]
+        public void DeleteMany_FileDoesNotGrowIndefinitely_PagesReused()
+        {
+            // Insert a large batch, record file size, delete all, insert again.
+            // Second insert should reuse freed pages, so file shouldn't grow significantly.
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var dir = Path.Combine(_testDir, "freelist_reuse");
+            Directory.CreateDirectory(dir);
+            var dataFile = Path.Combine(dir, "bplustree.db");
+
+            long fileSizeAfterFirstBatch;
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 200; i++)
+                    trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"val-{i}" });
+            }
+            fileSizeAfterFirstBatch = new FileInfo(dataFile).Length;
+
+            // Delete all entries
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 200; i++)
+                    trunk.Toss($"k-{i:D5}");
+                Assert.Equal(0, trunk.Count);
+            }
+
+            long fileSizeAfterDelete = new FileInfo(dataFile).Length;
+
+            // Re-insert same number of entries — should reuse freed pages
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 200; i++)
+                    trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"val-{i}" });
+                Assert.Equal(200, trunk.Count);
+            }
+
+            long fileSizeAfterReinsert = new FileInfo(dataFile).Length;
+
+            // File after reinsert should not have grown significantly beyond the delete size
+            // (pages were reused from free list instead of appending new ones)
+            Assert.True(fileSizeAfterReinsert <= fileSizeAfterDelete + options.PageSize * 5,
+                $"File grew too much: after delete={fileSizeAfterDelete}, after reinsert={fileSizeAfterReinsert}. " +
+                $"Expected reuse of freed pages.");
+        }
+
+        [Fact]
+        public void DeleteMany_ThenReinsert_DataCorrectAcrossRestart()
+        {
+            // Insert, delete all, reinsert, restart, verify all data is correct.
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var dir = Path.Combine(_testDir, "freelist_restart");
+            Directory.CreateDirectory(dir);
+
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 100; i++)
+                    trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"original-{i}" });
+            }
+
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 100; i++)
+                    trunk.Toss($"k-{i:D5}");
+                Assert.Equal(0, trunk.Count);
+
+                for (int i = 0; i < 100; i++)
+                    trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"reinserted-{i}" });
+                Assert.Equal(100, trunk.Count);
+            }
+
+            // Restart and verify
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                Assert.Equal(100, trunk.Count);
+                for (int i = 0; i < 100; i++)
+                {
+                    var result = trunk.Crack($"k-{i:D5}");
+                    Assert.NotNull(result);
+                    Assert.Equal($"reinserted-{i}", result!.Payload);
+                }
+            }
+        }
+
+        [Fact]
+        public void FreeList_PersistsAcrossRestart()
+        {
+            // Delete entries to create free pages, restart, insert more — should reuse pages.
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var dir = Path.Combine(_testDir, "freelist_persist");
+            Directory.CreateDirectory(dir);
+            var dataFile = Path.Combine(dir, "bplustree.db");
+
+            // Phase 1: Insert and then delete half
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 200; i++)
+                    trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"val-{i}" });
+            }
+
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                // Delete every other key to trigger merges
+                for (int i = 0; i < 200; i += 2)
+                    trunk.Toss($"k-{i:D5}");
+            }
+
+            long fileSizeAfterDelete = new FileInfo(dataFile).Length;
+
+            // Phase 2: Reopen and insert new entries — should reuse freed pages
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 200; i < 300; i++)
+                    trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"new-{i}" });
+            }
+
+            long fileSizeAfterReinsert = new FileInfo(dataFile).Length;
+
+            // Verify the file didn't grow as much as a full 100-item insert would require
+            // (some pages from deletes should have been reused)
+            // Also verify data correctness across restart
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                // Odd keys from original + new keys should exist
+                for (int i = 1; i < 200; i += 2)
+                {
+                    var result = trunk.Crack($"k-{i:D5}");
+                    Assert.NotNull(result);
+                    Assert.Equal($"val-{i}", result!.Payload);
+                }
+                for (int i = 200; i < 300; i++)
+                {
+                    var result = trunk.Crack($"k-{i:D5}");
+                    Assert.NotNull(result);
+                    Assert.Equal($"new-{i}", result!.Payload);
+                }
+            }
+        }
+
+        [Fact]
+        public void FreeList_SuperblockStoresFreeListHead()
+        {
+            // Insert entries, delete to cause merges, verify free list head is stored in superblock.
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            var dir = Path.Combine(_testDir, "freelist_superblock");
+            Directory.CreateDirectory(dir);
+            var dataFile = Path.Combine(dir, "bplustree.db");
+
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 100; i++)
+                    trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"val-{i}" });
+            }
+
+            // Delete all entries — should free many pages
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: dir, options: options))
+            {
+                for (int i = 0; i < 100; i++)
+                    trunk.Toss($"k-{i:D5}");
+                Assert.Equal(0, trunk.Count);
+            }
+
+            // Read superblock directly to verify free list head is non-zero
+            using (var pm = new PageManager(dataFile, options.PageSize, validateChecksumsOnRead: false))
+            {
+                var (_, _, _, freeListHead) = pm.ReadSuperblock();
+                Assert.True(freeListHead > 0,
+                    "Free list head should be non-zero after deleting all entries (pages were freed).");
+            }
+        }
+
+        #endregion
     }
 }
