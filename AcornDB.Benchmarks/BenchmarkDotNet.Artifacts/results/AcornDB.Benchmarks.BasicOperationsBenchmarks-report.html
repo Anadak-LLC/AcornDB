@@ -2,7 +2,7 @@
 <html lang='en'>
 <head>
 <meta charset='utf-8' />
-<title>AcornDB.Benchmarks.BasicOperationsBenchmarks-20260219-232450</title>
+<title>AcornDB.Benchmarks.BasicOperationsBenchmarks-20260220-014103</title>
 
 <style type="text/css">
 	table { border-collapse: collapse; display: block; width: 100%; overflow: auto; }
@@ -17,27 +17,19 @@ BenchmarkDotNet v0.15.4, macOS 26.2 (25C56) [Darwin 25.2.0]
 Apple M4 Max, 1 CPU, 14 logical and 14 physical cores
 .NET SDK 9.0.305
   [Host]     : .NET 9.0.12 (9.0.12, 9.0.1225.60609), Arm64 RyuJIT armv8.0-a
-  Job-MJLQTR : .NET 9.0.12 (9.0.12, 9.0.1225.60609), Arm64 RyuJIT armv8.0-a
+  Job-NTRUNJ : .NET 9.0.12 (9.0.12, 9.0.1225.60609), Arm64 RyuJIT armv8.0-a
 </code></pre>
-<pre><code>InvocationCount=1  IterationCount=5  UnrollFactor=1  
-WarmupCount=3  
+<pre><code>IterationCount=5  WarmupCount=3  
 </code></pre>
 
 <table>
-<thead><tr><th>Method                             </th><th>ItemCount</th><th>Case</th><th>Mean     </th><th>Error   </th><th>StdDev  </th><th>Gen0</th><th>Allocated</th>
+<thead><tr><th>Method                      </th><th>Mean  </th><th>Error</th><th>StdDev</th><th>Gen0</th><th>Gen1</th><th>Allocated</th>
 </tr>
-</thead><tbody><tr><td>&#39;Stash: insert N new items&#39;</td><td>1000</td><td>Bitcask</td><td>23,683.51 &mu;s</td><td>12,314.119 &mu;s</td><td>3,197.938 &mu;s</td><td>-</td><td>4924240 B</td>
-</tr><tr><td>&#39;Crack: read N items by id&#39;</td><td>1000</td><td>Bitcask</td><td>52.55 &mu;s</td><td>7.281 &mu;s</td><td>1.891 &mu;s</td><td>-</td><td>-</td>
-</tr><tr><td>&#39;Toss: delete N items&#39;</td><td>1000</td><td>Bitcask</td><td>394.30 &mu;s</td><td>46.222 &mu;s</td><td>7.153 &mu;s</td><td>-</td><td>328000 B</td>
-</tr><tr><td>&#39;Mixed: stash+crack+update for N/2 items&#39;</td><td>1000</td><td>Bitcask</td><td>23,434.29 &mu;s</td><td>4,267.610 &mu;s</td><td>660.417 &mu;s</td><td>-</td><td>4803104 B</td>
-</tr><tr><td>&#39;Stash: insert N new items&#39;</td><td>1000</td><td>File</td><td>4,903,659.37 &mu;s</td><td>721,623.244 &mu;s</td><td>187,403.265 &mu;s</td><td>1000.0000</td><td>8946888 B</td>
-</tr><tr><td>&#39;Crack: read N items by id&#39;</td><td>1000</td><td>File</td><td>114.92 &mu;s</td><td>148.668 &mu;s</td><td>38.609 &mu;s</td><td>-</td><td>-</td>
-</tr><tr><td>&#39;Toss: delete N items&#39;</td><td>1000</td><td>File</td><td>74,941.77 &mu;s</td><td>12,679.735 &mu;s</td><td>3,292.887 &mu;s</td><td>-</td><td>823200 B</td>
-</tr><tr><td>&#39;Mixed: stash+crack+update for N/2 items&#39;</td><td>1000</td><td>File</td><td>4,677,407.64 &mu;s</td><td>813,848.462 &mu;s</td><td>211,353.862 &mu;s</td><td>1000.0000</td><td>8868088 B</td>
-</tr><tr><td>&#39;Stash: insert N new items&#39;</td><td>1000</td><td>Memory</td><td>5,016.28 &mu;s</td><td>959.077 &mu;s</td><td>249.069 &mu;s</td><td>-</td><td>4298664 B</td>
-</tr><tr><td>&#39;Crack: read N items by id&#39;</td><td>1000</td><td>Memory</td><td>59.22 &mu;s</td><td>26.849 &mu;s</td><td>4.155 &mu;s</td><td>-</td><td>-</td>
-</tr><tr><td>&#39;Toss: delete N items&#39;</td><td>1000</td><td>Memory</td><td>408.40 &mu;s</td><td>82.975 &mu;s</td><td>12.840 &mu;s</td><td>-</td><td>328000 B</td>
-</tr><tr><td>&#39;Mixed: stash+crack+update for N/2 items&#39;</td><td>1000</td><td>Memory</td><td>4,662.87 &mu;s</td><td>1,381.911 &mu;s</td><td>358.878 &mu;s</td><td>-</td><td>4021016 B</td>
+</thead><tbody><tr><td>Stash_MemoryTrunk_1000Items</td><td>1.291 ms</td><td>0.0225 ms</td><td>0.0058 ms</td><td>482.4219</td><td>240.2344</td><td>3.85 MB</td>
+</tr><tr><td>Stash_FileTrunk_1000Items</td><td>4,594.756 ms</td><td>431.8767 ms</td><td>112.1570 ms</td><td>1000.0000</td><td>-</td><td>8.39 MB</td>
+</tr><tr><td>Crack_MemoryTrunk_1000Items</td><td>1.335 ms</td><td>0.0301 ms</td><td>0.0047 ms</td><td>486.3281</td><td>242.1875</td><td>3.89 MB</td>
+</tr><tr><td>Toss_MemoryTrunk_1000Items</td><td>1.420 ms</td><td>0.0341 ms</td><td>0.0053 ms</td><td>533.2031</td><td>142.5781</td><td>4.26 MB</td>
+</tr><tr><td>StashAndCrack_Mixed_1000Operations</td><td>1.267 ms</td><td>0.0197 ms</td><td>0.0051 ms</td><td>486.3281</td><td>242.1875</td><td>3.88 MB</td>
 </tr></tbody></table>
 </body>
 </html>

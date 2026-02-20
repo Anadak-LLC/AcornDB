@@ -13,3 +13,8 @@ obj/
 /nupkgs
 /nupkg
 BenchmarkDotNet.Artifacts/
+node_modules/
+dist/
+build/
+.cache/
+data/
