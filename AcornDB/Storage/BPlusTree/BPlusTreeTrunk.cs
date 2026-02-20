@@ -66,6 +66,7 @@ namespace AcornDB.Storage.BPlusTree
                 flushIntervalMs: FLUSH_INTERVAL_MS)
         {
             _options = options ?? BPlusTreeOptions.Default;
+            _options.Validate();
 
             var typeName = typeof(T).Name;
             _dataDirectory = customPath ?? Path.Combine(Directory.GetCurrentDirectory(), "data", typeName);
