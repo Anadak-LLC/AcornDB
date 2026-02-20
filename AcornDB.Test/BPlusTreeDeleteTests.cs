@@ -499,5 +499,275 @@ namespace AcornDB.Test
         }
 
         #endregion
+
+        #region Merge/Redistribution Tests
+
+        [Fact]
+        public void Merge_DeleteMostEntries_TreeShrinks()
+        {
+            // Small page size to force many splits, then delete most entries
+            // triggering merges as leaves become underfull
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            using var trunk = CreateTrunk(options);
+            int count = 300;
+
+            for (int i = 0; i < count; i++)
+                trunk.Stash($"key-{i:D5}", new Nut<string> { Id = $"key-{i:D5}", Payload = $"val-{i}" });
+
+            Assert.Equal(count, trunk.Count);
+
+            // Delete 90% of entries to trigger many merges
+            for (int i = 0; i < count; i++)
+            {
+                if (i % 10 != 0) // Keep every 10th entry
+                    trunk.Toss($"key-{i:D5}");
+            }
+
+            int expectedRemaining = (count + 9) / 10; // ceil(300/10) = 30
+            Assert.Equal(expectedRemaining, trunk.Count);
+
+            // Verify remaining entries
+            for (int i = 0; i < count; i += 10)
+            {
+                var result = trunk.Crack($"key-{i:D5}");
+                Assert.NotNull(result);
+                Assert.Equal($"val-{i}", result!.Payload);
+            }
+
+            // Scan should return entries in order
+            var all = trunk.CrackAll().ToList();
+            Assert.Equal(expectedRemaining, all.Count);
+            for (int j = 0; j < all.Count - 1; j++)
+                Assert.True(string.Compare(all[j].Id, all[j + 1].Id, StringComparison.Ordinal) < 0);
+        }
+
+        [Fact]
+        public void Merge_DeleteFromLeftEdge_ScanRemainsOrdered()
+        {
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            using var trunk = CreateTrunk(options);
+
+            for (int i = 0; i < 200; i++)
+                trunk.Stash($"key-{i:D5}", new Nut<string> { Id = $"key-{i:D5}", Payload = $"val-{i}" });
+
+            // Delete the first 150 keys, which should trigger leftmost leaf merges
+            for (int i = 0; i < 150; i++)
+                trunk.Toss($"key-{i:D5}");
+
+            Assert.Equal(50, trunk.Count);
+
+            var all = trunk.CrackAll().ToList();
+            Assert.Equal(50, all.Count);
+            Assert.Equal("key-00150", all[0].Id);
+            Assert.Equal("key-00199", all[49].Id);
+        }
+
+        [Fact]
+        public void Merge_DeleteFromRightEdge_ScanRemainsOrdered()
+        {
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            using var trunk = CreateTrunk(options);
+
+            for (int i = 0; i < 200; i++)
+                trunk.Stash($"key-{i:D5}", new Nut<string> { Id = $"key-{i:D5}", Payload = $"val-{i}" });
+
+            // Delete the last 150 keys
+            for (int i = 50; i < 200; i++)
+                trunk.Toss($"key-{i:D5}");
+
+            Assert.Equal(50, trunk.Count);
+
+            var all = trunk.CrackAll().ToList();
+            Assert.Equal(50, all.Count);
+            Assert.Equal("key-00000", all[0].Id);
+            Assert.Equal("key-00049", all[49].Id);
+        }
+
+        [Fact]
+        public void Merge_AlternatingDelete_LeafChainCorrect()
+        {
+            // Deleting alternating keys forces many underfull leaves that should merge/redistribute
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            using var trunk = CreateTrunk(options);
+
+            for (int i = 0; i < 400; i++)
+                trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = new string('x', 50) });
+
+            // Delete every other key
+            for (int i = 0; i < 400; i += 2)
+                trunk.Toss($"k-{i:D5}");
+
+            Assert.Equal(200, trunk.Count);
+
+            // Verify scan uses leaf chain correctly (all remaining entries in order)
+            var all = trunk.CrackAll().ToList();
+            Assert.Equal(200, all.Count);
+
+            for (int j = 0; j < all.Count - 1; j++)
+                Assert.True(string.Compare(all[j].Id, all[j + 1].Id, StringComparison.Ordinal) < 0);
+
+            // Range scan should also work
+            var range = trunk.RangeScan("k-00050", "k-00150").ToList();
+            foreach (var item in range)
+            {
+                int idx = int.Parse(item.Id.Substring(2));
+                Assert.True(idx % 2 == 1); // Only odd indices remain
+                Assert.True(idx >= 50 && idx <= 150);
+            }
+        }
+
+        [Fact]
+        public void Merge_DeleteAndReinsert_AfterMerge_Correct()
+        {
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            using var trunk = CreateTrunk(options);
+
+            // Insert, then delete most (triggering merges), then reinsert
+            for (int i = 0; i < 200; i++)
+                trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"v1-{i}" });
+
+            for (int i = 0; i < 180; i++)
+                trunk.Toss($"k-{i:D5}");
+
+            Assert.Equal(20, trunk.Count);
+
+            // Reinsert deleted keys with new values
+            for (int i = 0; i < 180; i++)
+                trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"v2-{i}" });
+
+            Assert.Equal(200, trunk.Count);
+
+            // Verify all values correct
+            for (int i = 0; i < 180; i++)
+            {
+                var result = trunk.Crack($"k-{i:D5}");
+                Assert.NotNull(result);
+                Assert.Equal($"v2-{i}", result!.Payload);
+            }
+            for (int i = 180; i < 200; i++)
+            {
+                var result = trunk.Crack($"k-{i:D5}");
+                Assert.NotNull(result);
+                Assert.Equal($"v1-{i}", result!.Payload);
+            }
+        }
+
+        [Fact]
+        public void Merge_PersistsAcrossRestart()
+        {
+            var subDir = Path.Combine(_testDir, "persist_merge");
+            Directory.CreateDirectory(subDir);
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            {
+                for (int i = 0; i < 200; i++)
+                    trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = $"v-{i}" });
+
+                // Delete 90% to trigger merges
+                for (int i = 0; i < 200; i++)
+                {
+                    if (i % 10 != 0)
+                        trunk.Toss($"k-{i:D5}");
+                }
+            }
+
+            // Reopen and verify
+            using (var trunk = new BPlusTreeTrunk<string>(customPath: subDir, options: options))
+            {
+                Assert.Equal(20, trunk.Count);
+
+                for (int i = 0; i < 200; i += 10)
+                {
+                    var result = trunk.Crack($"k-{i:D5}");
+                    Assert.NotNull(result);
+                    Assert.Equal($"v-{i}", result!.Payload);
+                }
+
+                var all = trunk.CrackAll().ToList();
+                Assert.Equal(20, all.Count);
+                for (int j = 0; j < all.Count - 1; j++)
+                    Assert.True(string.Compare(all[j].Id, all[j + 1].Id, StringComparison.Ordinal) < 0);
+            }
+        }
+
+        [Fact]
+        public void Merge_DeleteAll_ViaSmallBatches_TreeBecomesEmpty()
+        {
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            using var trunk = CreateTrunk(options);
+
+            for (int i = 0; i < 500; i++)
+                trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = new string('a', 30) });
+
+            // Delete in small batches of 10, interleaved with count checks
+            for (int batch = 0; batch < 50; batch++)
+            {
+                for (int j = 0; j < 10; j++)
+                {
+                    int idx = batch * 10 + j;
+                    trunk.Toss($"k-{idx:D5}");
+                }
+                Assert.Equal(500 - (batch + 1) * 10, trunk.Count);
+            }
+
+            Assert.Equal(0, trunk.Count);
+            Assert.Empty(trunk.CrackAll());
+        }
+
+        [Fact]
+        public void Merge_LargeValues_MergeAndRedistribute()
+        {
+            // With large values, fewer entries per page — merges and redistributions
+            // happen more frequently
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            using var trunk = CreateTrunk(options);
+
+            int count = 100;
+            for (int i = 0; i < count; i++)
+                trunk.Stash($"k-{i:D5}", new Nut<string> { Id = $"k-{i:D5}", Payload = new string('x', 200 + (i % 100)) });
+
+            // Delete 75%
+            for (int i = 0; i < count; i++)
+            {
+                if (i % 4 != 0)
+                    trunk.Toss($"k-{i:D5}");
+            }
+
+            int expected = (count + 3) / 4;
+            Assert.Equal(expected, trunk.Count);
+
+            for (int i = 0; i < count; i += 4)
+            {
+                var result = trunk.Crack($"k-{i:D5}");
+                Assert.NotNull(result);
+                Assert.Equal(200 + (i % 100), result!.Payload.Length);
+            }
+        }
+
+        [Fact]
+        public void Merge_RangeScan_AfterHeavyMerges_Correct()
+        {
+            var options = new BPlusTreeOptions { PageSize = 4096, MaxCachePages = 64 };
+            using var trunk = CreateTrunk(options);
+
+            for (int i = 0; i < 300; i++)
+                trunk.Stash($"key-{i:D5}", new Nut<string> { Id = $"key-{i:D5}", Payload = $"val-{i}" });
+
+            // Delete middle 200 entries (50-249), keeping 50 at start and 50 at end
+            for (int i = 50; i < 250; i++)
+                trunk.Toss($"key-{i:D5}");
+
+            Assert.Equal(100, trunk.Count);
+
+            // Range scan across the deleted region
+            var range = trunk.RangeScan("key-00040", "key-00260").ToList();
+            // Should have keys 40-49 (10) + 250-260 (11) = 21
+            Assert.Equal(21, range.Count);
+            Assert.Equal("key-00040", range.First().Id);
+            Assert.Equal("key-00260", range.Last().Id);
+        }
+
+        #endregion
     }
 }

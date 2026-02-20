@@ -337,12 +337,14 @@ namespace AcornDB.Storage.BPlusTree
         /// <summary>
         /// Delete a key from the B+Tree. Returns (newRootPageId, found).
         ///
-        /// Strategy (MVP — documented in 01-design-decisions.md):
+        /// Strategy:
         ///   - Delete from leaf with page compaction (no fragmentation).
-        ///   - Root shrinking: if the root internal node has 0 separators after a child
-        ///     becomes empty or is the sole remaining child, collapse the root.
-        ///   - No sibling merge/redistribution. Underfull pages are allowed.
-        ///   - Full rebalancing is deferred to a future step.
+        ///   - Merge underfull leaf with sibling when combined contents fit in one page.
+        ///   - Redistribute (borrow from sibling) when merge would overflow.
+        ///   - Update parent separator keys after merge/redistribution.
+        ///   - Remove empty leaves from the leaf chain.
+        ///   - Handle cascading internal node merges when a merge reduces parent below minimum.
+        ///   - Root shrinking: if the root internal node has 0 separators, collapse to its sole child.
         /// </summary>
         internal (long NewRootPageId, bool Found) Delete(long rootPageId, ReadOnlySpan<byte> key, WalManager wal)
         {
@@ -367,11 +369,11 @@ namespace AcornDB.Storage.BPlusTree
                 {
                     var result = DeleteRecursive(rootPageId, key, wal);
                     if (!result.Found)
-                        return result;
+                        return (rootPageId, false);
 
                     // Root shrinking: if root internal node now has 0 separators,
                     // collapse to its sole child (the leftmost child).
-                    return (TryShrinkRoot(result.NewRootPageId), true);
+                    return (TryShrinkRoot(rootPageId), true);
                 }
             }
             finally
@@ -380,7 +382,7 @@ namespace AcornDB.Storage.BPlusTree
             }
         }
 
-        private (long NewRootPageId, bool Found) DeleteRecursive(long pageId, ReadOnlySpan<byte> key, WalManager wal)
+        private DeleteResult DeleteRecursive(long pageId, ReadOnlySpan<byte> key, WalManager wal)
         {
             var pageBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
             try
@@ -393,17 +395,517 @@ namespace AcornDB.Storage.BPlusTree
                 if (pageType == PAGE_TYPE_LEAF)
                 {
                     bool found = DeleteFromLeaf(pageId, pageBuf, key, wal);
-                    return (pageId, found);
+                    if (!found)
+                        return new DeleteResult { Found = false };
+
+                    // Re-read to get updated item count after compaction
+                    ReadPageCached(pageId, pageBuf);
+                    page = pageBuf.AsSpan(0, _pageSize);
+                    int newItemCount = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_ITEM_COUNT));
+                    return new DeleteResult { Found = true, Underfull = IsLeafUnderfull(page, newItemCount) };
                 }
 
-                long childPageId = SearchInternal(page, itemCount, key);
-                var result = DeleteRecursive(childPageId, key, wal);
-                return (pageId, result.Found);
+                // Internal node: find child index and descend
+                long leftmostChild = BinaryPrimitives.ReadInt64LittleEndian(page.Slice(HEADER_SIZE));
+                int childIdx = FindChildIndex(page, itemCount, key);
+                long childPageId = GetChildPageId(page, itemCount, childIdx, leftmostChild);
+
+                var childResult = DeleteRecursive(childPageId, key, wal);
+                if (!childResult.Found)
+                    return childResult;
+
+                if (!childResult.Underfull)
+                    return new DeleteResult { Found = true, Underfull = false };
+
+                // Child is underfull — try merge or redistribute with a sibling
+                TryRebalanceChild(pageId, childPageId, childIdx, wal);
+
+                // Re-read parent to check if it became underfull after rebalancing
+                ReadPageCached(pageId, pageBuf);
+                page = pageBuf.AsSpan(0, _pageSize);
+                int parentItemCount = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_ITEM_COUNT));
+                return new DeleteResult { Found = true, Underfull = IsInternalUnderfull(page, parentItemCount) };
             }
             finally
             {
                 ArrayPool<byte>.Shared.Return(pageBuf);
             }
+        }
+
+        /// <summary>
+        /// Find the child index (0-based) that the key routes to.
+        /// Index 0 = leftmost child, index N = child after separator N-1.
+        /// </summary>
+        private int FindChildIndex(ReadOnlySpan<byte> page, int itemCount, ReadOnlySpan<byte> key)
+        {
+            int lo = 0, hi = itemCount - 1;
+            int insertionPoint = 0;
+
+            while (lo <= hi)
+            {
+                int mid = lo + (hi - lo) / 2;
+                var (slotOffset, slotLen) = ReadInternalSlot(page, mid);
+                var record = page.Slice(slotOffset, slotLen);
+                int keyLen = BinaryPrimitives.ReadUInt16LittleEndian(record);
+                var recordKey = record.Slice(2, keyLen);
+
+                int cmp = recordKey.SequenceCompareTo(key);
+                if (cmp <= 0)
+                {
+                    insertionPoint = mid + 1;
+                    lo = mid + 1;
+                }
+                else
+                {
+                    hi = mid - 1;
+                }
+            }
+
+            return insertionPoint;
+        }
+
+        /// <summary>
+        /// Get the child page ID for a given child index in an internal node.
+        /// childIdx=0 returns leftmostChild; childIdx=N returns the pointer from separator N-1.
+        /// </summary>
+        private long GetChildPageId(ReadOnlySpan<byte> page, int itemCount, int childIdx, long leftmostChild)
+        {
+            if (childIdx == 0)
+                return leftmostChild;
+
+            var (slotOffset, slotLen) = ReadInternalSlot(page, childIdx - 1);
+            var record = page.Slice(slotOffset, slotLen);
+            int keyLen = BinaryPrimitives.ReadUInt16LittleEndian(record);
+            return BinaryPrimitives.ReadInt64LittleEndian(record.Slice(2 + keyLen));
+        }
+
+        /// <summary>
+        /// Check if a leaf page is underfull (used space &lt; 40% of usable space).
+        /// A leaf with 0 entries is always underfull.
+        /// </summary>
+        private bool IsLeafUnderfull(ReadOnlySpan<byte> page, int itemCount)
+        {
+            if (itemCount == 0) return true;
+            int usableSpace = _pageSize - HEADER_SIZE;
+            int freeStart = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_FREE_SPACE_START));
+            int freeEnd = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_FREE_SPACE_END));
+            int usedSpace = (freeStart - HEADER_SIZE) + (_pageSize - freeEnd);
+            // Underfull threshold: 40% of usable space
+            return usedSpace * 5 < usableSpace * 2;
+        }
+
+        /// <summary>
+        /// Check if an internal page is underfull (used space &lt; 40% of usable space).
+        /// Internal nodes with 0 separators handled separately by root shrinking.
+        /// </summary>
+        private bool IsInternalUnderfull(ReadOnlySpan<byte> page, int itemCount)
+        {
+            if (itemCount == 0) return true;
+            int usableSpace = _pageSize - HEADER_SIZE - 8; // subtract leftmost child pointer
+            int slotArrayStart = HEADER_SIZE + 8;
+            int freeStart = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_FREE_SPACE_START));
+            int freeEnd = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_FREE_SPACE_END));
+            int usedSpace = (freeStart - slotArrayStart) + (_pageSize - freeEnd);
+            return usedSpace * 5 < usableSpace * 2;
+        }
+
+        /// <summary>
+        /// Try to rebalance an underfull child by merging with or redistributing from a sibling.
+        /// Prefers the right sibling if available, otherwise uses the left sibling.
+        /// Merge is preferred over redistribution when entries fit in one page.
+        /// </summary>
+        private void TryRebalanceChild(long parentPageId, long childPageId, int childIdx, WalManager wal)
+        {
+            var parentBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
+            var childBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
+            var siblingBuf = ArrayPool<byte>.Shared.Rent(_pageSize);
+            try
+            {
+                ReadPageCached(parentPageId, parentBuf);
+                var parentPage = parentBuf.AsSpan(0, _pageSize);
+                int parentItemCount = BinaryPrimitives.ReadUInt16LittleEndian(parentPage.Slice(HDR_ITEM_COUNT));
+                long leftmostChild = BinaryPrimitives.ReadInt64LittleEndian(parentPage.Slice(HEADER_SIZE));
+
+                // Determine sibling: prefer right, fall back to left
+                int separatorIdx; // Index of the separator between child and sibling
+                long siblingPageId;
+                bool siblingIsRight;
+
+                if (childIdx < parentItemCount)
+                {
+                    // Right sibling exists (separator at childIdx)
+                    separatorIdx = childIdx;
+                    siblingPageId = GetChildPageId(parentPage, parentItemCount, childIdx + 1, leftmostChild);
+                    siblingIsRight = true;
+                }
+                else if (childIdx > 0)
+                {
+                    // Left sibling exists (separator at childIdx - 1)
+                    separatorIdx = childIdx - 1;
+                    siblingPageId = GetChildPageId(parentPage, parentItemCount, childIdx - 1, leftmostChild);
+                    siblingIsRight = false;
+                }
+                else
+                {
+                    // Only child — nothing to merge/redistribute with
+                    return;
+                }
+
+                ReadPageCached(childPageId, childBuf);
+                ReadPageCached(siblingPageId, siblingBuf);
+
+                byte childType = childBuf[HDR_PAGE_TYPE];
+
+                if (childType == PAGE_TYPE_LEAF)
+                {
+                    TryRebalanceLeaves(parentPageId, parentBuf, childPageId, childBuf,
+                        siblingPageId, siblingBuf, separatorIdx, siblingIsRight, wal);
+                }
+                else
+                {
+                    TryRebalanceInternals(parentPageId, parentBuf, childPageId, childBuf,
+                        siblingPageId, siblingBuf, separatorIdx, siblingIsRight, wal);
+                }
+            }
+            finally
+            {
+                ArrayPool<byte>.Shared.Return(siblingBuf);
+                ArrayPool<byte>.Shared.Return(childBuf);
+                ArrayPool<byte>.Shared.Return(parentBuf);
+            }
+        }
+
+        /// <summary>
+        /// Merge or redistribute two leaf siblings.
+        /// If all entries fit in one page, merge (left absorbs right, remove right from chain).
+        /// Otherwise, redistribute entries evenly and update parent separator.
+        /// </summary>
+        private void TryRebalanceLeaves(long parentPageId, byte[] parentBuf,
+            long childPageId, byte[] childBuf, long siblingPageId, byte[] siblingBuf,
+            int separatorIdx, bool siblingIsRight, WalManager wal)
+        {
+            // Determine left and right leaf
+            long leftPageId, rightPageId;
+            byte[] leftBuf, rightBuf;
+            if (siblingIsRight)
+            {
+                leftPageId = childPageId; leftBuf = childBuf;
+                rightPageId = siblingPageId; rightBuf = siblingBuf;
+            }
+            else
+            {
+                leftPageId = siblingPageId; leftBuf = siblingBuf;
+                rightPageId = childPageId; rightBuf = childBuf;
+            }
+
+            // Collect all entries from both leaves (already sorted)
+            var allEntries = CollectLeafEntries(leftBuf);
+            allEntries.AddRange(CollectLeafEntries(rightBuf));
+
+            // Right sibling of the right leaf (to maintain chain after merge)
+            long rightOfRight = BinaryPrimitives.ReadInt64LittleEndian(
+                rightBuf.AsSpan(HDR_RIGHT_SIBLING, 8));
+
+            // Check if merge fits in one page
+            if (LeafEntriesFitInPage(allEntries))
+            {
+                // === MERGE: left absorbs all entries, right is removed ===
+
+                // Also need to update the predecessor of leftLeaf if left's rightSibling
+                // currently points to right (it should, since they're adjacent).
+                // Left leaf's right sibling becomes right leaf's right sibling.
+                RewriteLeafPage(leftBuf, allEntries, rightOfRight);
+                WritePageCrcAndFlush(leftPageId, leftBuf, wal);
+
+                // Remove separator from parent, collapsing the right child
+                RemoveSeparatorFromParent(parentPageId, parentBuf, separatorIdx,
+                    leftPageId, siblingIsRight, wal);
+            }
+            else
+            {
+                // === REDISTRIBUTE: split entries evenly between left and right ===
+                int splitPoint = allEntries.Count / 2;
+                var leftEntries = allEntries.GetRange(0, splitPoint);
+                var rightEntries = allEntries.GetRange(splitPoint, allEntries.Count - splitPoint);
+
+                // Rewrite both leaves
+                RewriteLeafPage(leftBuf, leftEntries, rightPageId);
+                WritePageCrcAndFlush(leftPageId, leftBuf, wal);
+
+                RewriteLeafPage(rightBuf, rightEntries, rightOfRight);
+                WritePageCrcAndFlush(rightPageId, rightBuf, wal);
+
+                // Update parent separator to the first key of the new right leaf
+                UpdateParentSeparator(parentPageId, parentBuf, separatorIdx, rightEntries[0].Key, wal);
+            }
+        }
+
+        /// <summary>
+        /// Merge or redistribute two internal node siblings.
+        /// Merge pulls the parent separator down into the combined node.
+        /// Redistribute moves entries via the parent separator (rotate).
+        /// </summary>
+        private void TryRebalanceInternals(long parentPageId, byte[] parentBuf,
+            long childPageId, byte[] childBuf, long siblingPageId, byte[] siblingBuf,
+            int separatorIdx, bool siblingIsRight, WalManager wal)
+        {
+            long leftPageId, rightPageId;
+            byte[] leftBuf, rightBuf;
+            if (siblingIsRight)
+            {
+                leftPageId = childPageId; leftBuf = childBuf;
+                rightPageId = siblingPageId; rightBuf = siblingBuf;
+            }
+            else
+            {
+                leftPageId = siblingPageId; leftBuf = siblingBuf;
+                rightPageId = childPageId; rightBuf = childBuf;
+            }
+
+            // Read parent separator key
+            var parentPage = parentBuf.AsSpan(0, _pageSize);
+            var (sepOff, sepLen) = ReadInternalSlot(parentPage, separatorIdx);
+            var sepRecord = parentPage.Slice(sepOff, sepLen);
+            int sepKeyLen = BinaryPrimitives.ReadUInt16LittleEndian(sepRecord);
+            byte[] parentSepKey = sepRecord.Slice(2, sepKeyLen).ToArray();
+
+            // Collect entries from left internal node
+            var leftPage = leftBuf.AsSpan(0, _pageSize);
+            int leftItemCount = BinaryPrimitives.ReadUInt16LittleEndian(leftPage.Slice(HDR_ITEM_COUNT));
+            long leftLeftmostChild = BinaryPrimitives.ReadInt64LittleEndian(leftPage.Slice(HEADER_SIZE));
+            int leftLevel = leftPage[HDR_LEVEL];
+
+            var allEntries = new List<(byte[] Key, long ChildPageId)>();
+
+            // Left's separators
+            for (int i = 0; i < leftItemCount; i++)
+            {
+                var (sOff, sLen) = ReadInternalSlot(leftPage, i);
+                var rec = leftPage.Slice(sOff, sLen);
+                int kLen = BinaryPrimitives.ReadUInt16LittleEndian(rec);
+                allEntries.Add((rec.Slice(2, kLen).ToArray(),
+                    BinaryPrimitives.ReadInt64LittleEndian(rec.Slice(2 + kLen))));
+            }
+
+            // Parent separator key + right's leftmost child becomes the bridge entry
+            var rightPage = rightBuf.AsSpan(0, _pageSize);
+            long rightLeftmostChild = BinaryPrimitives.ReadInt64LittleEndian(rightPage.Slice(HEADER_SIZE));
+            allEntries.Add((parentSepKey, rightLeftmostChild));
+
+            // Right's separators
+            int rightItemCount = BinaryPrimitives.ReadUInt16LittleEndian(rightPage.Slice(HDR_ITEM_COUNT));
+            for (int i = 0; i < rightItemCount; i++)
+            {
+                var (sOff, sLen) = ReadInternalSlot(rightPage, i);
+                var rec = rightPage.Slice(sOff, sLen);
+                int kLen = BinaryPrimitives.ReadUInt16LittleEndian(rec);
+                allEntries.Add((rec.Slice(2, kLen).ToArray(),
+                    BinaryPrimitives.ReadInt64LittleEndian(rec.Slice(2 + kLen))));
+            }
+
+            if (InternalEntriesFitInPage(allEntries))
+            {
+                // === MERGE: left absorbs all entries ===
+                RewriteInternalPage(leftBuf, allEntries, leftLeftmostChild, leftLevel);
+                WritePageCrcAndFlush(leftPageId, leftBuf, wal);
+
+                RemoveSeparatorFromParent(parentPageId, parentBuf, separatorIdx,
+                    leftPageId, siblingIsRight, wal);
+            }
+            else
+            {
+                // === REDISTRIBUTE: split at median, median goes up to parent ===
+                int medianIdx = allEntries.Count / 2;
+                var newSepKey = allEntries[medianIdx].Key;
+                long newRightLeftmost = allEntries[medianIdx].ChildPageId;
+
+                var leftEntries = allEntries.GetRange(0, medianIdx);
+                var rightEntries = allEntries.GetRange(medianIdx + 1, allEntries.Count - medianIdx - 1);
+
+                RewriteInternalPage(leftBuf, leftEntries, leftLeftmostChild, leftLevel);
+                WritePageCrcAndFlush(leftPageId, leftBuf, wal);
+
+                RewriteInternalPage(rightBuf, rightEntries, newRightLeftmost, leftLevel);
+                WritePageCrcAndFlush(rightPageId, rightBuf, wal);
+
+                UpdateParentSeparator(parentPageId, parentBuf, separatorIdx, newSepKey, wal);
+            }
+        }
+
+        /// <summary>
+        /// Collect all key-value entries from a leaf page buffer.
+        /// </summary>
+        private List<(byte[] Key, byte[] Value)> CollectLeafEntries(byte[] pageBuf)
+        {
+            var page = pageBuf.AsSpan(0, _pageSize);
+            int itemCount = BinaryPrimitives.ReadUInt16LittleEndian(page.Slice(HDR_ITEM_COUNT));
+            var entries = new List<(byte[] Key, byte[] Value)>(itemCount);
+
+            for (int i = 0; i < itemCount; i++)
+            {
+                var (slotOffset, slotLen) = ReadSlot(page, i);
+                var record = page.Slice(slotOffset, slotLen);
+                int kLen = BinaryPrimitives.ReadUInt16LittleEndian(record);
+                var rKey = record.Slice(2, kLen).ToArray();
+                int vLenOff = 2 + kLen;
+                int vLen = BinaryPrimitives.ReadInt32LittleEndian(record.Slice(vLenOff));
+                var rVal = record.Slice(vLenOff + 4, vLen).ToArray();
+                entries.Add((rKey, rVal));
+            }
+
+            return entries;
+        }
+
+        /// <summary>
+        /// Check if a list of leaf entries fits in a single page.
+        /// Accounts for header, slot array, and record sizes.
+        /// </summary>
+        private bool LeafEntriesFitInPage(List<(byte[] Key, byte[] Value)> entries)
+        {
+            int slotsSize = entries.Count * SLOT_SIZE;
+            int recordsSize = 0;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                recordsSize += 2 + entries[i].Key.Length + 4 + entries[i].Value.Length;
+            }
+            return HEADER_SIZE + slotsSize + recordsSize <= _pageSize;
+        }
+
+        /// <summary>
+        /// Check if a list of internal entries fits in a single page.
+        /// Accounts for header, leftmost child pointer, slot array, and record sizes.
+        /// </summary>
+        private bool InternalEntriesFitInPage(List<(byte[] Key, long ChildPageId)> entries)
+        {
+            int overhead = HEADER_SIZE + 8; // header + leftmost child ptr
+            int slotsSize = entries.Count * SLOT_SIZE;
+            int recordsSize = 0;
+            for (int i = 0; i < entries.Count; i++)
+            {
+                recordsSize += 2 + entries[i].Key.Length + 8;
+            }
+            return overhead + slotsSize + recordsSize <= _pageSize;
+        }
+
+        /// <summary>
+        /// Remove a separator (and its associated child) from a parent internal node
+        /// after a merge. The surviving child (left) replaces the merged pair.
+        /// </summary>
+        private void RemoveSeparatorFromParent(long parentPageId, byte[] parentBuf,
+            int separatorIdx, long survivingChildPageId, bool siblingIsRight, WalManager wal)
+        {
+            var parentPage = parentBuf.AsSpan(0, _pageSize);
+            int parentItemCount = BinaryPrimitives.ReadUInt16LittleEndian(parentPage.Slice(HDR_ITEM_COUNT));
+            long leftmostChild = BinaryPrimitives.ReadInt64LittleEndian(parentPage.Slice(HEADER_SIZE));
+            int level = parentPage[HDR_LEVEL];
+
+            // Collect all separators except the one being removed
+            var remaining = new List<(byte[] Key, long ChildPageId)>(parentItemCount - 1);
+
+            for (int i = 0; i < parentItemCount; i++)
+            {
+                if (i == separatorIdx)
+                    continue;
+
+                var (sOff, sLen) = ReadInternalSlot(parentPage, i);
+                var rec = parentPage.Slice(sOff, sLen);
+                int kLen = BinaryPrimitives.ReadUInt16LittleEndian(rec);
+                var key = rec.Slice(2, kLen).ToArray();
+                long child = BinaryPrimitives.ReadInt64LittleEndian(rec.Slice(2 + kLen));
+                remaining.Add((key, child));
+            }
+
+            // After merge, the surviving child (left) absorbs the right.
+            // If the removed separator's *left* side was the leftmost child,
+            // update leftmostChild to the surviving page.
+            long newLeftmostChild;
+            if (separatorIdx == 0 && !siblingIsRight)
+            {
+                // Left sibling was the leftmost child, child was at separator 0's pointer.
+                // Surviving = left sibling = old leftmost child. Keep it.
+                newLeftmostChild = survivingChildPageId;
+            }
+            else if (separatorIdx == 0 && siblingIsRight)
+            {
+                // Child was leftmost child (childIdx=0), sibling was at separator 0's pointer.
+                // After merge, surviving = child = leftmost. Keep it.
+                newLeftmostChild = survivingChildPageId;
+            }
+            else
+            {
+                // Separator is not at position 0. The leftmost child is unchanged.
+                // But we need to ensure the surviving child's pointer replaces
+                // the right side of the removed separator.
+                newLeftmostChild = leftmostChild;
+
+                // The removed separator's child pointer (right side of sep) pointed to the right child.
+                // The left child (surviving) was referenced by separator[separatorIdx-1]'s child pointer
+                // (or leftmost child if separatorIdx=1 and child was at index 0+1 =1).
+                // After removing the separator, the remaining separator that was just before
+                // the removed one should now point to the surviving child.
+                if (siblingIsRight)
+                {
+                    // Child = left of separator, sibling = right of separator.
+                    // Child survives. The pointer to child is at separator[separatorIdx-1].child
+                    // or leftmostChild if separatorIdx was referencing childIdx>0.
+                    // After removing separator, the entries shift and the pointer that
+                    // previously went to the removed right child is gone. The pointer
+                    // that was to the left of the separator still correctly points to child.
+                    // No further adjustment needed.
+                }
+                else
+                {
+                    // Sibling = left, child = right of separator.
+                    // Sibling (left) survives. We need to update the pointer that
+                    // previously pointed to the right child to now point to the surviving left child.
+                    // The separator at separatorIdx had child pointer pointing to right (= child).
+                    // The separator before it (separatorIdx-1) has child pointer pointing to left (= sibling).
+                    // After removing separator[separatorIdx], the pointer from separator[separatorIdx-1]
+                    // (which is now at the same logical position) still points to sibling. Correct.
+                    // BUT: the separator after the removed one (if any) had its LEFT defined by
+                    // the removed separator's child pointer (the right child). That reference is gone.
+                    // We need to repoint it to the surviving child.
+                    // Actually, in the remaining list, the entry that was at separatorIdx+1 is now
+                    // at position separatorIdx. Its child pointer is its RIGHT child. The LEFT child
+                    // of that separator is defined by the previous separator's child pointer or leftmostChild.
+                    // Since we removed separator[separatorIdx] and the entry at [separatorIdx-1] still
+                    // points to the sibling (surviving), the [separatorIdx] entry (previously [separatorIdx+1])
+                    // correctly has its left child as the sibling. This is correct.
+                }
+            }
+
+            RewriteInternalPage(parentBuf, remaining, newLeftmostChild, level);
+            WritePageCrcAndFlush(parentPageId, parentBuf, wal);
+        }
+
+        /// <summary>
+        /// Update a separator key in a parent internal node (after redistribution).
+        /// Rewrites the parent page with the new separator key at the given index.
+        /// </summary>
+        private void UpdateParentSeparator(long parentPageId, byte[] parentBuf,
+            int separatorIdx, byte[] newSepKey, WalManager wal)
+        {
+            var parentPage = parentBuf.AsSpan(0, _pageSize);
+            int parentItemCount = BinaryPrimitives.ReadUInt16LittleEndian(parentPage.Slice(HDR_ITEM_COUNT));
+            long leftmostChild = BinaryPrimitives.ReadInt64LittleEndian(parentPage.Slice(HEADER_SIZE));
+            int level = parentPage[HDR_LEVEL];
+
+            var entries = new List<(byte[] Key, long ChildPageId)>(parentItemCount);
+            for (int i = 0; i < parentItemCount; i++)
+            {
+                var (sOff, sLen) = ReadInternalSlot(parentPage, i);
+                var rec = parentPage.Slice(sOff, sLen);
+                int kLen = BinaryPrimitives.ReadUInt16LittleEndian(rec);
+                long child = BinaryPrimitives.ReadInt64LittleEndian(rec.Slice(2 + kLen));
+
+                if (i == separatorIdx)
+                    entries.Add((newSepKey, child));
+                else
+                    entries.Add((rec.Slice(2, kLen).ToArray(), child));
+            }
+
+            RewriteInternalPage(parentBuf, entries, leftmostChild, level);
+            WritePageCrcAndFlush(parentPageId, parentBuf, wal);
         }
 
         /// <summary>
@@ -478,6 +980,12 @@ namespace AcornDB.Storage.BPlusTree
             {
                 ArrayPool<byte>.Shared.Return(pageBuf);
             }
+        }
+
+        private struct DeleteResult
+        {
+            public bool Found;
+            public bool Underfull;
         }
 
         #endregion
