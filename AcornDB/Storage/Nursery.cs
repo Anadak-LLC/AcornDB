@@ -189,6 +189,7 @@ namespace AcornDB.Storage
             Plant(new MemoryTrunkFactory());
             Plant(new DocumentStoreTrunkFactory());
             Plant(new GitHubTrunkFactory());
+            Plant(new BPlusTreeTrunkFactory());
             // NOTE: AzureTrunk moved to AcornDB.Persistence.Cloud package
 
             _initialized = true;
